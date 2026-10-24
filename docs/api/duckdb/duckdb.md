@@ -57,7 +57,9 @@ Execute the provided _sql_ query and return a Promise that resolves to the query
 
 `db.arrowBuffer(sql)`
 
-Execute the provided _sql_ query and return a Promise that resolves to the query result table as binary data in the [streaming Apache Arrow IPC format](https://arrow.apache.org/).
+Execute the provided _sql_ statement once and return a Promise that resolves to the query result table as binary data in the [streaming Apache Arrow IPC format](https://arrow.apache.org/). This includes schema-bearing empty results and statements with `RETURNING`. Trailing semicolons and comments are supported.
+
+The Node adapter copies native result chunks through a temporary DuckDB table and IPC file before returning the bytes; Arrow export requires local file access. These temporary resources are removed after export, and caller-managed transactions remain under caller control.
 
 ## prepare
 
@@ -65,3 +67,10 @@ Execute the provided _sql_ query and return a Promise that resolves to the query
 
 Return a new prepared statement for the given _sql_ query, which may contain `?` wildcard characters.
 The resulting prepared statement instance exposes `exec(params)` and `query(params)` methods that accept parameter values for query wildcards.
+
+
+## loadArrow
+
+`loadArrow(db, tableName, data)`
+
+Import Arrow IPC data into a table, replacing an existing table with the same name. The _data_ argument accepts byte chunks, a buffer or typed array, or a file path. Table names are quoted as identifiers, and temporary file paths support single quotes. The temporary IPC file is removed after the import.

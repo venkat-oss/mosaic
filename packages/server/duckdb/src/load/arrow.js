@@ -10,7 +10,7 @@ export async function loadArrow(db, tableName, buffer) {
   const tempFile = join(tmpdir(), `mosaic_${randomBytes(8).toString('hex')}.arrow`);
   await writeFile(tempFile, arrowData);
   try {
-    await db.exec(`CREATE OR REPLACE TABLE "${tableName}" AS SELECT * FROM '${tempFile}'`);
+    await db.exec(`CREATE OR REPLACE TABLE "${tableName.replaceAll('"', '""')}" AS SELECT * FROM '${tempFile.replaceAll("'", "''")}'`);
   } finally {
     await unlink(tempFile).catch(() => {});
   }
