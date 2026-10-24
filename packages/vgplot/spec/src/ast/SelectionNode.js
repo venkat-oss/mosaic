@@ -1,6 +1,7 @@
 import { ASTNode } from './ASTNode.js';
 import { OptionsNode, parseOptions } from './OptionsNode.js';
-import { INCLUDE, INTERSECT, SELECTION } from '../constants.js';
+import { INCLUDE, SELECTION } from '../constants.js';
+import { SELECTION_DEFAULT } from '../generated/params.js';
 import { paramRef, toArray } from '../util.js';
 
 export function parseSelection(spec, ctx) {
@@ -20,7 +21,7 @@ export class SelectionNode extends ASTNode {
    * @param {string} select The selection type.
    * @param {OptionsNode} options Selection options.
    */
-  constructor(select = INTERSECT, options = new OptionsNode({})) {
+  constructor(select = SELECTION_DEFAULT, options = new OptionsNode({})) {
     super(SELECTION);
     this.select = select;
     this.options = options;
