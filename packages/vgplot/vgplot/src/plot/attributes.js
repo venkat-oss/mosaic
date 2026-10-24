@@ -1,36 +1,8 @@
-import { isParam } from '@uwdata/mosaic-core';
+import { attrf, attributes } from './attribute-runtime.js';
 import { setNamedPlot } from './named-plots.js';
-
 export function name(name) {
   return plot => setNamedPlot(this, name, plot);
 }
-
-function setAttribute(plot, name, value) {
-  if (isParam(value)) {
-    value.addEventListener('value', value => {
-      plot.setAttribute(name, value);
-      plot.update();
-    });
-    if (value.value !== undefined) {
-      plot.setAttribute(name, value.value);
-    }
-  } else {
-    plot.setAttribute(name, value);
-  }
-}
-
-function attribute(name, value) {
-  return plot => { setAttribute(plot, name, value); };
-}
-
-function attributes(values) {
-  return plot => {
-    for (const [name, value] of Object.entries(values)) {
-      setAttribute(plot, name, value)
-    }
-  };
-}
-
 export function margins(object) {
   const { top, bottom, left, right } = object;
   const attr = {};
@@ -40,7 +12,6 @@ export function margins(object) {
   if (right !== undefined) attr.marginRight = right;
   return attributes(attr);
 }
-
 export function margin(value) {
   return attributes({
     marginTop: value,
@@ -53,10 +24,6 @@ export function margin(value) {
 export function xyDomain(value) {
   return attributes({ xDomain: value, yDomain: value });
 }
-
-const attrf = name => value => attribute(name, value);
-
-// plot-level attributes
 export const style = attrf('style');
 export const width = attrf('width');
 export const height = attrf('height');

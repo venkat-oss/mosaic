@@ -2,6 +2,7 @@
 title: Attributes
 ---
 <script setup>
+import { withBase } from 'vitepress';
   import { useLang } from '../../.vitepress/theme/useLang.js';
   const { language, setLanguage } = useLang();
 </script>
@@ -22,6 +23,30 @@ In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 <template v-else-if="language === 'python'">
 
 In addition to value arrays, scale domain attributes accept the string `"Fixed"` for a fixed domain (for example `vg.x_domain("Fixed")`).
+
+## Plot Attributes
+
+| Directive |
+| --- |
+| [`vg.name(value)`](#name) |
+| [`vg.width(value)`](#width) |
+| [`vg.height(value)`](#height) |
+| [`vg.aspect_ratio(value=True)`](#aspectratio) |
+| [`vg.margin(value)`](#margin) |
+| [`vg.margin_top(value)`](#margintop) |
+| [`vg.margin_right(value)`](#marginright) |
+| [`vg.margin_bottom(value)`](#marginbottom) |
+| [`vg.margin_left(value)`](#marginleft) |
+| [`vg.margins(top=None, right=None, bottom=None, left=None, **kwargs)`](#margins) |
+| [`vg.inset(value)`](#inset) |
+| [`vg.style(value)`](#style) |
+| [`vg.align(value)`](#align) |
+| [`vg.padding(value)`](#padding) |
+| [`vg.axis(value=True)`](#axis) |
+| [`vg.grid(value=True)`](#grid) |
+| [`vg.aria_label(value)`](#arialabel) |
+| [`vg.aria_description(value)`](#ariadescription) |
+| [`vg.clip(value=True)`](#clip) |
 
 </template>
 
@@ -515,3 +540,162 @@ Interval interactors are not currently supported when cartographic projections a
 </template>
 
 <LangError v-else :language="language" />
+
+## Plot attribute reference
+
+### name
+
+A unique name for the plot. The name is used by standalone legend
+components to to lookup the plot and access scale mappings.
+
+Names are registered in the calling API context, or in the default named-plot registry when no local context is supplied. Naming preserves the original plot identity.
+
+### width
+
+The outer width of the plot in pixels, including margins. Defaults to 640.
+On Observable, this can be set to the built-in [width](https://github.com/observablehq/stdlib/blob/main/README.md#width) for full-width
+responsive plots. Note: the default style has a max-width of 100%; the plot
+will automatically shrink to fit even when a fixed width is specified.
+
+### height
+
+The outer height of the plot in pixels, including margins. The default
+depends on the plot’s scales, and the plot’s width if an aspectRatio is
+specified. For example, if the *y* scale is linear and there is no *fy*
+scale, it might be 396.
+
+### aspectRatio
+
+The desired aspect ratio of the *x* and *y* scales, affecting the default
+height. Given an aspect ratio of *dx* / *dy*, and assuming that the *x* and
+*y* scales represent equivalent units (say, degrees Celsius or meters),
+computes a default height such that *dx* pixels along *x* represents the
+same variation as *dy* pixels along *y*. Note: when faceting, set the *fx*
+and *fy* scales’ **round** option to false for an exact aspect ratio.
+
+### margin
+
+Shorthand to set the same default for all four margins: **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**. Otherwise, the
+default margins depend on the maximum margins of the plot’s marks. While
+most marks default to zero margins (because they are drawn inside the chart
+area), Plot’s axis marks have non-zero default margins.
+
+### marginTop
+
+The top margin; the distance in pixels between the top edges of the inner
+and outer plot area. Defaults to the maximum top margin of the plot’s
+marks.
+
+### marginRight
+
+The right margin; the distance in pixels between the right edges of the
+inner and outer plot area. Defaults to the maximum right margin of the
+plot’s marks.
+
+### marginBottom
+
+The bottom margin; the distance in pixels between the bottom edges of the
+inner and outer plot area. Defaults to the maximum bottom margin of the
+plot’s marks.
+
+### marginLeft
+
+The left margin; the distance in pixels between the left edges of the inner
+and outer plot area. Defaults to the maximum left margin of the plot’s
+marks.
+
+### margins
+
+A shorthand object notation for setting multiple margin values.
+The object keys are margin names (top, right, etc).
+
+Python uses `vg.margins(top=None, right=None, bottom=None, left=None, **kwargs)`, with each margin passed separately. `None` entries are omitted, falsy values are retained, and extra keyword entries are preserved. JavaScript uses a single object and sets only its defined sides.
+
+### inset
+
+Shorthand to set the same default for all four insets: **insetTop**,
+**insetRight**, **insetBottom**, and **insetLeft**. All insets typically
+default to zero, though not always (say when using bin transform). A
+positive inset reduces effective area, while a negative inset increases it.
+
+### style
+
+Custom styles to override Plot’s defaults. Styles may be specified either
+as a string of inline styles (*e.g.*, `"color: red;"`, in the same fashion
+as assigning [*element*.style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style)) or an object of properties (*e.g.*,
+`{color: "red"}`, in the same fashion as assigning [*element*.style
+properties](https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration)). Note that unitless numbers ([quirky lengths](https://www.w3.org/TR/css-values-4/#deprecated-quirky-length)) such as
+`{padding: 20}` may not supported by some browsers; you should instead
+specify a string with units such as `{padding: "20px"}`. By default, the
+returned plot has a max-width of 100%, and the system-ui font. Plot’s marks
+and axes default to [currentColor](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value#currentcolor_keyword), meaning that they will inherit the
+surrounding content’s color.
+
+### align
+
+How to distribute unused space in the **range** for *point* and *band*
+scales. A number in [0, 1], such as:
+
+- 0 - use the start of the range, putting unused space at the end
+- 0.5 (default) - use the middle, distributing unused space evenly
+- 1 use the end, putting unused space at the start
+
+For ordinal position scales only.
+
+### padding
+
+For *band* scales, how much of the **range** to reserve to separate
+adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
+inset for the first and last value as a proportion of the bandwidth;
+defaults to 0.5 (50%).
+
+For ordinal position scales only.
+
+### axis
+
+The side of the frame on which to place the implicit axis: *top* or
+*bottom* for *x* or *fx*, or *left* or *right* for *y* or *fy*. The default
+depends on the scale:
+
+- *x* - *bottom*
+- *y* - *left*
+- *fx* - *top* if there is a *bottom* *x* axis, and otherwise *bottom*
+- *fy* - *right* if there is a *left* *y* axis, and otherwise *right*
+
+If *both*, an implicit axis will be rendered on both sides of the plot
+(*top* and *bottom* for *x* or *fx*, or *left* and *right* for *y* or
+*fy*). If null, the implicit axis is suppressed.
+
+For position axes only.
+
+### grid
+
+Whether to show a grid aligned with the scale’s ticks. If true, show a grid
+with the currentColor stroke; if a string, show a grid with the specified
+stroke color; if an approximate number of ticks, an interval, or an array
+of tick values, show corresponding grid lines. See also the grid mark.
+
+For axes only.
+
+### ariaLabel
+
+The [aria-label attribute](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-label) on the SVG root.
+
+**Known limitation**: This attribute is admitted by the declarative schema and serializes in Python, but the JavaScript renderer has no route for it. Rendering rejects with the error below. Error: `Unrecognized plot attribute: ariaLabel`.
+
+### ariaDescription
+
+The [aria-description attribute](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-description) on the SVG root.
+
+**Known limitation**: This attribute is admitted by the declarative schema and serializes in Python, but the JavaScript renderer has no route for it. Rendering rejects with the error below. Error: `Unrecognized plot attribute: ariaDescription`.
+
+### clip
+
+The default clip for all marks.
+
+**Known limitation**: This attribute is admitted by the declarative schema and serializes in Python, but the JavaScript renderer has no route for it. Rendering rejects with the error below. Error: `Unrecognized plot attribute: clip`.
+
+### Plot attribute examples
+
+`margins`: [JSON](/templates/attributes/plot/margins.json) · [YAML](/templates/attributes/plot/margins.yaml) · [JavaScript](/templates/attributes/plot/margins.js) · <a :href="withBase('/templates/attributes/plot/margins.py')" download>Python</a>.

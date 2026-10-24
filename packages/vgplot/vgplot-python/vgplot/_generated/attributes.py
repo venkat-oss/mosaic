@@ -1,44 +1,31 @@
-# DO NOT EDIT. Generated from the Mosaic JSON schema by bin/generate-python-api.js.
-# Regenerate with: pnpm run generate:python-api
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from ..plot import Directive
+from .plot_attributes import (
+    align,
+    aria_description,
+    aria_label,
+    aspect_ratio,
+    axis,
+    clip,
+    grid,
+    height,
+    inset,
+    margin,
+    margin_bottom,
+    margin_left,
+    margin_right,
+    margin_top,
+    name,
+    padding,
+    style,
+    width,
+)
 
 if TYPE_CHECKING:
     from .._types import AttrValue
-
-
-def align(value: AttrValue) -> Directive:
-    """How to distribute unused space in the **range** for *point* and *band* scales."""
-    return Directive("align", value)
-
-
-def aria_description(value: AttrValue) -> Directive:
-    """The aria-description attribute on the SVG root."""
-    return Directive("ariaDescription", value)
-
-
-def aria_label(value: AttrValue) -> Directive:
-    """The aria-label attribute on the SVG root."""
-    return Directive("ariaLabel", value)
-
-
-def aspect_ratio(value: AttrValue = True) -> Directive:
-    """The desired aspect ratio of the *x* and *y* scales, affecting the default height."""
-    return Directive("aspectRatio", value)
-
-
-def axis(value: AttrValue = True) -> Directive:
-    """The side of the frame on which to place the implicit axis: *top* or *bottom* for *x* or *fx*, or *left* or *right* for *y* or *fy*."""
-    return Directive("axis", value)
-
-
-def clip(value: AttrValue = True) -> Directive:
-    """The default clip for all marks."""
-    return Directive("clip", value)
 
 
 def color_base(value: AttrValue) -> Directive:
@@ -426,21 +413,6 @@ def fy_tick_spacing(value: AttrValue) -> Directive:
     return Directive("fyTickSpacing", value)
 
 
-def grid(value: AttrValue = True) -> Directive:
-    """Whether to show a grid aligned with the scale’s ticks."""
-    return Directive("grid", value)
-
-
-def height(value: AttrValue) -> Directive:
-    """The outer height of the plot in pixels, including margins."""
-    return Directive("height", value)
-
-
-def inset(value: AttrValue) -> Directive:
-    """Shorthand to set the same default for all four insets: **insetTop**, **insetRight**, **insetBottom**, and **insetLeft**."""
-    return Directive("inset", value)
-
-
 def length_base(value: AttrValue) -> Directive:
     """A log scale’s base; defaults to 10."""
     return Directive("lengthBase", value)
@@ -489,36 +461,6 @@ def length_scale(value: AttrValue) -> Directive:
 def length_zero(value: AttrValue = True) -> Directive:
     """Whether the **domain** must include zero."""
     return Directive("lengthZero", value)
-
-
-def margin(value: AttrValue) -> Directive:
-    """Shorthand to set the same default for all four margins: **marginTop**, **marginRight**, **marginBottom**, and **marginLeft**."""
-    return Directive("margin", value)
-
-
-def margin_bottom(value: AttrValue) -> Directive:
-    """The bottom margin; the distance in pixels between the bottom edges of the inner and outer plot area."""
-    return Directive("marginBottom", value)
-
-
-def margin_left(value: AttrValue) -> Directive:
-    """The left margin; the distance in pixels between the left edges of the inner and outer plot area."""
-    return Directive("marginLeft", value)
-
-
-def margin_right(value: AttrValue) -> Directive:
-    """The right margin; the distance in pixels between the right edges of the inner and outer plot area."""
-    return Directive("marginRight", value)
-
-
-def margin_top(value: AttrValue) -> Directive:
-    """The top margin; the distance in pixels between the top edges of the inner and outer plot area."""
-    return Directive("marginTop", value)
-
-
-def name(value: AttrValue) -> Directive:
-    """A unique name for the plot."""
-    return Directive("name", value)
 
 
 def opacity_base(value: AttrValue) -> Directive:
@@ -584,11 +526,6 @@ def opacity_tick_format(value: AttrValue) -> Directive:
 def opacity_zero(value: AttrValue = True) -> Directive:
     """Whether the **domain** must include zero."""
     return Directive("opacityZero", value)
-
-
-def padding(value: AttrValue) -> Directive:
-    """For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%)."""
-    return Directive("padding", value)
 
 
 def projection_clip(value: AttrValue = True) -> Directive:
@@ -701,11 +638,6 @@ def r_zero(value: AttrValue = True) -> Directive:
     return Directive("rZero", value)
 
 
-def style(value: AttrValue) -> Directive:
-    """Custom styles to override Plot’s defaults."""
-    return Directive("style", value)
-
-
 def symbol_domain(value: AttrValue) -> Directive:
     """The extent of the scale’s inputs (abstract values)."""
     return Directive("symbolDomain", value)
@@ -719,11 +651,6 @@ def symbol_range(value: AttrValue) -> Directive:
 def symbol_scale(value: AttrValue) -> Directive:
     """The *symbol* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
     return Directive("symbolScale", value)
-
-
-def width(value: AttrValue) -> Directive:
-    """The outer width of the plot in pixels, including margins."""
-    return Directive("width", value)
 
 
 def x_align(value: AttrValue) -> Directive:

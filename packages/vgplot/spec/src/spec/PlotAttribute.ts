@@ -18,11 +18,14 @@ export type LabelArrow =
 
 /** Plot attributes. */
 export interface PlotAttributes {
+
+
   /**
    * A unique name for the plot. The name is used by standalone legend
    * components to to lookup the plot and access scale mappings.
    */
   name?: string;
+
 
   /**
    * The outer width of the plot in pixels, including margins. Defaults to 640.
@@ -34,6 +37,7 @@ export interface PlotAttributes {
    */
   width?: number | ParamRef;
 
+
   /**
    * The outer height of the plot in pixels, including margins. The default
    * depends on the plot’s scales, and the plot’s width if an aspectRatio is
@@ -41,6 +45,7 @@ export interface PlotAttributes {
    * scale, it might be 396.
    */
   height?: number | ParamRef;
+
 
   /**
    * The desired aspect ratio of the *x* and *y* scales, affecting the default
@@ -52,6 +57,7 @@ export interface PlotAttributes {
    */
   aspectRatio?: number | boolean | null | ParamRef;
 
+
   /**
    * Shorthand to set the same default for all four margins: **marginTop**,
    * **marginRight**, **marginBottom**, and **marginLeft**. Otherwise, the
@@ -61,12 +67,14 @@ export interface PlotAttributes {
    */
   margin?: number | ParamRef;
 
+
   /**
    * The top margin; the distance in pixels between the top edges of the inner
    * and outer plot area. Defaults to the maximum top margin of the plot’s
    * marks.
    */
   marginTop?: number | ParamRef;
+
 
   /**
    * The right margin; the distance in pixels between the right edges of the
@@ -75,6 +83,7 @@ export interface PlotAttributes {
    */
   marginRight?: number | ParamRef;
 
+
   /**
    * The bottom margin; the distance in pixels between the bottom edges of the
    * inner and outer plot area. Defaults to the maximum bottom margin of the
@@ -82,12 +91,14 @@ export interface PlotAttributes {
    */
   marginBottom?: number | ParamRef;
 
+
   /**
    * The left margin; the distance in pixels between the left edges of the inner
    * and outer plot area. Defaults to the maximum left margin of the plot’s
    * marks.
    */
   marginLeft?: number | ParamRef;
+
 
   /**
    * A shorthand object notation for setting multiple margin values.
@@ -100,6 +111,7 @@ export interface PlotAttributes {
     left?: number | ParamRef;
   };
 
+
   /**
    * Shorthand to set the same default for all four insets: **insetTop**,
    * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically
@@ -107,6 +119,7 @@ export interface PlotAttributes {
    * positive inset reduces effective area, while a negative inset increases it.
    */
   inset?: number | ParamRef;
+
 
   /**
    * Custom styles to override Plot’s defaults. Styles may be specified either
@@ -127,6 +140,7 @@ export interface PlotAttributes {
    */
   style?: string | CSSStyles | null | ParamRef;
 
+
   /**
    * How to distribute unused space in the **range** for *point* and *band*
    * scales. A number in [0, 1], such as:
@@ -139,6 +153,7 @@ export interface PlotAttributes {
    */
   align?: number | ParamRef;
 
+
   /**
    * For *band* scales, how much of the **range** to reserve to separate
    * adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
@@ -148,6 +163,7 @@ export interface PlotAttributes {
    * For ordinal position scales only.
    */
   padding?: number | ParamRef;
+
 
   /**
    * The side of the frame on which to place the implicit axis: *top* or
@@ -167,6 +183,7 @@ export interface PlotAttributes {
    */
   axis?: 'top' | 'right' | 'bottom' | 'left' | 'both' | boolean | null | ParamRef;
 
+
   /**
    * Whether to show a grid aligned with the scale’s ticks. If true, show a grid
    * with the currentColor stroke; if a string, show a grid with the specified
@@ -177,12 +194,14 @@ export interface PlotAttributes {
    */
   grid?: boolean | string | ParamRef;
 
+
   /**
    * The [aria-label attribute][1] on the SVG root.
    *
    * [1]: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-label
    */
   ariaLabel?: string | null;
+
 
   /**
    * The [aria-description attribute][1] on the SVG root.
@@ -191,7 +210,10 @@ export interface PlotAttributes {
    */
   ariaDescription?: string | null;
 
-  /** The default clip for all marks. */
+
+  /**
+   * The default clip for all marks.
+   */
   clip?: 'frame' | 'sphere' | boolean | null | ParamRef;
 
 

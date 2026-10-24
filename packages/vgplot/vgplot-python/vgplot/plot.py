@@ -14,6 +14,7 @@ from . import (
 )
 from ._generated import layouts as _layouts
 from ._generated import legends as _legends
+from ._generated import plot_attributes as _plot_attributes
 from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -117,21 +118,6 @@ def plot(
     root: dict[str, Any] = {"plot": marks}
     root.update(directives)
     return View(root, **kwargs)
-
-
-def margins(
-    top: int | None = None,
-    right: int | None = None,
-    bottom: int | None = None,
-    left: int | None = None,
-    **kwargs: Any,
-) -> Directive:
-    return Directive(
-        "margins",
-        omit_none(
-            {"top": top, "right": right, "bottom": bottom, "left": left, **kwargs}
-        ),
-    )
 
 
 def _encode_component(
@@ -349,3 +335,5 @@ _mark_runtime.bind_annotations(globals(), vars(_mark_api), _mark_api._RETURN_TYP
 color_legend = _legends.color_legend
 opacity_legend = _legends.opacity_legend
 symbol_legend = _legends.symbol_legend
+
+margins = _plot_attributes.margins
