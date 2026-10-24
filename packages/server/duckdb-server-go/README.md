@@ -2,7 +2,7 @@
 
 A Go-based server that runs a local DuckDB instance and supports queries over HTTP/HTTPS, returning data in [Apache Arrow](https://arrow.apache.org/) format.
 
-_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/mosaic-core) package.
+_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/core) package.
 
 ## Usage
 
@@ -36,7 +36,7 @@ You can customize the server behavior with the following command-line flags:
 By default, the server looks for `localhost.pem` and `localhost-key.pem` in the current directory, then in the shared OS user configuration directory under `mosaic/https`, if the `--cert` and `--key` flags are not provided.
 
 For compatibility, the installed binary permits all HTTP origins. A cross-site page can therefore submit
-commands, including side-effecting `exec` commands over GET, to a running server. Do not expose the binary to untrusted
+POST commands, including side-effecting `exec` commands, to a running server. Do not expose the binary to untrusted
 browsers or cookie credentials without an outer proxy that enforces an origin or CSRF policy. Programs embedding
 `pkg/server` instead receive safe zero-value origin defaults and can configure exact allowed origins.
 
@@ -180,53 +180,64 @@ duckdb-server-go --gatekeeper='{"version":2,"options":{}}'
 
 The CLI loads Gatekeeper (installing from community if needed), passes the document unchanged to `gatekeeper_configure`, disables extension autoload/autoinstall, and locks configuration. `--load-extensions` can provide a local artifact first. Upgrade cached installations with `FORCE INSTALL gatekeeper FROM community`, then restart.
 
+As of 2026-10-23, the signed Gatekeeper artifact for DuckDB 2.0.0 is unavailable from the community repository: its [publication build failed](https://github.com/duckdb/community-extensions/actions/runs/39607592653). The upstream 0.4.3 source supports DuckDB 2.0.0. Bazel can build that source against the matching official DuckDB static SDK:
+
+```sh
+bazelisk build //packages/server/duckdb-server-go/gatekeeper:extension
+bazelisk run //packages/server/duckdb-server-go:duckdb-server -- \
+  --database=':memory:?allow_unsigned_extensions=true' \
+  --load-extensions="$PWD/bazel-bin/packages/server/duckdb-server-go/gatekeeper/gatekeeper.duckdb_extension" \
+  --gatekeeper='{"version":2,"options":{}}'
+```
+
+This local artifact is unsigned. The database argument explicitly permits loading it; ordinary server connections continue to require signed extensions. Gatekeeper also checks that the artifact matches the running DuckDB engine. The source, SDK and generated engine grammar are pinned build inputs.
+
+
 For Go applications, load Gatekeeper during trusted setup and call `query.ConfigureGatekeeper(ctx, execer, document)` before locking configuration. Global policy, autoload/autoinstall settings, and configuration locking must run once per database, not per pooled connection; guard the setup with `sync.Once` and retain its error as [main.go](main.go) does. `query.New` does not load extensions; `query.WithValidation()` requires Gatekeeper and enables validation for every Arrow query. `db.Close()` also closes the connector.
 
 `db.Query(ctx, sql, policy)` returns the complete Arrow IPC result as `[]byte`, or nil on error. Pass `*query.ValidationPolicy` directly or from `WithAuthorizer` to narrow the global policy. Use `JSON: &document` or typed `AllowedTables`, `BlockedTables`, `AllowedFunctions`, `BlockedFunctions`, and `UseDefaultFunctions` fields; the two forms cannot be mixed. Nil slices omit options; empty slices remain explicit arrays. `TableRule` and `FunctionRule` take a nonempty `SchemaPath`, outermost schema first; `Catalog` fields and `UseDefaultFunctions` are pointers, and an empty `FunctionRule.Type` matches any function kind. Names are passed unchanged, including whitespace.
 
-`ValidateSQL(ctx, sql, policy)` returns `(ValidationResult, error)` without executing. `Details` contains diagnostics and violations; successful results include `CallerObjects`, `CallerFunctions`, transitive `Objects`, and `Functions`. Use `errors.AsType[query.ErrorDetails]`, or `errors.Is` with `ErrValidation`, `ErrAccessDenied`, `ErrUnsupportedStatement`, and `ErrInvalidPolicy`. HTTP validation errors return 403 for policy denials, 400 for SQL errors, and 500 for invalid application policies or validator failures, with the complete diagnostic in the body. Gatekeeper documents its diagnostics as host-only, so redact them before exposing the server to untrusted callers.
+`ValidateSQL(ctx, sql, policy)` returns `(ValidationResult, error)` without executing. `Details` contains diagnostics and violations; successful results include `CallerObjects`, `CallerFunctions`, transitive `Objects`, and `Functions`. Use `errors.AsType[query.ErrorDetails]`, or `errors.Is` with `ErrValidation`, `ErrAccessDenied`, `ErrUnsupportedStatement`, and `ErrInvalidPolicy`. HTTP validation errors return 403 for policy denials, 400 for malformed or unsupported SQL, and 500 for invalid application policies or validator failures, with the diagnostic in the shared JSON error envelope. Gatekeeper documents its diagnostics as host-only, so redact them before exposing the server to untrusted callers.
 
-Validated execution uses the same connection for validation and execution and rejects `exec`; disable Mosaic pre-aggregation with `preagg: { enabled: false }`. Trusted views/macros can expose their dependencies. See Gatekeeper's [policy schema](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.1/docs/policy-v2.schema.json), [version 1 migration guide](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.1/docs/policy-migration.md), and [security model](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.1/docs/security.md) for policy semantics and resource boundaries.
+Validated execution uses the same connection for validation and execution and rejects `exec`; disable Mosaic pre-aggregation with `preagg: { enabled: false }`. Trusted views/macros can expose their dependencies. See Gatekeeper's [policy schema](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.3/docs/policy-v2.schema.json), [version 1 migration guide](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.3/docs/policy-migration.md), and [security model](https://github.com/nozzle/duckdb-gatekeeper/blob/v0.4.3/docs/security.md) for policy semantics and resource boundaries.
 
 ## API
 
-The server supports queries via HTTP GET and POST. GET uses `type` and `sql` query parameters, for example [this URL](<http://localhost:3000/?type=arrow&sql=select%201>).
+The server implements the [shared HTTP protocol](https://uwdata.github.io/mosaic/api/duckdb/server-protocol): POST accepts `arrow`, `exec`, and `preagg` JSON commands. GET accepts read-only `arrow` commands through flat `type` and `sql` URL parameters. Arrow responses are IPC streams; errors use the common JSON error envelope.
 
-POST requests take a JSON object with the command in `type` and query text in `sql`. The server supports the following commands.
-
-### `exec`
-
-Executes the SQL query in the `sql` field (rejected when [`--gatekeeper`](#gatekeeper-configuration) is enabled).
-
-### `arrow`
-
-Executes the SQL query in the `sql` field and returns the result in Apache Arrow format.
+`preagg` validates its read-only source under the same application policy as `arrow` before atomically publishing the table. `exec` remains disabled when global Gatekeeper validation is active.
 
 ## Developers
 
-### Build
+### Build and run
 
-Build the release binary with:
-
-```sh
-go build -tags=duckdb_arrow -o duckdb-server-go .
-```
-
-### Develop
-
-To run the server, use `go run` (this won't restart when the code changes):
+From the repository root, build the native server with Bazel:
 
 ```sh
-go run -tags=duckdb_arrow .
+bazelisk build //packages/server/duckdb-server-go:duckdb-server
 ```
 
-Before sending a pull request, run the tests, linter, and formatter. Integration tests install the signed Gatekeeper community extension; the first run needs network access, then DuckDB caches it. The fresh-install smoke test always downloads unless `-short` is used.
+Run it with the same command-line options described above:
 
 ```sh
-go fmt ./...
-go test -race -tags=duckdb_arrow ./...
-golangci-lint run
+bazelisk run //packages/server/duckdb-server-go:duckdb-server -- --port 3000
 ```
+
+### Checks
+
+```sh
+bazelisk test //packages/server/duckdb-server-go:check
+```
+
+The suite includes the server, query and extension tests, race testing, formatting,
+and the configured Go linters. Bazel selects the Go SDK from `go.mod` and uses
+locked module dependencies and a pinned lint executable. Policy integration tests
+use the Bazel-built Gatekeeper 0.4.3 fixture, with unsigned loading enabled only
+in their test connections. They exercise configuration, policy denials, validated
+execution and local artifact installation without relying on community publication.
+The unrestricted server test checks that unsigned loading remains disabled.
+Extension installation tests still access their configured repositories; temporary
+homes and fresh-install directories isolate them from a developer's extension cache.
 
 ### Update Dependencies
 

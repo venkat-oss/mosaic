@@ -152,6 +152,7 @@ filegroup(
         "//docs:site",
         "//packages/examples:build",
         "//packages/server/duckdb-server:server",
+        "//packages/server/duckdb-server-go:duckdb-server",
         "//packages/vgplot/widget:bundle",
     ],
 )
@@ -186,6 +187,8 @@ test_suite(
     tests = [
         ":node_checks",
         ":python_checks",
+        "//packages/server/duckdb-server-go:check",
+        "//packages/server:protocol_go",
     ],
 )
 
@@ -202,6 +205,7 @@ test_suite(
     tests = [package + ":lint" for package in _JAVASCRIPT_PACKAGES + _PYTHON_PACKAGES] + [
         "//packages/vgplot/widget:javascript_lint",
         "//packages/vgplot/spec:browser_lint",
+        "//packages/server/duckdb-server-go:lint",
         "//build/python:check",
         "//dev:lint",
         "//specs:lint",

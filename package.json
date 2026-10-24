@@ -26,6 +26,7 @@
     "typecheck": "bazelisk test //:typecheck",
     "test": "bazelisk test //:check",
     "server": "bazelisk run //packages/server/duckdb-server:dev --",
+    "server:go": "bazelisk run //packages/server/duckdb-server-go:duckdb-server --",
     "server:node": "bazelisk run //packages/server/duckdb:server --",
     "dev": "bazelisk run //:dev",
     "version": "bazelisk mod deps && git add MODULE.bazel.lock"

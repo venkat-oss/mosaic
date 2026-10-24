@@ -9,6 +9,7 @@ _DATA = [
     "//:data/penguins.parquet",
 ]
 _SERVERS = {
+    "go": "//packages/server/duckdb-server-go:duckdb-server",
     "python": "//packages/server/duckdb-server:server",
     "node": ":node_server",
 }

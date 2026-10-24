@@ -49,7 +49,7 @@ func TestCORSActualRequestNegotiation(t *testing.T) {
 				called = true
 				w.WriteHeader(http.StatusOK)
 			}))
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req := commandRequest(http.MethodPost, "/", nil)
 			if tt.origin != "" {
 				req.Header.Set("Origin", tt.origin)
 			}
@@ -130,7 +130,7 @@ func TestCORSPreflight(t *testing.T) {
 		}))
 		res := httptest.NewRecorder()
 
-		handler.ServeHTTP(res, httptest.NewRequest(http.MethodOptions, "/", nil))
+		handler.ServeHTTP(res, commandRequest(http.MethodOptions, "/", nil))
 
 		require.Equal(t, http.StatusOK, res.Code)
 		require.False(t, called)
@@ -164,7 +164,7 @@ func newTestCORSHandler(t *testing.T, options CORSOptions, next http.Handler) ht
 }
 
 func newPreflight(origin, method, headers string) *http.Request {
-	req := httptest.NewRequest(http.MethodOptions, "/", nil)
+	req := commandRequest(http.MethodOptions, "/", nil)
 	req.Header.Set("Origin", origin)
 	req.Header.Set("Access-Control-Request-Method", method)
 	if headers != "" {
@@ -252,7 +252,7 @@ func TestCrossOriginProtection(t *testing.T) {
 				called = true
 				w.WriteHeader(http.StatusOK)
 			}))
-			req := httptest.NewRequest(http.MethodPost, "http://server.example/", nil)
+			req := commandRequest(http.MethodPost, "http://server.example/", nil)
 			if tt.origin != "" {
 				req.Header.Set("Origin", tt.origin)
 			}

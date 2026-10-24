@@ -133,14 +133,19 @@ func run() int {
 	fmt.Println("-------------------- | -------- | -------------------- | --------------------")
 
 	addr := net.JoinHostPort(*address, *port)
-	httpServer := &http.Server{Addr: addr, Handler: s, TLSConfig: tlsConfig, ReadHeaderTimeout: 10 * time.Second}
+	httpServer := &http.Server{Addr: addr, Handler: s, TLSConfig: tlsConfig, ReadHeaderTimeout: 10 * time.Second, MaxHeaderBytes: 2 * 1024 * 1024}
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		logger.Error("main: error binding HTTP server", "error", err)
+		return 1
+	}
 
 	if tlsConfig != nil {
-		logger.Info(fmt.Sprintf("DuckDB Server listening on https://%s", addr))
-		err = httpServer.ListenAndServeTLS("", "")
+		logger.Info(fmt.Sprintf("DuckDB Server listening on https://%s", listener.Addr()))
+		err = httpServer.ServeTLS(listener, "", "")
 	} else {
-		logger.Info(fmt.Sprintf("DuckDB Server listening on http://%s", addr))
-		err = httpServer.ListenAndServe()
+		logger.Info(fmt.Sprintf("DuckDB Server listening on http://%s", listener.Addr()))
+		err = httpServer.Serve(listener)
 	}
 	if err != nil {
 		logger.Error("main: error running HTTP server", "error", err)

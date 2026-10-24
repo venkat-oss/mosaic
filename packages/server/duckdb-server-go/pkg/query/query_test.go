@@ -4,20 +4,25 @@ import (
 	"bytes"
 	"database/sql/driver"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/duckdb/duckdb-go/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/extensions"
+	fixture "github.com/uwdata/mosaic/packages/server/duckdb-server-go/internal/gatekeepertest"
 )
 
 func testConnector(t *testing.T, gatekeeper bool) *duckdb.Connector {
 	t.Helper()
-	connector, err := duckdb.NewConnector(":memory:?autoload_known_extensions=false&autoinstall_known_extensions=false", func(execer driver.ExecerContext) error {
+	dsn := ":memory:?autoload_known_extensions=false&autoinstall_known_extensions=false"
+	if gatekeeper {
+		dsn = fixture.DSN(dsn)
+	}
+	connector, err := duckdb.NewConnector(dsn, func(execer driver.ExecerContext) error {
 		if gatekeeper {
-			return extensions.InstallAndLoad(t.Context(), execer, "gatekeeper", "community")
+			return fixture.Load(t.Context(), execer)
 		}
 		return nil
 	})
@@ -69,4 +74,19 @@ func TestExecAndArrow(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, data)
 	require.Error(t, db.Exec(t.Context(), "INVALID SQL"))
+}
+
+func TestMain(m *testing.M) {
+	home, err := os.MkdirTemp(os.Getenv("TEST_TMPDIR"), "mosaic-go-tests-")
+	if err != nil {
+		panic(err)
+	}
+	for _, name := range []string{"HOME", "USERPROFILE"} {
+		if err := os.Setenv(name, home); err != nil {
+			panic(err)
+		}
+	}
+	code := m.Run()
+	_ = os.RemoveAll(home)
+	os.Exit(code)
 }

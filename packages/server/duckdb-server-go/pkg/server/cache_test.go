@@ -107,7 +107,7 @@ func TestHTTPCachePreconditions(t *testing.T) {
 		return nil, nil
 	}))
 	first := httptest.NewRecorder()
-	handler.ServeHTTP(first, httptest.NewRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil))
+	handler.ServeHTTP(first, commandRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil))
 	require.Equal(t, http.StatusOK, first.Code)
 	etag := first.Header().Get("ETag")
 	require.NotEmpty(t, etag)
@@ -127,7 +127,7 @@ func TestHTTPCachePreconditions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			allowed = tt.allowed
-			req := httptest.NewRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
+			req := commandRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
 			req.Header.Set("If-Match", tt.match)
 			req.Header["If-None-Match"] = tt.none
 			res := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func TestHTTPCacheNonQueryResponses(t *testing.T) {
 		headers http.Header
 		status  int
 	}{
-		{name: "GET exec", method: http.MethodGet, uri: "/?type=exec&sql=SELECT+1", status: http.StatusOK},
+		{name: "GET exec", method: http.MethodGet, uri: "/?type=exec&sql=SELECT+1", status: http.StatusBadRequest},
 		{name: "POST query", method: http.MethodPost, uri: "/", body: `{"type":"arrow","sql":"SELECT 1"}`, status: http.StatusOK},
 		{name: "OPTIONS", method: http.MethodOptions, uri: "/", status: http.StatusOK},
 		{name: "preflight", method: http.MethodOptions, uri: "/", headers: http.Header{"Origin": {"http://app.example"}, "Access-Control-Request-Method": {"GET"}}, status: http.StatusOK},
@@ -175,7 +175,7 @@ func TestHTTPCacheNonQueryResponses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.uri, strings.NewReader(tt.body))
+			req := commandRequest(tt.method, tt.uri, strings.NewReader(tt.body))
 			maps.Copy(req.Header, tt.headers)
 			req.Header.Set("If-Match", `"other"`)
 			req.Header.Set("If-None-Match", "*")
@@ -197,7 +197,7 @@ func TestVaryIndependentOfCacheControl(t *testing.T) {
 		t.Run(policy, func(t *testing.T) {
 			handler := mustHandler(t, spy, WithCacheControl(policy), WithVary("X-Dataset"), WithCORS(CORSOptions{AllowedOrigins: []string{"http://app.example"}}))
 			for _, conditional := range []bool{false, true} {
-				req := httptest.NewRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
+				req := commandRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
 				req.Header.Set("Origin", "http://app.example")
 				if conditional {
 					req.Header.Set("If-None-Match", "*")
@@ -242,7 +242,7 @@ func TestHTTPCachePolicyVariation(t *testing.T) {
 	handler := mustHandler(t, spy, authorizer, WithVary("X-Region", "X-Tenant-Id"), WithCacheControl("public, max-age=60"))
 	get := func(tenant, etag string) *httptest.ResponseRecorder {
 		t.Helper()
-		req := httptest.NewRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
+		req := commandRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", nil)
 		req.Header.Set("X-Tenant-Id", tenant)
 		req.Header.Set("If-None-Match", etag)
 		res := httptest.NewRecorder()

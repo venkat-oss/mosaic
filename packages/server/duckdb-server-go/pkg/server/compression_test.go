@@ -232,7 +232,7 @@ func TestResponseEncodingMatchesGzhttp(t *testing.T) {
 		})
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := commandRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Accept-Encoding", "gzip")
 	require.Equal(t, "gzip", responseEncoding(req, large))
 	require.Empty(t, responseEncoding(req, large[1:]))

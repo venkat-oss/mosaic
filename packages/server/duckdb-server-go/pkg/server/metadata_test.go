@@ -50,7 +50,7 @@ func TestCommandTypedPayload(t *testing.T) {
 	}))
 	for _, payload := range payloads {
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload)))
+		handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(payload)))
 		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 	}
 	require.Len(t, commands, len(payloads))
@@ -145,7 +145,7 @@ func testCommandPayload[T any](t *testing.T, method, payload string, want T) {
 		return nil, ErrPermissionDenied
 	}))
 	res := httptest.NewRecorder()
-	handler.ServeHTTP(res, httptest.NewRequest(method, "/?type=arrow&sql=SELECT+1", strings.NewReader(payload)))
+	handler.ServeHTTP(res, commandRequest(method, "/?type=arrow&sql=SELECT+1", strings.NewReader(payload)))
 	require.Equal(t, http.StatusForbidden, res.Code, res.Body.String())
 	require.Equal(t, int32(1), calls.Load())
 }
@@ -174,10 +174,10 @@ func testCommandPayloadDecodeError[T any](t *testing.T, invalid, want string) {
 		return nil, ErrPermissionDenied
 	}), WithLogger(slog.New(slog.NewJSONHandler(&logs, nil))))
 	res := httptest.NewRecorder()
-	handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(invalid)))
+	handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(invalid)))
 	require.Equal(t, http.StatusBadRequest, res.Code)
 	require.Contains(t, res.Body.String(), "server: invalid command: decode command payload: ")
-	require.Contains(t, res.Body.String(), want)
+	require.Contains(t, errorMessage(t, res.Body.Bytes()), want)
 	require.Zero(t, calls.Load())
 	var diagnostic map[string]any
 	require.NoError(t, json.Unmarshal(logs.Bytes(), &diagnostic))
@@ -190,7 +190,7 @@ func TestCommandRawMessagePayload(t *testing.T) {
 		`{"type":"arrow","sql":"SELECT 1"}`,
 		" \n" + `{"type":"arrow","sql":"SELECT 1","label":"a\u0062","list":[true,false,null,{},[]],"object":{"n":9007199254740993},"number":1e400}` + "\t\r\n",
 		`{"type":"arrow","sql":"SELECT 1","metadata":null,"metadata":[1,"two"],"raw":false,"label":42,"label":{"x":1}}`,
-		`{"type":"exec","TYPE":"arrow","sql":"SELECT 0","SQL":"SELECT 1","name":"custom"}`,
+		`{"type":"arrow","TYPE":"exec","sql":"SELECT 1","SQL":"SELECT 0","name":"custom"}`,
 	}
 
 	commands := make(chan Command[json.RawMessage], len(payloads))
@@ -209,7 +209,7 @@ func TestCommandRawMessagePayload(t *testing.T) {
 
 	for _, payload := range payloads {
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload)))
+		handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(payload)))
 		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 	}
 
@@ -228,22 +228,17 @@ func TestCommandRawMessagePayload(t *testing.T) {
 }
 
 func TestCommandPayloadErrors(t *testing.T) {
-	const decode = "decode request body: "
-	tests := []struct {
-		name    string
-		payload string
-		want    string
-	}{
-		{"empty", "", decode},
-		{"malformed", `{`, decode},
-		{"trailing data", `{"type":"arrow","sql":"SELECT 1"} trailing`, decode},
-		{"second value", `{"type":"arrow","sql":"SELECT 1"} {}`, decode},
-		{"array", `[]`, decode},
-		{"wrong sql type", `{"type":"arrow","sql":42}`, decode},
-		{"missing sql", `{"type":"arrow"}`, "missing required 'sql' parameter"},
-		{"null sql", `{"type":"arrow","sql":"SELECT 1","sql":null}`, "missing required 'sql' parameter"},
-		{"unknown type", `{"type":"other","sql":"SELECT 1"}`, "invalid 'type' parameter: other"},
-		{"null", `null`, "missing required 'type' parameter"},
+	tests := []struct{ name, payload, reason, field string }{
+		{"empty", "", "malformed_json", ""},
+		{"malformed", `{`, "malformed_json", ""},
+		{"trailing data", `{"type":"arrow","sql":"SELECT 1"} trailing`, "malformed_json", ""},
+		{"second value", `{"type":"arrow","sql":"SELECT 1"} {}`, "malformed_json", ""},
+		{"array", `[]`, "malformed_json", ""},
+		{"wrong sql type", `{"type":"arrow","sql":42}`, "invalid_field", "sql"},
+		{"missing sql", `{"type":"arrow"}`, "missing_field", "sql"},
+		{"null sql", `{"type":"arrow","sql":"SELECT 1","sql":null}`, "invalid_field", "sql"},
+		{"unknown type", `{"type":"other","sql":"SELECT 1"}`, "invalid_field", "type"},
+		{"null", `null`, "malformed_json", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -253,9 +248,15 @@ func TestCommandPayloadErrors(t *testing.T) {
 				return nil, ErrPermissionDenied
 			}))
 			res := httptest.NewRecorder()
-			handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.payload)))
+			handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(tt.payload)))
 			require.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
-			require.True(t, strings.HasPrefix(res.Body.String(), "server: invalid command: "+tt.want), res.Body.String())
+			var envelope map[string]any
+			require.NoError(t, json.Unmarshal(res.Body.Bytes(), &envelope))
+			require.Equal(t, "bad_request", envelope["code"])
+			require.Equal(t, tt.reason, envelope["reason"])
+			if tt.field != "" {
+				require.Equal(t, tt.field, envelope["field"])
+			}
 			require.Zero(t, commandCalls.Load())
 		})
 	}
@@ -294,7 +295,7 @@ func TestCommandBodyLimits(t *testing.T) {
 			}
 			handler := mustHandler(t, executor, opts...)
 			res := httptest.NewRecorder()
-			handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(payload)))
+			handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(payload)))
 			if tt.limit > 0 && int64(tt.size) > tt.limit {
 				require.Equal(t, http.StatusRequestEntityTooLarge, res.Code)
 				require.Empty(t, commands)
@@ -321,7 +322,7 @@ func TestHTTPBodyLimitCoversGet(t *testing.T) {
 		t.Error("unexpected complete body read")
 		return nil, ErrPermissionDenied
 	}))
-	req := httptest.NewRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", bytes.NewReader(make([]byte, 4096)))
+	req := commandRequest(http.MethodGet, "/?type=arrow&sql=SELECT+1", bytes.NewReader(make([]byte, 4096)))
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	require.Equal(t, http.StatusRequestEntityTooLarge, res.Code)

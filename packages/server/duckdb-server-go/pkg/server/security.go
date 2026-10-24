@@ -43,7 +43,8 @@ func newCORSHandler(options CORSOptions, protection *http.CrossOriginProtection,
 		}
 	}
 
-	inner := rscors.New(corsOptions).Handler(next)
+	cors := rscors.New(corsOptions)
+	inner := cors.Handler(next)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		preflight := r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
 		if r.Method == http.MethodOptions && !preflight {
@@ -57,6 +58,17 @@ func newCORSHandler(options CORSOptions, protection *http.CrossOriginProtection,
 				w.Header().Add("Vary", "Origin")
 				http.Error(w, "origin not allowed", http.StatusForbidden)
 				return
+			}
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodPost && r.Method != http.MethodOptions && cors.OriginAllowed(r) {
+			if origin := r.Header.Get("Origin"); origin != "" {
+				if options.AllowAllOrigins {
+					origin = "*"
+				}
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				if options.AllowCredentials {
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+				}
 			}
 		}
 		inner.ServeHTTP(w, r)

@@ -5,6 +5,7 @@ exports_files(["protocol.json"])
 _SERVERS = {
     "node": "//packages/server/bench:node_server",
     "python": "//packages/server/duckdb-server:server",
+    "go": "//packages/server/duckdb-server-go:duckdb-server",
 }
 
 [
