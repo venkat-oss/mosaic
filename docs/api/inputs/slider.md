@@ -1,6 +1,6 @@
 # Slider
 
-A slider input widget.
+A slider input widget. Explicit bounds remain fixed; bounds queried from a filtered source refresh with that source. Empty query results retain the current bounds, and a constant range uses a step of one.
 
 ## slider {#slider-method}
 

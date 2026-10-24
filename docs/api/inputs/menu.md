@@ -19,7 +19,7 @@ The supported options are:
 - _label_: A text label for the menu input. If unspecified, the *column* name (if provided) will be used by default.
 - _format_: A format function that takes an option value as input and generates a string label. The format function is not applied when an explicit label is provided in an option object.
 - _options_: An array of menu options, as literal values or option objects. Option objects have a `value` property and an optional `label` property. If no label or *format* function is provided, the string-coerced value is used.
-- _value_: The initial selected menu value.
+- _value_: The initial selected menu value, including for a menu without a Param or Selection binding.
 - _element_: The parent DOM element in which to place the menu elements. If undefined, a new `div` element is created.
 
 ### Examples

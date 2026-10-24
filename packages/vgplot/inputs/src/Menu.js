@@ -90,6 +90,7 @@ export class Menu extends Input {
     this.format = format;
     this.field = field;
     this.listMatch = listMatch;
+    this.initialValue = value;
     const selection = this.selection = as;
 
     const lab = document.createElement('label');
@@ -102,7 +103,6 @@ export class Menu extends Input {
     // if provided, populate menu options
     if (options) {
       this.data = options.map(opt => isObject(opt) ? opt : { value: opt });
-      this.selectedValue(value === undefined ? '' : value);
       this.update();
     }
 
@@ -206,10 +206,10 @@ export class Menu extends Input {
     }
 
     // update menu value based on param/selection
-    if (selection) {
-      const value = isSelection(selection)
-        ? selection.valueFor(this)
-        : selection.value;
+    const value = isSelection(selection)
+      ? selection.valueFor(this)
+      : selection ? selection.value : this.initialValue;
+    if (selection || value !== undefined) {
       this.selectedValue(value === undefined ? '' : value);
     }
 

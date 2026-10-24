@@ -36,3 +36,4 @@ The constructor accepts the same options as the [`table`](#table-method) method.
 
 The HTML element containing the table view.
 
+Native formatters can return nested HTML or SVG elements; hovering their contents selects the containing table row.
