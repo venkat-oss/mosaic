@@ -1,0 +1,25 @@
+data:
+  point_rows:
+    type: table
+    query: SELECT * FROM (VALUES (1,2,'A','red'),(3,4,'B','blue'),(5,6,'A','red')) AS t(x,y,series,category)
+params:
+  selection:
+    select: intersect
+plot:
+  - mark: dot
+    data:
+      from: point_rows
+    x: x
+    "y": "y"
+    z: series
+    fill: category
+  - select: toggle
+    as: $selection
+    channels:
+      - x
+    peers: false
+  - select: highlight
+    by: $selection
+    opacity: 0.15
+width: 420
+height: 260

@@ -15,6 +15,7 @@ from . import (
 from ._generated import layouts as _layouts
 from ._generated import legends as _legends
 from ._generated import plot_attributes as _plot_attributes
+from ._generated import point_interactors as _point_interactors
 from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -219,60 +220,11 @@ def interval_xy(
     )
 
 
-def toggle(bind: Any = None, channels: Any = None, peers: Any = None) -> dict[str, Any]:
-    return _interactor("toggle", **{"as": bind, "channels": channels, "peers": peers})
-
-
-def toggle_x(bind: Any = None, peers: Any = None) -> dict[str, Any]:
-    return _interactor("toggleX", **{"as": bind, "peers": peers})
-
-
-def toggle_y(bind: Any = None, peers: Any = None) -> dict[str, Any]:
-    return _interactor("toggleY", **{"as": bind, "peers": peers})
-
-
-def toggle_color(bind: Any = None, peers: Any = None) -> dict[str, Any]:
-    return _interactor("toggleColor", **{"as": bind, "peers": peers})
-
-
-def toggle_z(bind: Any = None, peers: Any = None) -> dict[str, Any]:
-    return _interactor("toggleZ", **{"as": bind, "peers": peers})
-
-
-def nearest(
-    bind: Any = None, field: Any = None, channels: Any = None
-) -> dict[str, Any]:
-    return _interactor("nearest", **{"as": bind, "field": field, "channels": channels})
-
-
-def nearest_x(
-    bind: Any = None, field: Any = None, channels: Any = None
-) -> dict[str, Any]:
-    return _interactor("nearestX", **{"as": bind, "field": field, "channels": channels})
-
-
-def nearest_y(
-    bind: Any = None, field: Any = None, channels: Any = None
-) -> dict[str, Any]:
-    return _interactor("nearestY", **{"as": bind, "field": field, "channels": channels})
-
-
 def region(
     bind: Any = None, channels: Any = None, peers: Any = None, brush: Any = None
 ) -> dict[str, Any]:
     return _interactor(
         "region", **{"as": bind, "channels": channels, "peers": peers, "brush": brush}
-    )
-
-
-def highlight(by: Any = None, channels: Any = None, **kwargs: Any) -> dict[str, Any]:
-    return omit_none(
-        {
-            "select": "highlight",
-            "by": by,
-            "channels": channels,
-            **{camelize(k): v for k, v in kwargs.items()},
-        }
     )
 
 
@@ -337,3 +289,13 @@ opacity_legend = _legends.opacity_legend
 symbol_legend = _legends.symbol_legend
 
 margins = _plot_attributes.margins
+
+highlight = _point_interactors.highlight
+nearest = _point_interactors.nearest
+nearest_x = _point_interactors.nearest_x
+nearest_y = _point_interactors.nearest_y
+toggle = _point_interactors.toggle
+toggle_color = _point_interactors.toggle_color
+toggle_x = _point_interactors.toggle_x
+toggle_y = _point_interactors.toggle_y
+toggle_z = _point_interactors.toggle_z

@@ -8,13 +8,7 @@ import {
   Toggle
 } from '@uwdata/mosaic-plot';
 
-function interactor(InteractorClass, options) {
-  return plot => {
-    const mark = plot.marks[plot.marks.length - 1];
-    plot.addInteractor(new InteractorClass(mark, options));
-  };
-}
-
+import { interactor } from './interactor-runtime.js';
 export function highlight({ by, ...channels }) {
   return interactor(Highlight, { selection: by, channels });
 }
@@ -30,15 +24,12 @@ export function intervalY({ as, ...rest }) {
 export function intervalXY({ as, ...rest }) {
   return interactor(Interval2D, { ...rest, selection: as });
 }
-
 export function nearest({ as, ...rest }) {
   return interactor(Nearest, { ...rest, selection: as, pointer: 'xy' });
 }
-
 export function nearestX({ as, ...rest }) {
   return interactor(Nearest, { ...rest, selection: as, pointer: 'x' });
 }
-
 export function nearestY({ as, ...rest }) {
   return interactor(Nearest, { ...rest, selection: as, pointer: 'y' });
 }
@@ -46,23 +37,18 @@ export function nearestY({ as, ...rest }) {
 export function region({ as, ...rest }) {
   return interactor(Region, { ...rest, selection: as });
 }
-
 export function toggle({ as, ...rest }) {
   return interactor(Toggle, { ...rest, selection: as });
 }
-
 export function toggleX(options) {
   return toggle({ ...options, channels: ['x'] });
 }
-
 export function toggleY(options) {
   return toggle({ ...options, channels: ['y'] });
 }
-
 export function toggleZ(options) {
   return toggle({ ...options, channels: ['z'] });
 }
-
 export function toggleColor(options) {
   return toggle({ ...options, channels: ['color'] });
 }
