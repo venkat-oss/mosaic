@@ -1,10 +1,5 @@
 import { range } from 'd3';
 import { toDataColumns } from '@uwdata/mosaic-core';
-import {
-  Query, max, min, float64, isNotNull,
-  regrIntercept, regrSlope, regrCount,
-  regrSYY, regrSXX, regrAvgX
-} from '@uwdata/mosaic-sql';
 import { qt } from './util/stats.js';
 import { Mark, channelOption } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
@@ -28,26 +23,7 @@ export class RegressionMark extends Mark {
   }
 
   query(filter = []) {
-    const x = this.channelField('x').as;
-    const y = this.channelField('y').as;
-    const groupby = Array.from(new Set(
-      ['stroke', 'z', 'fx', 'fy'].flatMap(c => this.channelField(c)?.as || [])
-    ));
-
-    return Query
-      .from(super.query(filter))
-      .select({
-        intercept: regrIntercept(y, x),
-        slope: regrSlope(y, x),
-        n: regrCount(y, x),
-        ssy: regrSYY(y, x),
-        ssx: regrSXX(y, x),
-        xm: regrAvgX(y, x),
-        x0: float64(min(x).where(isNotNull(y))),
-        x1: float64(max(x).where(isNotNull(y)))
-      })
-      .select(groupby)
-      .groupby(groupby);
+    return regressionQuery(this, this.sql, super.query(filter));
   }
 
   queryResult(data) {
@@ -152,4 +128,32 @@ export function areaPoints(fit, ci, precision, width) {
   }
 
   return { numRows: columns.x.length, columns };
+}
+
+function regressionQuery(mark, sql, input) {
+  const {
+    Query, max, min, float64, isNotNull,
+    regrIntercept, regrSlope, regrCount,
+    regrSYY, regrSXX, regrAvgX
+  } = sql;
+  const x = mark.channelField('x').as;
+  const y = mark.channelField('y').as;
+  const groupby = Array.from(new Set(
+    ['stroke', 'z', 'fx', 'fy'].flatMap(c => mark.channelField(c)?.as || [])
+  ));
+
+  return Query
+    .from(input)
+    .select({
+      intercept: regrIntercept(y, x),
+      slope: regrSlope(y, x),
+      n: regrCount(y, x),
+      ssy: regrSYY(y, x),
+      ssx: regrSXX(y, x),
+      xm: regrAvgX(y, x),
+      x0: float64(min(x).where(isNotNull(y))),
+      x1: float64(max(x).where(isNotNull(y)))
+    })
+    .select(groupby)
+    .groupby(groupby);
 }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+  <div id="connected"></div>
+  <div id="density"></div>
+  <div id="dense"></div>
+  <button id="normalize">Normalize</button>
+  <button id="clip">Clip</button>
+  <output id="summary"></output>
+  <script type="module">
+    import { Coordinator, NativeSqlContext, Param, RestConnector } from '@uwdata/mosaic-core';
+    import { column } from '@uwdata/mosaic-sql/native';
+    import { createAPIContext } from '@uwdata/vgplot';
+
+    window.nativeMarksReady = (async () => {
+      const native = new NativeSqlContext();
+      const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
+        native, logger: null, cache: false, consolidate: false
+      });
+      const errors = [];
+      coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error.message) });
+      await coordinator.exec(`
+        CREATE OR REPLACE TEMP TABLE native_browser_connected AS SELECT
+          (i%500)::DOUBLE AS t, sin((i%500)/12.0)+floor(i/500.0) AS v,
+          CASE WHEN i<500 THEN 'A' ELSE 'B' END AS series,
+          CASE WHEN i<500 THEN 'a' ELSE 'b' END AS category FROM range(1000) r(i);
+        CREATE OR REPLACE TEMP TABLE native_browser_density(series VARCHAR,category VARCHAR,t DOUBLE,v DOUBLE,w DOUBLE);
+        INSERT INTO native_browser_density VALUES
+          ('A','a',0,0,1),('A','a',1,1,2),('A','a',2,2,3),('A','a',3,3,4),('A','a',4,4,5),
+          ('B','b',0,4,2),('B','b',1,3,3),('B','b',2,2,4),('B','b',3,1,5),('B','b',4,0,6);
+        CREATE OR REPLACE TEMP TABLE native_browser_dense(series VARCHAR,category VARCHAR,t DOUBLE,v DOUBLE);
+        INSERT INTO native_browser_dense VALUES ('A','a',0,0),('A','a',1,4),('B','b',0,4),('B','b',1,0)
+      `);
+      const api = createAPIContext({ coordinator });
+      const selection = native.selection();
+      const normalize = Param.value(false);
+      const connected = api.plot(
+        api.lineY(api.from('native_browser_connected', { optimize: true }), {
+          x: 't', y: 'v', stroke: 'category', z: 'series'
+        }), api.width(160), api.height(160)
+      );
+      const density = api.plot(
+        api.densityY(api.from('native_browser_density'), {
+          x: 't', weight: 'w', fill: 'category', bins: 16, bandwidth: 4
+        }), api.width(240), api.height(160)
+      );
+      const dense = api.plot(
+        api.denseLine(api.from('native_browser_dense', { filterBy: selection }), {
+          x: column('t'), y: column('v'), z: 'series', fill: 'category', width: 2, height: 5, normalize
+        }), api.width(240), api.height(160)
+      );
+      document.querySelector('#connected').append(connected);
+      document.querySelector('#density').append(density);
+      document.querySelector('#dense').append(dense);
+      const marks = [connected, density, dense].map(element => element.value.marks[0]);
+      await Promise.all(marks.map(mark => mark.pending));
+      const [line, area, raster] = marks;
+      const update = async () => {
+        const bins = await coordinator.query(area.query());
+        const total = values => Array.from(values).reduce((sum, value) => sum + Number(value), 0);
+        document.querySelector('#summary').textContent = JSON.stringify({
+          points: line.data.numRows, density: total(Array.from(bins, row => row.density)),
+          raster: total(raster.grids0.columns.density.map(total)),
+          domain: Array.from(dense.value.getAttribute('xDomain'))
+        });
+      };
+      document.querySelector('#normalize').onclick = async () => {
+        normalize.update(true);
+        await normalize.pending('value');
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await raster.pending;
+        await update();
+      };
+      document.querySelector('#clip').onclick = async () => {
+        selection.update(native.interval('t', [0.2, 0.8], { source: document.querySelector('#clip') }));
+        await selection.pending('value');
+        await raster.pending;
+        await update();
+      };
+      await update();
+      return { coordinator, marks, errors };
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { m4 } from '@uwdata/mosaic-sql';
-import { binExpr } from './util/bin-expr.js';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import { binExpr, nativeBinExpr } from './util/bin-expr.js';
 import { filteredExtent } from './util/extent.js';
 import { Mark } from './Mark.js';
 
@@ -18,9 +19,9 @@ export class ConnectedMark extends Mark {
    */
   query(filter = []) {
     const { plot, dim, source } = this;
-    let optimize = source.options?.optimize;
     const q = super.query(filter);
-    if (!dim) return q;
+    if (!q || !dim) return q;
+    let optimize = source?.options?.optimize;
 
     const ortho = dim === 'x' ? 'y' : 'x';
     const value = this.channelField(ortho, { exact: true })?.as;
@@ -35,6 +36,14 @@ export class ConnectedMark extends Mark {
     if (optimize && isContinuous && value) {
       // TODO: handle stacked data
       const [lo, hi] = filteredExtent(filter, field) || [min, max];
+      if (this.sqlContext) {
+        const [expr] = nativeBinExpr(this, dim, size, [lo, hi], 1, as);
+        const groups = nativeSQL.selectEntries(q)
+          .map(({ alias }) => alias)
+          .filter(alias => alias !== undefined && alias !== as && alias !== value)
+          .map(alias => nativeSQL.column(alias));
+        return nativeSQL.m4(q, expr, as, value, groups);
+      }
       const [expr] = binExpr(this, dim, size, [lo, hi], 1, as);
       const cols = q._select
         .map(c => c.alias)

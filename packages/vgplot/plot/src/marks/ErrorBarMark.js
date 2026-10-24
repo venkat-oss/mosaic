@@ -1,6 +1,5 @@
-import { avg, count, div, sqrt, stddev } from '@uwdata/mosaic-sql';
 import { erfinv } from './util/stats.js';
-import { Mark, markPlotSpec, markQuery } from './Mark.js';
+import { Mark, markPlotSpec, markQuery, nativeMarkQuery } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class ErrorBarMark extends Mark {
@@ -19,12 +18,7 @@ export class ErrorBarMark extends Mark {
   }
 
   query(filter = []) {
-    const { channels, field } = this;
-    const fields = channels.concat([
-      { field: avg(field), as: '__avg__' },
-      { field: div(stddev(field), sqrt(count(field))), as: '__se__', }
-    ]);
-    return markQuery(fields, this.sourceTable()).where(filter);
+    return errorBarQuery(this, this.sql, filter);
   }
 
   plotSpecs() {
@@ -41,4 +35,16 @@ export class ErrorBarMark extends Mark {
 
     return markPlotSpec(type, detail, channels, data, options);
   }
+}
+
+function errorBarQuery(mark, sql, filter) {
+  const { field } = mark;
+  const { avg, count, div, sqrt, stddev } = sql;
+  const channels = mark.queryChannels();
+  const fields = channels.concat([
+    { field: avg(field), as: '__avg__' },
+    { field: div(stddev(field), sqrt(count(field))), as: '__se__', }
+  ]);
+  const query = mark.sqlOwner ? nativeMarkQuery(fields, mark.sourceTable()) : markQuery(fields, mark.sourceTable());
+  return query.where(filter);
 }

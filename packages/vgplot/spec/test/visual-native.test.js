@@ -4,6 +4,7 @@ test('native histogram prepares bins and preserves preaggregation through SVG up
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/packages/vgplot/spec/test/visual-native-histogram.html');
+  await page.waitForFunction(() => window['nativeHistogramReady'] !== undefined);
   await page.evaluate(async () => { await window['nativeHistogramReady']; });
   const result = page.locator('#bins');
   const bars = page.locator('#histogram svg [data-index="0"] rect');
@@ -49,6 +50,7 @@ test('native Slider filters count and sum through DuckDB and Arrow', async ({ pa
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/packages/vgplot/spec/test/visual-native-harness.html');
+  await page.waitForFunction(() => window['nativeReady'] !== undefined);
   await page.evaluate(async () => { await window['nativeReady']; });
   const slider = page.locator('input[type=range]');
   const result = page.locator('#result');

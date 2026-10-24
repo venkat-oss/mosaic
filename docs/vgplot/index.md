@@ -65,7 +65,9 @@ Binning uses prepared source statistics. Changing the source or identifier
 parameters prepares new metadata and cancels obsolete queued data reads. Bin
 expressions reject compilation while their metadata is stale. Compatible brush
 updates use native DuckDB preaggregation and return Arrow results to SVG marks.
-The remaining mark families and specification/Python integration follow the
+The same context supports connected-line M4, weighted densities, regression and
+error bars. Continue importing SQL channel expressions from `/native`. Collections,
+spatial marks and specification/Python integration follow the
 [migration packets](/development/polyglot/work-packets).
 
 ## Plots

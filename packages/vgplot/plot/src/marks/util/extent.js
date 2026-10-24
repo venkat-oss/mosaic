@@ -63,7 +63,7 @@ function nativeFilteredExtent(filter, field) {
   for (const predicate of [filter].flat()) {
     if (!nativeSQL.isExpression(predicate) && !nativeSQL.isExpressionHandle(predicate)) continue;
     nativeSQL.walk(predicate, node => {
-      if ('subquery' in node || 'not' in node) return 1;
+      if ('subquery' in node || 'not' in node || 'or' in node) return 1;
       if ('between' in node) {
         const value = node.between;
         if (!value.not && !value.symmetric && keys.key(value.this) === key) {

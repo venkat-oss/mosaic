@@ -1,13 +1,14 @@
 import { toDataColumns } from '@uwdata/mosaic-core';
 import { binLinear1d, isBetween } from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { max, sum } from 'd3';
 import { Transient } from '../symbols.js';
-import { binExpr } from './util/bin-expr.js';
+import { binExpr, nativeBinExpr } from './util/bin-expr.js';
 import { dericheConfig, dericheConv1d } from './util/density.js';
 import { extentX, extentY, xext, yext } from './util/extent.js';
 import { grid1d } from './util/grid.js';
 import { handleParam } from './util/handle-param.js';
-import { Mark, channelOption, markQuery } from './Mark.js';
+import { Mark, channelOption, markQuery, nativeMarkQuery } from './Mark.js';
 
 const GROUPBY = { fill: 1, stroke: 1, z: 1 };
 
@@ -55,6 +56,7 @@ export class Density1DMark extends Mark {
 
   query(filter = []) {
     if (this.hasOwnData()) throw new Error('Density1DMark requires a data source');
+    if (this.sqlContext) return this.nativeQuery(filter);
     const { bins, channels, dim } = this;
     const extent = this.extent = (dim === 'x' ? extentX : extentY)(this, filter);
     const [x, bx] = binExpr(this, dim, bins, extent);
@@ -65,6 +67,20 @@ export class Density1DMark extends Mark {
       return (GROUPBY[c.channel] && c.field) ? c.as : [];
     });
     return binLinear1d(q, x, v, g);
+  }
+
+  nativeQuery(filter) {
+    const { bins, dim } = this;
+    const channels = this.queryChannels();
+    const extent = this.extent = (dim === 'x' ? extentX : extentY)(this, filter);
+    const [x, field] = nativeBinExpr(this, dim, bins, extent);
+    const query = nativeMarkQuery(channels, this.sourceTable(), [dim])
+      .where(filter, nativeSQL.isBetween(field, extent.map(Number)));
+    const weight = this.channelField('weight')?.as;
+    const groups = this.groupby = [...new Set(channels.flatMap(entry =>
+      (GROUPBY[entry.channel] || entry.channel === 'fx' || entry.channel === 'fy') && entry.field ? [entry.as] : []
+    ))];
+    return nativeSQL.binLinear1d(query, x, weight, groups).orderby(groups, 'index');
   }
 
   queryResult(data) {
