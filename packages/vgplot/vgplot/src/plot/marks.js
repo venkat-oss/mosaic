@@ -57,7 +57,6 @@ export const hexgrid = (...args) => mark('hexgrid', ...args);
 export const regressionY = (...args) => implicitType(RegressionMark, ...args);
 export const errorbarX = (...args) => explicitType(ErrorBarMark, 'ruleY', ...args);
 export const errorbarY = (...args) => explicitType(ErrorBarMark, 'ruleX', ...args);
-
 export const voronoi = (...args) => mark('voronoi', ...args);
 export const voronoiMesh = (...args) => mark('voronoiMesh', ...args);
 export const delaunayLink = (...args) => mark('delaunayLink', ...args);
@@ -74,7 +73,6 @@ export const gridX = (...args) => mark('gridX', ...args);
 export const gridY = (...args) => mark('gridY', ...args);
 export const gridFx = (...args) => mark('gridFx', ...args);
 export const gridFy = (...args) => mark('gridFy', ...args);
-
 export const geo = (...args) => implicitType(GeoMark, ...args);
 export const sphere = (...args) => mark('sphere', ...args);
 export const graticule = (...args) => mark('graticule', ...args);

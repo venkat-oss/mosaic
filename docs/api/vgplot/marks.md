@@ -233,9 +233,60 @@ A contour mark that draws isolines to delineate regions above and below a partic
 
 ## Delaunay
 
-Given set of points in x and y, the Delaunay marks compute the Delaunay triangulation, its dual the Voronoi tessellation, and the convex hull.
-The supported marks are `voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, and `hull`.
-For more, see the [Observable Plot `delaunay` documentation](https://observablehq.com/plot/marks/delaunay).
+### voronoi
+
+`voronoi(data, options)`
+
+A mark that draws polygons for each cell of the Voronoi tesselation of the points given by the **x** and **y** channels.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Voronoi tesselation for each group.
+
+[Options](#voronoi-options).
+
+### voronoiMesh
+
+`voronoiMesh(data, options)`
+
+A mark that draws a mesh for the cell boundaries of the Voronoi tesselation of the points given by the **x** and **y** channels. The
+**stroke** option defaults to _currentColor_, and the **strokeOpacity** defaults to 0.2. The **fill** option is not supported. When an aesthetic channel is specified (such as **stroke** or **strokeWidth**), the mesh inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Voronoi tesselation for each group.
+
+[Options](#voronoimesh-options).
+
+### delaunayLink
+
+`delaunayLink(data, options)`
+
+A mark that draws links for each edge of the Delaunay triangulation of points given by the **x** and **y** channels. Like the link mark, except that **x1**, **y1**, **x2**, and **y2** are derived automatically from **x** and **y**. When an aesthetic channel is specified (such as
+**stroke** or **strokeWidth**), the link inherits the corresponding channel value from one of its two endpoints arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Delaunay triangulation for each group.
+
+[Options](#delaunaylink-options).
+
+### delaunayMesh
+
+`delaunayMesh(data, options)`
+
+A mark that draws a mesh of the Delaunay triangulation of the points given by the **x** and **y** channels. The **stroke** option defaults to _currentColor_, and the **strokeOpacity** defaults to 0.2; the **fill** option is not supported. When an aesthetic channel is specified (such as
+**stroke** or **strokeWidth**), the mesh inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Delaunay triangulation for each group.
+
+[Options](#delaunaymesh-options).
+
+### hull
+
+`hull(data, options)`
+
+A mark that draws a convex hull around the points given by the **x** and
+**y** channels. The **stroke** option defaults to _currentColor_ and the
+**fill** option defaults to _none_. When an aesthetic channel is specified (such as **stroke** or **strokeWidth**), the hull inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate hull for each group. If **z** is not specified, it defaults to the **fill** channel, if any, or the **stroke** channel, if any.
+
+[Options](#hull-options).
 
 ## Density 1D
 
@@ -349,16 +400,33 @@ Draws a rectangle around the plot’s frame, or if an **anchor** is given, a lin
 
 ## Geo
 
-The `geo` mark draws geographic features—polygons, lines, points, and other geometry—often as thematic maps.
-Input data can be provided directly as an array of GeoJSON features or geographic data can be loaded and queried directly in DuckDB using the `spatial` extension.
+### geo
 
-The _geometry_ option indicates the column name containing GeoJSON features or GeoJSON geometry objects.
-If _geometry_ is not specified, the mark will interpret input objects as GeoJSON when data is passed in directly.
-When querying geometry from a DuckDB table, the _geometry_ option will default to `'geom'` (the default name for geometry data loaded using the `spatial` extension's `ST_Read` function) and will be automatically converted to GeoJSON format in the database using the `ST_asGeoJSON` function.
-If the _geometry_ option is specified, automatic conversion of DuckDB query results is _not_ performed; this enables more fine-grained control, but may require explicit conversion of data to GeoJSON format using `ST_asGeoJSON` (or equivalently using Mosaic's `geojson()` SQL helper).
+`geo(data, options)`
 
-The `sphere` and `graticule` marks (which do not accept input data) include the sphere of the Earth and global reference lines, respectively.
-For other supported options, see the [Observable Plot `geo` documentation](https://observablehq.com/plot/marks/geo).
+A geo mark. The **geometry** channel, which defaults to the identity function assuming that *data* is a GeoJSON object or an iterable of GeoJSON objects, is projected to the plane using the plot’s top-level
+**projection**.
+
+If *data* is a GeoJSON feature collection, then the mark’s data is
+*data*.features; if *data* is a GeoJSON geometry collection, then the mark’s data is *data*.geometries; if *data* is some other GeoJSON object, then the mark’s data is the single-element array [*data*].
+
+[Options](#geo-options).
+
+### sphere
+
+`sphere(options)`
+
+A geo mark whose *data* is the outline of the sphere on the projection’s plane. (For use with a spherical **projection** only.)
+
+[Options](#sphere-options).
+
+### graticule
+
+`graticule(options)`
+
+A geo mark whose *data* is a 10° global graticule. (For use with a spherical **projection** only.)
+
+[Options](#graticule-options).
 
 ## Grid
 
@@ -958,9 +1026,60 @@ A contour mark that draws isolines to delineate regions above and below a partic
 
 ## Delaunay
 
-Given set of points in x and y, the Delaunay marks compute the Delaunay triangulation, its dual the Voronoi tessellation, and the convex hull.
-The supported marks are `voronoi`, `voronoi_mesh`, `delaunay_link`, `delaunay_mesh`, and `hull`.
-For more, see the [Observable Plot `delaunay` documentation](https://observablehq.com/plot/marks/delaunay).
+### voronoi
+
+`voronoi(data=None, **options)`
+
+A mark that draws polygons for each cell of the Voronoi tesselation of the points given by the **x** and **y** channels.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Voronoi tesselation for each group.
+
+[Options](#voronoi-options).
+
+### voronoi_mesh
+
+`voronoi_mesh(data=None, **options)`
+
+A mark that draws a mesh for the cell boundaries of the Voronoi tesselation of the points given by the **x** and **y** channels. The
+**stroke** option defaults to _currentColor_, and the **strokeOpacity** defaults to 0.2. The **fill** option is not supported. When an aesthetic channel is specified (such as **stroke** or **strokeWidth**), the mesh inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Voronoi tesselation for each group.
+
+[Options](#voronoimesh-options).
+
+### delaunay_link
+
+`delaunay_link(data=None, **options)`
+
+A mark that draws links for each edge of the Delaunay triangulation of points given by the **x** and **y** channels. Like the link mark, except that **x1**, **y1**, **x2**, and **y2** are derived automatically from **x** and **y**. When an aesthetic channel is specified (such as
+**stroke** or **strokeWidth**), the link inherits the corresponding channel value from one of its two endpoints arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Delaunay triangulation for each group.
+
+[Options](#delaunaylink-options).
+
+### delaunay_mesh
+
+`delaunay_mesh(data=None, **options)`
+
+A mark that draws a mesh of the Delaunay triangulation of the points given by the **x** and **y** channels. The **stroke** option defaults to _currentColor_, and the **strokeOpacity** defaults to 0.2; the **fill** option is not supported. When an aesthetic channel is specified (such as
+**stroke** or **strokeWidth**), the mesh inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate Delaunay triangulation for each group.
+
+[Options](#delaunaymesh-options).
+
+### hull
+
+`hull(data=None, **options)`
+
+A mark that draws a convex hull around the points given by the **x** and
+**y** channels. The **stroke** option defaults to _currentColor_ and the
+**fill** option defaults to _none_. When an aesthetic channel is specified (such as **stroke** or **strokeWidth**), the hull inherits the corresponding channel value from one of its constituent points arbitrarily.
+
+If **z** is specified, the input points are grouped by *z*, producing a separate hull for each group. If **z** is not specified, it defaults to the **fill** channel, if any, or the **stroke** channel, if any.
+
+[Options](#hull-options).
 
 ## Density 1D
 
@@ -1074,16 +1193,33 @@ Draws a rectangle around the plot’s frame, or if an **anchor** is given, a lin
 
 ## Geo
 
-The `geo` mark draws geographic features—polygons, lines, points, and other geometry—often as thematic maps.
-Input data can be provided directly as an array of GeoJSON features or geographic data can be loaded and queried directly in DuckDB using the `spatial` extension.
+### geo
 
-The _geometry_ option indicates the column name containing GeoJSON features or GeoJSON geometry objects.
-If _geometry_ is not specified, the mark will interpret input objects as GeoJSON when data is passed in directly.
-When querying geometry from a DuckDB table, the _geometry_ option will default to `'geom'` (the default name for geometry data loaded using the `spatial` extension's `ST_Read` function) and will be automatically converted to GeoJSON format in the database using the `ST_asGeoJSON` function.
-If the _geometry_ option is specified, automatic conversion of DuckDB query results is _not_ performed; this enables more fine-grained control, but may require explicit conversion of data to GeoJSON format using `ST_asGeoJSON` (or equivalently using Mosaic's `geojson()` SQL helper).
+`geo(data=None, **options)`
 
-The `sphere` and `graticule` marks (which do not accept input data) include the sphere of the Earth and global reference lines, respectively.
-For other supported options, see the [Observable Plot `geo` documentation](https://observablehq.com/plot/marks/geo).
+A geo mark. The **geometry** channel, which defaults to the identity function assuming that *data* is a GeoJSON object or an iterable of GeoJSON objects, is projected to the plane using the plot’s top-level
+**projection**.
+
+If *data* is a GeoJSON feature collection, then the mark’s data is
+*data*.features; if *data* is a GeoJSON geometry collection, then the mark’s data is *data*.geometries; if *data* is some other GeoJSON object, then the mark’s data is the single-element array [*data*].
+
+[Options](#geo-options).
+
+### sphere
+
+`sphere(data=None, **options)`
+
+A geo mark whose *data* is the outline of the sphere on the projection’s plane. (For use with a spherical **projection** only.)
+
+[Options](#sphere-options).
+
+### graticule
+
+`graticule(data=None, **options)`
+
+A geo mark whose *data* is a 10° global graticule. (For use with a spherical **projection** only.)
+
+[Options](#graticule-options).
 
 ## Grid
 
@@ -2753,3 +2889,87 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`ErrorBarYOptions`](#error
 ### statistical examples
 
 `regressionY`: [json](/templates/marks/statistical/regressionY.json) · [yaml](/templates/marks/statistical/regressionY.yaml) · [js](/templates/marks/statistical/regressionY.js) · <a :href="withBase('/templates/marks/statistical/regressionY.py')" download>Python</a>.
+
+## spatial mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### GeoOptions options
+
+Options for the geo mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**geometry** (`ChannelValue`) — A required channel for the geometry to render; defaults to identity, assuming *data* is a GeoJSON object or an iterable of GeoJSON objects.
+
+**r** (`ChannelValueSpec | ParamRef`) — The size of Point and MultiPoint geometries, defaulting to a constant 3 pixels. If **r** is a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel and the effective radius is controlled by the *r* scale, which defaults to a *sqrt* scale such that the visual area of a point is proportional to its associated value.
+
+If **r** is a channel, geometries will be sorted by descending radius by default, to limit occlusion; use the **sort** transform to control render order. Geometries with a nonpositive radius are not drawn.
+
+### Geo options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`GeoOptions`](#geooptions-options).
+
+
+### Sphere options
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+
+### Graticule options
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+
+### DelaunayOptions options
+
+Options for the Delaunay marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`CurveOptions`](../spec/common-marks#curveoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping to produce multiple (possibly overlapping) triangulations.
+
+### DelaunayLink options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
+
+
+### DelaunayMesh options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
+
+
+### Hull options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
+
+
+### Voronoi options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
+
+
+### VoronoiMesh options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
+
+
+**`geo`, `sphere`, `graticule`, `voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Geo and topology wire specifications require data; sphere and graticule reject it. Python signatures keep data=None for all spatial marks.
+
+**`geo`:** Provide an explicit geometry column for local rows. Queried geo marks otherwise select `st_asgeojson(geom)`; a null first geometry prevents later strings from being decoded. Use the geojson transform for an explicit GEOMETRY channel and load DuckDB spatial before querying spatial tables.
+
+**`geo`:** Raw FeatureCollection data fails during rendering. Arrays of GeoJSON objects also need an explicit geometry channel. Geometry accessors and projection initializers are JavaScript-only.
+
+**`sphere`, `graticule`:** Sphere and graticule take an options object without data in JavaScript. Use a spherical projection; serializing a supplied Python data argument is outside their wire contract.
+
+**`voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Observable Plot computes topology from x/y positions; z separates groups. Mesh variants do not support fill.
+
+### spatial examples
+
+`geo-polygons`: [json](/templates/marks/spatial/geo-polygons.json) · [yaml](/templates/marks/spatial/geo-polygons.yaml) · [js](/templates/marks/spatial/geo-polygons.js) · <a :href="withBase('/templates/marks/spatial/geo-polygons.py')" download>Python</a>.
+
+JavaScript-only `native-projection-initializer`: [js](/templates/marks/spatial/native-projection-initializer.js).
