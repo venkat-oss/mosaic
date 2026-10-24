@@ -76,6 +76,42 @@ from .cartesian_attributes import (
     y_ticks,
     y_zero,
 )
+from .color_attributes import (
+    color_base,
+    color_clamp,
+    color_constant,
+    color_domain,
+    color_exponent,
+    color_interpolate,
+    color_label,
+    color_n,
+    color_nice,
+    color_percent,
+    color_pivot,
+    color_range,
+    color_reverse,
+    color_scale,
+    color_scheme,
+    color_symmetric,
+    color_tick_format,
+    color_zero,
+    opacity_base,
+    opacity_clamp,
+    opacity_constant,
+    opacity_domain,
+    opacity_exponent,
+    opacity_label,
+    opacity_nice,
+    opacity_percent,
+    opacity_range,
+    opacity_reverse,
+    opacity_scale,
+    opacity_tick_format,
+    opacity_zero,
+    symbol_domain,
+    symbol_range,
+    symbol_scale,
+)
 from .plot_attributes import (
     align,
     aria_description,
@@ -99,96 +135,6 @@ from .plot_attributes import (
 
 if TYPE_CHECKING:
     from .._types import AttrValue
-
-
-def color_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("colorBase", value)
-
-
-def color_clamp(value: AttrValue = True) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("colorClamp", value)
-
-
-def color_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("colorConstant", value)
-
-
-def color_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("colorDomain", value)
-
-
-def color_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("colorExponent", value)
-
-
-def color_interpolate(value: AttrValue) -> Directive:
-    """How to interpolate color range values."""
-    return Directive("colorInterpolate", value)
-
-
-def color_label(value: AttrValue) -> Directive:
-    """A textual label to show on the axis or legend; if null, show no label."""
-    return Directive("colorLabel", value)
-
-
-def color_n(value: AttrValue) -> Directive:
-    """For a *quantile* scale, the number of quantiles (creates *n* - 1 thresholds); for a *quantize* scale, the approximate number of thresholds; defaults to 5."""
-    return Directive("colorN", value)
-
-
-def color_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("colorNice", value)
-
-
-def color_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("colorPercent", value)
-
-
-def color_pivot(value: AttrValue) -> Directive:
-    """For a diverging color scale, the input value (abstract value) that divides the domain into two parts; defaults to 0 for *diverging* scales, dividing the domain into negative and positive parts; defaults to 1 for *diverging-log* scales."""
-    return Directive("colorPivot", value)
-
-
-def color_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("colorRange", value)
-
-
-def color_reverse(value: AttrValue = True) -> Directive:
-    """Whether to reverse the scale’s encoding; equivalent to reversing either the **domain** or **range**."""
-    return Directive("colorReverse", value)
-
-
-def color_scale(value: AttrValue) -> Directive:
-    """The *color* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("colorScale", value)
-
-
-def color_scheme(value: AttrValue) -> Directive:
-    """If specified, shorthand for setting the **colorRange** or **colorInterpolate** option of a *color* scale."""
-    return Directive("colorScheme", value)
-
-
-def color_symmetric(value: AttrValue = True) -> Directive:
-    """For a diverging color scale, if true (the default), extend the domain to ensure that the lower part of the domain (below the **pivot**) is commensurate with the upper part of the domain (above the **pivot**)."""
-    return Directive("colorSymmetric", value)
-
-
-def color_tick_format(value: AttrValue) -> Directive:
-    """How to format inputs (abstract values) for axis tick labels; one of: - a d3-format string for numeric scales - a d3-time-format string for temporal scales : https://d3js.org/d3-time : https://d3js.org/d3-time-format"""
-    return Directive("colorTickFormat", value)
-
-
-def color_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("colorZero", value)
 
 
 def facet_grid(value: AttrValue = True) -> Directive:
@@ -536,71 +482,6 @@ def length_zero(value: AttrValue = True) -> Directive:
     return Directive("lengthZero", value)
 
 
-def opacity_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("opacityBase", value)
-
-
-def opacity_clamp(value: AttrValue = True) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("opacityClamp", value)
-
-
-def opacity_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("opacityConstant", value)
-
-
-def opacity_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("opacityDomain", value)
-
-
-def opacity_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("opacityExponent", value)
-
-
-def opacity_label(value: AttrValue) -> Directive:
-    """A textual label to show on the axis or legend; if null, show no label."""
-    return Directive("opacityLabel", value)
-
-
-def opacity_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("opacityNice", value)
-
-
-def opacity_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("opacityPercent", value)
-
-
-def opacity_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("opacityRange", value)
-
-
-def opacity_reverse(value: AttrValue = True) -> Directive:
-    """Whether to reverse the scale’s encoding; equivalent to reversing either the **domain** or **range**."""
-    return Directive("opacityReverse", value)
-
-
-def opacity_scale(value: AttrValue) -> Directive:
-    """The *opacity* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("opacityScale", value)
-
-
-def opacity_tick_format(value: AttrValue) -> Directive:
-    """How to format inputs (abstract values) for axis tick labels; one of: - a d3-format string for numeric scales - a d3-time-format string for temporal scales : https://d3js.org/d3-time : https://d3js.org/d3-time-format"""
-    return Directive("opacityTickFormat", value)
-
-
-def opacity_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("opacityZero", value)
-
-
 def projection_clip(value: AttrValue = True) -> Directive:
     """The projection’s clipping method; one of: - *frame* or true (default) - clip to the plot’s frame (including margins but not insets) - a number - clip to a circle of the given radius in degrees centered around the origin - null or false - do not clip Some projections (such as *armadillo* and *berghaus*) require spherical clipping: in that case set the marks’ **clip** option to *sphere*."""
     return Directive("projectionClip", value)
@@ -709,21 +590,6 @@ def r_scale(value: AttrValue) -> Directive:
 def r_zero(value: AttrValue = True) -> Directive:
     """Whether the **domain** must include zero."""
     return Directive("rZero", value)
-
-
-def symbol_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("symbolDomain", value)
-
-
-def symbol_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("symbolRange", value)
-
-
-def symbol_scale(value: AttrValue) -> Directive:
-    """The *symbol* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("symbolScale", value)
 
 
 __all__ = [

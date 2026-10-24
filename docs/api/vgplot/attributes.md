@@ -103,6 +103,54 @@ In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 | [`yBase(value)`](#ybase) | `` number \| ParamRef `` |
 | [`yConstant(value)`](#yconstant) | `` number \| ParamRef `` |
 
+## Color Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`colorScale(value)`](#colorscale) | `` ColorScaleType \| null \| ParamRef `` |
+| [`colorDomain(value)`](#colordomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`colorRange(value)`](#colorrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`colorClamp(value)`](#colorclamp) | `` boolean \| ParamRef `` |
+| [`colorN(value)`](#colorn) | `` number \| ParamRef `` |
+| [`colorNice(value)`](#colornice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`colorScheme(value)`](#colorscheme) | `` ColorScheme \| ParamRef `` |
+| [`colorInterpolate(value)`](#colorinterpolate) | `` Interpolate \| ParamRef `` |
+| [`colorPivot(value)`](#colorpivot) | `` any \| ParamRef `` |
+| [`colorSymmetric(value)`](#colorsymmetric) | `` boolean \| ParamRef `` |
+| [`colorLabel(value)`](#colorlabel) | `` string \| null \| ParamRef `` |
+| [`colorPercent(value)`](#colorpercent) | `` boolean \| ParamRef `` |
+| [`colorReverse(value)`](#colorreverse) | `` boolean \| ParamRef `` |
+| [`colorZero(value)`](#colorzero) | `` boolean \| ParamRef `` |
+| [`colorTickFormat(value)`](#colortickformat) | `` string \| null \| ParamRef `` |
+| [`colorExponent(value)`](#colorexponent) | `` number \| ParamRef `` |
+| [`colorBase(value)`](#colorbase) | `` number \| ParamRef `` |
+| [`colorConstant(value)`](#colorconstant) | `` number \| ParamRef `` |
+## Symbol Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`symbolScale(value)`](#symbolscale) | `` DiscreteScaleType \| null \| ParamRef `` |
+| [`symbolDomain(value)`](#symboldomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`symbolRange(value)`](#symbolrange) | `` Array<any> \| Fixed \| ParamRef `` |
+
+## Opacity Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`opacityScale(value)`](#opacityscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`opacityDomain(value)`](#opacitydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`opacityRange(value)`](#opacityrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`opacityClamp(value)`](#opacityclamp) | `` boolean \| ParamRef `` |
+| [`opacityNice(value)`](#opacitynice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`opacityLabel(value)`](#opacitylabel) | `` string \| null \| ParamRef `` |
+| [`opacityPercent(value)`](#opacitypercent) | `` boolean \| ParamRef `` |
+| [`opacityReverse(value)`](#opacityreverse) | `` boolean \| ParamRef `` |
+| [`opacityZero(value)`](#opacityzero) | `` boolean \| ParamRef `` |
+| [`opacityTickFormat(value)`](#opacitytickformat) | `` string \| null \| ParamRef `` |
+| [`opacityExponent(value)`](#opacityexponent) | `` number \| ParamRef `` |
+| [`opacityBase(value)`](#opacitybase) | `` number \| ParamRef `` |
+| [`opacityConstant(value)`](#opacityconstant) | `` number \| ParamRef `` |
+
 </template>
 
 <template v-else-if="language === 'python'">
@@ -217,6 +265,54 @@ In addition to value arrays, scale domain attributes accept the string `"Fixed"`
 | [`vg.y_exponent(value)`](#yexponent) | `` number \| ParamRef `` |
 | [`vg.y_base(value)`](#ybase) | `` number \| ParamRef `` |
 | [`vg.y_constant(value)`](#yconstant) | `` number \| ParamRef `` |
+
+## Color Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.color_scale(value)`](#colorscale) | `` ColorScaleType \| null \| ParamRef `` |
+| [`vg.color_domain(value)`](#colordomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.color_range(value)`](#colorrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.color_clamp(value=True)`](#colorclamp) | `` boolean \| ParamRef `` |
+| [`vg.color_n(value)`](#colorn) | `` number \| ParamRef `` |
+| [`vg.color_nice(value=True)`](#colornice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.color_scheme(value)`](#colorscheme) | `` ColorScheme \| ParamRef `` |
+| [`vg.color_interpolate(value)`](#colorinterpolate) | `` Interpolate \| ParamRef `` |
+| [`vg.color_pivot(value)`](#colorpivot) | `` any \| ParamRef `` |
+| [`vg.color_symmetric(value=True)`](#colorsymmetric) | `` boolean \| ParamRef `` |
+| [`vg.color_label(value)`](#colorlabel) | `` string \| null \| ParamRef `` |
+| [`vg.color_percent(value=True)`](#colorpercent) | `` boolean \| ParamRef `` |
+| [`vg.color_reverse(value=True)`](#colorreverse) | `` boolean \| ParamRef `` |
+| [`vg.color_zero(value=True)`](#colorzero) | `` boolean \| ParamRef `` |
+| [`vg.color_tick_format(value)`](#colortickformat) | `` string \| null \| ParamRef `` |
+| [`vg.color_exponent(value)`](#colorexponent) | `` number \| ParamRef `` |
+| [`vg.color_base(value)`](#colorbase) | `` number \| ParamRef `` |
+| [`vg.color_constant(value)`](#colorconstant) | `` number \| ParamRef `` |
+## Symbol Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.symbol_scale(value)`](#symbolscale) | `` DiscreteScaleType \| null \| ParamRef `` |
+| [`vg.symbol_domain(value)`](#symboldomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.symbol_range(value)`](#symbolrange) | `` Array<any> \| Fixed \| ParamRef `` |
+
+## Opacity Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.opacity_scale(value)`](#opacityscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`vg.opacity_domain(value)`](#opacitydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.opacity_range(value)`](#opacityrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.opacity_clamp(value=True)`](#opacityclamp) | `` boolean \| ParamRef `` |
+| [`vg.opacity_nice(value=True)`](#opacitynice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.opacity_label(value)`](#opacitylabel) | `` string \| null \| ParamRef `` |
+| [`vg.opacity_percent(value=True)`](#opacitypercent) | `` boolean \| ParamRef `` |
+| [`vg.opacity_reverse(value=True)`](#opacityreverse) | `` boolean \| ParamRef `` |
+| [`vg.opacity_zero(value=True)`](#opacityzero) | `` boolean \| ParamRef `` |
+| [`vg.opacity_tick_format(value)`](#opacitytickformat) | `` string \| null \| ParamRef `` |
+| [`vg.opacity_exponent(value)`](#opacityexponent) | `` number \| ParamRef `` |
+| [`vg.opacity_base(value)`](#opacitybase) | `` number \| ParamRef `` |
+| [`vg.opacity_constant(value)`](#opacityconstant) | `` number \| ParamRef `` |
 
 </template>
 
@@ -1282,3 +1378,179 @@ Set the *x* and *y* scale domains.
 ### Cartesian examples
 
 `xDomain-parameter`: [json](/templates/attributes/cartesian/xDomain-parameter.json) · [yaml](/templates/attributes/cartesian/xDomain-parameter.yaml) · [js](/templates/attributes/cartesian/xDomain-parameter.js) · <a :href="withBase('/templates/attributes/cartesian/xDomain-parameter.py')" download>Python</a>.
+
+## color attribute reference
+
+### colorScale
+
+The *color* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled.
+
+For quantitative data (numbers), defaults to *linear*; for temporal data (dates), defaults to *utc*; for ordinal data (strings or booleans), defaults to *point* for position scales, *categorical* for color scales, and otherwise *ordinal*.
+
+### colorDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred from channel values. For continuous data (numbers and dates), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+
+### colorRange
+
+The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**. For other ordinal data, it is an array (or iterable) of output values in the same order as the **domain**.
+
+### colorClamp
+
+<span id="opacityclamp"></span>
+Applies to `colorClamp`, `opacityClamp`.
+
+If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum.
+
+Clamping is useful for focusing on a subset of the data while ensuring that extreme values remain visible, but use caution: clamped values may need an annotation to avoid misinterpretation. Clamping typically requires setting an explicit **domain** since if the domain is inferred, no values will be outside the domain.
+
+For continuous scales only.
+
+### colorN
+
+For a *quantile* scale, the number of quantiles (creates *n* - 1 thresholds); for a *quantize* scale, the approximate number of thresholds; defaults to 5.
+
+### colorNice
+
+<span id="opacitynice"></span>
+Applies to `colorNice`, `opacityNice`.
+
+If true, or a tick count or interval, extend the domain to nice round values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and nice time intervals for *utc* and *time* scales. Pass an interval such as
+*minute*, *wednesday* or *month* to specify what constitutes a nice interval.
+
+For continuous scales only.
+
+### colorScheme
+
+If specified, shorthand for setting the **colorRange** or **colorInterpolate** option of a *color* scale.
+
+### colorInterpolate
+
+How to interpolate color range values. For quantitative scales only. This attribute can be used to specify a color space for interpolating colors specified in the **colorRange**.
+
+### colorPivot
+
+For a diverging color scale, the input value (abstract value) that divides the domain into two parts; defaults to 0 for *diverging* scales, dividing the domain into negative and positive parts; defaults to 1 for
+*diverging-log* scales. By default, diverging scales are symmetric around the pivot; see the **symmetric** option.
+
+### colorSymmetric
+
+For a diverging color scale, if true (the default), extend the domain to ensure that the lower part of the domain (below the **pivot**) is commensurate with the upper part of the domain (above the **pivot**).
+
+A symmetric diverging color scale may not use all of its output **range**; this reduces contrast but ensures that deviations both below and above the
+**pivot** are represented proportionally. Otherwise if false, the full output **range** will be used; this increases contrast but values on opposite sides of the **pivot** may not be meaningfully compared.
+
+### colorLabel
+
+<span id="opacitylabel"></span>
+Applies to `colorLabel`, `opacityLabel`.
+
+A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+
+For axes and legends only.
+
+### colorPercent
+
+<span id="opacitypercent"></span>
+Applies to `colorPercent`, `opacityPercent`.
+
+If true, shorthand for a transform suitable for percentages, mapping proportions in [0, 1] to [0, 100].
+
+### colorReverse
+
+<span id="opacityreverse"></span>
+Applies to `colorReverse`, `opacityReverse`.
+
+Whether to reverse the scale’s encoding; equivalent to reversing either the
+**domain** or **range**.
+
+### colorZero
+
+<span id="opacityzero"></span>
+Applies to `colorZero`, `opacityZero`.
+
+Whether the **domain** must include zero. If the domain minimum is positive, it will be set to zero; otherwise if the domain maximum is negative, it will be set to zero.
+
+For quantitative scales only.
+
+### colorTickFormat
+
+<span id="opacitytickformat"></span>
+Applies to `colorTickFormat`, `opacityTickFormat`.
+
+How to format inputs (abstract values) for axis tick labels; one of:
+
+- a [d3-format](https://d3js.org/d3-time) string for numeric scales
+- a [d3-time-format](https://d3js.org/d3-time-format) string for temporal scales
+
+### colorExponent
+
+A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale. For *pow* and *diverging-pow* scales only.
+
+### colorBase
+
+A log scale’s base; defaults to 10. Does not affect the scale’s encoding, but rather the default ticks. For *log* and *diverging-log* scales only.
+
+### colorConstant
+
+A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1. For *symlog* and *diverging-symlog* scales only.
+
+### opacityScale
+
+The *opacity* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled. The opacity scale defaults to *linear*; this scales is intended for quantitative data.
+
+### opacityDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred from channel values. For continuous data (numbers and dates), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+
+Opacity scales have a default domain from 0 to the maximum value of associated channels.
+
+### opacityRange
+
+The extent of the scale’s outputs (visual values).
+
+Opacity scales have a default range of [0, 1].
+
+### opacityExponent
+
+A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale. For *pow* scales only.
+
+### opacityBase
+
+A log scale’s base; defaults to 10. Does not affect the scale’s encoding, but rather the default ticks. For *log* scales only.
+
+### opacityConstant
+
+A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1. For *symlog* scales only.
+
+### symbolScale
+
+The *symbol* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled. Defaults to an *ordinal* scale type.
+
+### symbolDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred from channel values. As symbol scales are discrete, the domain is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+
+### symbolRange
+
+The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**, and for position scales, the plot’s dimensions. For continuous data (numbers and dates), and for ordinal position scales (*point* and *band*), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For other ordinal data, such as for a *color* scale, it is an array (or iterable) of output values in the same order as the **domain**.
+
+Symbol scales have a default range of categorical symbols; the choice of symbols depends on whether the associated dot mark is filled or stroked.
+
+**`colorScale`, `opacityScale`, `symbolScale`:** Compatibility limitation: null is accepted by the specification, but rendering a matching data channel currently throws `unknown scale type: null`. The null-scale examples preserve this expected rejection.
+
+**`colorRange`, `opacityRange`, `symbolRange`:** Compatibility limitation: `Fixed` is accepted by the specification for this range, but the retained renderer throws an unsupported fixed attribute error. Fixed domains remain supported.
+
+**`colorScheme`:** Compatibility limitation: the wire contract accepts open objects and parameter-reference strings; quantitative rendering rejects scheme objects and unknown scheme strings. Known scheme strings are normalized without case sensitivity.
+
+**`colorInterpolate`:** JavaScript additionally accepts a native one-argument sequential interpolator such as D3 `interpolateBlues`; install `d3` to run the native examples. Functions have no JSON, YAML or Python wire representation.
+
+**`colorInterpolate`:** JavaScript additionally accepts a two-argument D3 interpolation factory such as `interpolateRgb.gamma(2.2)` together with explicit color range endpoints; install `d3` for this native example.
+
+**`colorRange`:** For an ordinal color scale, a native JavaScript range callback receives the scale domain and returns the output colors. This callback is a JavaScript-only runtime value.
+
+**`symbolRange`:** JavaScript additionally accepts native D3 symbol objects such as `symbolStar` in a symbol range; install `d3` for the native example. Shared templates use symbol names.
+
+### Color examples
+
+`colorScheme`: [json](/templates/attributes/color/colorScheme.json) · [yaml](/templates/attributes/color/colorScheme.yaml) · [js](/templates/attributes/color/colorScheme.js) · <a :href="withBase('/templates/attributes/color/colorScheme.py')" download>Python</a>.

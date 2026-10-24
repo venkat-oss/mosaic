@@ -1277,116 +1277,92 @@ export interface PlotAttributes {
   fyReverse?: boolean | ParamRef;
 
 
-  // color scale attributes
-
   /**
-   * The *color* scale type, affecting how the scale encodes abstract data, say
-   * by applying a mathematical transformation. If null, the scale is disabled.
+   * The *color* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled.
    *
-   * For quantitative data (numbers), defaults to *linear*; for temporal data
-   * (dates), defaults to *utc*; for ordinal data (strings or booleans),
-   * defaults to *point* for position scales, *categorical* for color scales,
-   * and otherwise *ordinal*.
+   * For quantitative data (numbers), defaults to *linear*; for temporal data (dates), defaults to *utc*; for ordinal data (strings or booleans), defaults to *point* for position scales, *categorical* for color scales, and otherwise *ordinal*.
    */
   colorScale?: ColorScaleType | null | ParamRef;
 
-  /**
-   * The extent of the scale’s inputs (abstract values). By default inferred
-   * from channel values. For continuous data (numbers and dates), it is
-   * typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
-   * For ordinal data (strings or booleans), it is an array (or iterable) of
-   * values is the desired order, defaulting to natural ascending order.
-   */
-  colorDomain?: any[] | Fixed | ParamRef;
 
   /**
-   * The extent of the scale’s outputs (visual values). By default inferred from
-   * the scale’s **type** and **domain**. For other ordinal data, it is an array
-   * (or iterable) of output values in the same order as the **domain**.
+   * The extent of the scale’s inputs (abstract values). By default inferred from channel values. For continuous data (numbers and dates), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
    */
-  colorRange?: any[] | Fixed | ParamRef;
+  colorDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
-   * If true, values below the domain minimum are treated as the domain minimum,
-   * and values above the domain maximum are treated as the domain maximum.
+   * The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**. For other ordinal data, it is an array (or iterable) of output values in the same order as the **domain**.
+   */
+  colorRange?: Array<any> | Fixed | ParamRef;
+
+
+  /**
+   * If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum.
    *
-   * Clamping is useful for focusing on a subset of the data while ensuring that
-   * extreme values remain visible, but use caution: clamped values may need an
-   * annotation to avoid misinterpretation. Clamping typically requires setting
-   * an explicit **domain** since if the domain is inferred, no values will be
-   * outside the domain.
+   * Clamping is useful for focusing on a subset of the data while ensuring that extreme values remain visible, but use caution: clamped values may need an annotation to avoid misinterpretation. Clamping typically requires setting an explicit **domain** since if the domain is inferred, no values will be outside the domain.
    *
    * For continuous scales only.
    */
   colorClamp?: boolean | ParamRef;
 
+
   /**
-   * For a *quantile* scale, the number of quantiles (creates *n* - 1
-   * thresholds); for a *quantize* scale, the approximate number of thresholds;
-   * defaults to 5.
+   * For a *quantile* scale, the number of quantiles (creates *n* - 1 thresholds); for a *quantize* scale, the approximate number of thresholds; defaults to 5.
    */
   colorN?: number | ParamRef;
 
+
   /**
-   * If true, or a tick count or interval, extend the domain to nice round
-   * values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
-   * nice time intervals for *utc* and *time* scales. Pass an interval such as
-   * *minute*, *wednesday* or *month* to specify what constitutes a nice
-   * interval.
+   * If true, or a tick count or interval, extend the domain to nice round values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and nice time intervals for *utc* and *time* scales. Pass an interval such as
+   * *minute*, *wednesday* or *month* to specify what constitutes a nice interval.
    *
    * For continuous scales only.
    */
   colorNice?: boolean | number | Interval | ParamRef;
 
+
   /**
-   * If specified, shorthand for setting the **colorRange**
-   * or **colorInterpolate** option of a *color* scale.
+   * If specified, shorthand for setting the **colorRange** or **colorInterpolate** option of a *color* scale.
    */
   colorScheme?: ColorScheme | ParamRef;
 
+
   /**
-   * How to interpolate color range values. For quantitative scales only.
-   * This attribute can be used to specify a color space for interpolating
-   * colors specified in the **colorRange**.
+   * How to interpolate color range values. For quantitative scales only. This attribute can be used to specify a color space for interpolating colors specified in the **colorRange**.
    */
   colorInterpolate?: Interpolate | ParamRef;
 
+
   /**
-   * For a diverging color scale, the input value (abstract value) that divides
-   * the domain into two parts; defaults to 0 for *diverging* scales, dividing
-   * the domain into negative and positive parts; defaults to 1 for
-   * *diverging-log* scales. By default, diverging scales are symmetric around
-   * the pivot; see the **symmetric** option.
+   * For a diverging color scale, the input value (abstract value) that divides the domain into two parts; defaults to 0 for *diverging* scales, dividing the domain into negative and positive parts; defaults to 1 for
+   * *diverging-log* scales. By default, diverging scales are symmetric around the pivot; see the **symmetric** option.
    */
   colorPivot?: any | ParamRef;
 
+
   /**
-   * For a diverging color scale, if true (the default), extend the domain to
-   * ensure that the lower part of the domain (below the **pivot**) is
-   * commensurate with the upper part of the domain (above the **pivot**).
+   * For a diverging color scale, if true (the default), extend the domain to ensure that the lower part of the domain (below the **pivot**) is commensurate with the upper part of the domain (above the **pivot**).
    *
-   * A symmetric diverging color scale may not use all of its output **range**;
-   * this reduces contrast but ensures that deviations both below and above the
-   * **pivot** are represented proportionally. Otherwise if false, the full
-   * output **range** will be used; this increases contrast but values on
-   * opposite sides of the **pivot** may not be meaningfully compared.
+   * A symmetric diverging color scale may not use all of its output **range**; this reduces contrast but ensures that deviations both below and above the
+   * **pivot** are represented proportionally. Otherwise if false, the full output **range** will be used; this increases contrast but values on opposite sides of the **pivot** may not be meaningfully compared.
    */
   colorSymmetric?: boolean | ParamRef;
 
+
   /**
-   * A textual label to show on the axis or legend; if null, show no label. By
-   * default the scale label is inferred from channel definitions, possibly with
-   * an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+   * A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
    *
    * For axes and legends only.
    */
   colorLabel?: string | null | ParamRef;
 
+
   /**
-   * If true, shorthand for a transform suitable for percentages, mapping
-   * proportions in [0, 1] to [0, 100].
+   * If true, shorthand for a transform suitable for percentages, mapping proportions in [0, 1] to [0, 100].
    */
   colorPercent?: boolean | ParamRef;
+
 
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the
@@ -1394,14 +1370,14 @@ export interface PlotAttributes {
    */
   colorReverse?: boolean | ParamRef;
 
+
   /**
-   * Whether the **domain** must include zero. If the domain minimum is
-   * positive, it will be set to zero; otherwise if the domain maximum is
-   * negative, it will be set to zero.
+   * Whether the **domain** must include zero. If the domain minimum is positive, it will be set to zero; otherwise if the domain maximum is negative, it will be set to zero.
    *
    * For quantitative scales only.
    */
   colorZero?: boolean | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -1409,99 +1385,83 @@ export interface PlotAttributes {
    * - a [d3-format][1] string for numeric scales
    * - a [d3-time-format][2] string for temporal scales
    *
-   * [1]: https://d3js.org/d3-time
-   * [2]: https://d3js.org/d3-time-format
+   * [1]: https://d3js.org/d3-time [2]: https://d3js.org/d3-time-format
    */
   colorTickFormat?: string | null | ParamRef;
 
+
   /**
-   * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
-   * linear scale. For *pow* and *diverging-pow* scales only.
+   * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale. For *pow* and *diverging-pow* scales only.
    */
   colorExponent?: number | ParamRef;
 
+
   /**
-   * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
-   * but rather the default ticks. For *log* and *diverging-log* scales only.
+   * A log scale’s base; defaults to 10. Does not affect the scale’s encoding, but rather the default ticks. For *log* and *diverging-log* scales only.
    */
   colorBase?: number | ParamRef;
 
+
   /**
-   * A symlog scale’s constant, expressing the magnitude of the linear region
-   * around the origin; defaults to 1. For *symlog* and *diverging-symlog*
-   * scales only.
+   * A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1. For *symlog* and *diverging-symlog* scales only.
    */
   colorConstant?: number | ParamRef;
 
 
-  // opacity scale attributes
-
   /**
-   * The *opacity* scale type, affecting how the scale encodes abstract data,
-   * say by applying a mathematical transformation. If null, the scale is
-   * disabled. The opacity scale defaults to *linear*; this scales is intended
-   * for quantitative data.
+   * The *opacity* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled. The opacity scale defaults to *linear*; this scales is intended for quantitative data.
    */
   opacityScale?: ContinuousScaleType | null | ParamRef;
 
+
   /**
-   * The extent of the scale’s inputs (abstract values). By default inferred
-   * from channel values. For continuous data (numbers and dates), it is
-   * typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
-   * For ordinal data (strings or booleans), it is an array (or iterable) of
-   * values is the desired order, defaulting to natural ascending order.
+   * The extent of the scale’s inputs (abstract values). By default inferred from channel values. For continuous data (numbers and dates), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
    *
-   * Opacity scales have a default domain from 0 to the maximum value of
-   * associated channels.
+   * Opacity scales have a default domain from 0 to the maximum value of associated channels.
    */
-  opacityDomain?: any[] | Fixed | ParamRef;
+  opacityDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * The extent of the scale’s outputs (visual values).
    *
    * Opacity scales have a default range of [0, 1].
    */
-  opacityRange?: any[] | Fixed | ParamRef;
+  opacityRange?: Array<any> | Fixed | ParamRef;
+
 
   /**
-   * If true, values below the domain minimum are treated as the domain minimum,
-   * and values above the domain maximum are treated as the domain maximum.
+   * If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum.
    *
-   * Clamping is useful for focusing on a subset of the data while ensuring that
-   * extreme values remain visible, but use caution: clamped values may need an
-   * annotation to avoid misinterpretation. Clamping typically requires setting
-   * an explicit **domain** since if the domain is inferred, no values will be
-   * outside the domain.
+   * Clamping is useful for focusing on a subset of the data while ensuring that extreme values remain visible, but use caution: clamped values may need an annotation to avoid misinterpretation. Clamping typically requires setting an explicit **domain** since if the domain is inferred, no values will be outside the domain.
    *
    * For continuous scales only.
    */
   opacityClamp?: boolean | ParamRef;
 
+
   /**
-   * If true, or a tick count or interval, extend the domain to nice round
-   * values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
-   * nice time intervals for *utc* and *time* scales. Pass an interval such as
-   * *minute*, *wednesday* or *month* to specify what constitutes a nice
-   * interval.
+   * If true, or a tick count or interval, extend the domain to nice round values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and nice time intervals for *utc* and *time* scales. Pass an interval such as
+   * *minute*, *wednesday* or *month* to specify what constitutes a nice interval.
    *
    * For continuous scales only.
    */
-  opacityNice?: boolean | number| Interval | ParamRef;
+  opacityNice?: boolean | number | Interval | ParamRef;
+
 
   /**
-   * A textual label to show on the axis or legend; if null, show no label. By
-   * default the scale label is inferred from channel definitions, possibly with
-   * an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+   * A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
    *
    * For axes and legends only.
    */
   opacityLabel?: string | null | ParamRef;
 
+
   /**
-   * If true, shorthand for a transform suitable for percentages, mapping
-   * proportions in [0, 1] to [0, 100].
+   * If true, shorthand for a transform suitable for percentages, mapping proportions in [0, 1] to [0, 100].
    */
   opacityPercent?: boolean | ParamRef;
+
 
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the
@@ -1509,14 +1469,14 @@ export interface PlotAttributes {
    */
   opacityReverse?: boolean | ParamRef;
 
+
   /**
-   * Whether the **domain** must include zero. If the domain minimum is
-   * positive, it will be set to zero; otherwise if the domain maximum is
-   * negative, it will be set to zero.
+   * Whether the **domain** must include zero. If the domain minimum is positive, it will be set to zero; otherwise if the domain maximum is negative, it will be set to zero.
    *
    * For quantitative scales only.
    */
   opacityZero?: boolean | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -1524,60 +1484,47 @@ export interface PlotAttributes {
    * - a [d3-format][1] string for numeric scales
    * - a [d3-time-format][2] string for temporal scales
    *
-   * [1]: https://d3js.org/d3-time
-   * [2]: https://d3js.org/d3-time-format
+   * [1]: https://d3js.org/d3-time [2]: https://d3js.org/d3-time-format
    */
   opacityTickFormat?: string | null | ParamRef;
 
+
   /**
-   * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
-   * linear scale. For *pow* scales only.
+   * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale. For *pow* scales only.
    */
   opacityExponent?: number | ParamRef;
 
+
   /**
-   * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
-   * but rather the default ticks. For *log* scales only.
+   * A log scale’s base; defaults to 10. Does not affect the scale’s encoding, but rather the default ticks. For *log* scales only.
    */
   opacityBase?: number | ParamRef;
 
+
   /**
-   * A symlog scale’s constant, expressing the magnitude of the linear region
-   * around the origin; defaults to 1. For *symlog* scales only.
+   * A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1. For *symlog* scales only.
    */
   opacityConstant?: number | ParamRef;
 
 
-  // symbol scale attributes
-
   /**
-   * The *symbol* scale type, affecting how the scale encodes abstract data,
-   * say by applying a mathematical transformation. If null, the scale is
-   * disabled. Defaults to an *ordinal* scale type.
+   * The *symbol* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation. If null, the scale is disabled. Defaults to an *ordinal* scale type.
    */
   symbolScale?: DiscreteScaleType | null | ParamRef;
 
-  /**
-   * The extent of the scale’s inputs (abstract values). By default inferred
-   * from channel values. As symbol scales are discrete, the domain is an array
-   * (or iterable) of values is the desired order, defaulting to natural
-   * ascending order.
-   */
-  symbolDomain?: any[] | Fixed | ParamRef;
 
   /**
-   * The extent of the scale’s outputs (visual values). By default inferred from
-   * the scale’s **type** and **domain**, and for position scales, the plot’s
-   * dimensions. For continuous data (numbers and dates), and for ordinal
-   * position scales (*point* and *band*), it is typically [*min*, *max*]; it
-   * can be [*max*, *min*] to reverse the scale. For other ordinal data, such as
-   * for a *color* scale, it is an array (or iterable) of output values in the
-   * same order as the **domain**.
-   *
-   * Symbol scales have a default range of categorical symbols; the choice of
-   * symbols depends on whether the associated dot mark is filled or stroked.
+   * The extent of the scale’s inputs (abstract values). By default inferred from channel values. As symbol scales are discrete, the domain is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
    */
-  symbolRange?: any[] | Fixed | ParamRef;
+  symbolDomain?: Array<any> | Fixed | ParamRef;
+
+
+  /**
+   * The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**, and for position scales, the plot’s dimensions. For continuous data (numbers and dates), and for ordinal position scales (*point* and *band*), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale. For other ordinal data, such as for a *color* scale, it is an array (or iterable) of output values in the same order as the **domain**.
+   *
+   * Symbol scales have a default range of categorical symbols; the choice of symbols depends on whether the associated dot mark is filled or stroked.
+   */
+  symbolRange?: Array<any> | Fixed | ParamRef;
 
 
   // r scale attributes

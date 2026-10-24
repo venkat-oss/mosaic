@@ -174,8 +174,6 @@ export const fyFontVariant = attrf('fyFontVariant');
 export const fyAriaLabel = attrf('fyAriaLabel');
 export const fyAriaDescription = attrf('fyAriaDescription');
 export const fyReverse = attrf('fyReverse');
-
-// color scale attributes
 export const colorScale = attrf('colorScale');
 export const colorDomain = attrf('colorDomain');
 export const colorRange = attrf('colorRange');
@@ -194,8 +192,6 @@ export const colorTickFormat = attrf('colorTickFormat');
 export const colorBase = attrf('colorBase');
 export const colorExponent = attrf('colorExponent');
 export const colorConstant = attrf('colorConstant');
-
-// opacity scale attributes
 export const opacityScale = attrf('opacityScale');
 export const opacityDomain = attrf('opacityDomain');
 export const opacityRange = attrf('opacityRange');
@@ -209,8 +205,6 @@ export const opacityTickFormat = attrf('opacityTickFormat');
 export const opacityBase = attrf('opacityBase');
 export const opacityExponent = attrf('opacityExponent');
 export const opacityConstant = attrf('opacityConstant');
-
-// symbol scale attributes
 export const symbolScale = attrf('symbolScale');
 export const symbolDomain = attrf('symbolDomain');
 export const symbolRange = attrf('symbolRange');
