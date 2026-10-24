@@ -20,7 +20,6 @@ export function margin(value) {
     marginRight: value
   });
 }
-
 export function xyDomain(value) {
   return attributes({ xDomain: value, yDomain: value });
 }
@@ -40,9 +39,6 @@ export const clip = attrf('clip');
 export const padding = attrf('padding');
 export const ariaLabel = attrf('ariaLabel');
 export const ariaDescription = attrf('ariaDescription');
-
-
-// x scale attributes
 export const xScale = attrf('xScale');
 export const xDomain = attrf('xDomain');
 export const xRange = attrf('xRange');
@@ -78,8 +74,6 @@ export const xZero = attrf('xZero');
 export const xBase = attrf('xBase');
 export const xExponent = attrf('xExponent');
 export const xConstant = attrf('xConstant');
-
-// y scale attributes
 export const yScale = attrf('yScale');
 export const yDomain = attrf('yDomain');
 export const yRange = attrf('yRange');

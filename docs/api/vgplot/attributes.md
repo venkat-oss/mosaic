@@ -18,6 +18,91 @@ Attributes are included as plot directives, in the form of functions that take e
 
 In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 
+## x Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`xScale(value)`](#xscale) | `` PositionScaleType \| null \| ParamRef `` |
+| [`xDomain(value)`](#xdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`xRange(value)`](#xrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`xNice(value)`](#xnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`xInset(value)`](#xinset) | `` number \| ParamRef `` |
+| [`xInsetRight(value)`](#xinsetright) | `` number \| ParamRef `` |
+| [`xInsetLeft(value)`](#xinsetleft) | `` number \| ParamRef `` |
+| [`xClamp(value)`](#xclamp) | `` boolean \| ParamRef `` |
+| [`xRound(value)`](#xround) | `` boolean \| ParamRef `` |
+| [`xAlign(value)`](#xalign) | `` number \| ParamRef `` |
+| [`xPadding(value)`](#xpadding) | `` number \| ParamRef `` |
+| [`xPaddingInner(value)`](#xpaddinginner) | `` number \| ParamRef `` |
+| [`xPaddingOuter(value)`](#xpaddingouter) | `` number \| ParamRef `` |
+| [`xAxis(value)`](#xaxis) | `` 'top' \| 'bottom' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`xTicks(value)`](#xticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`xTickSize(value)`](#xticksize) | `` number \| ParamRef `` |
+| [`xTickSpacing(value)`](#xtickspacing) | `` number \| ParamRef `` |
+| [`xTickPadding(value)`](#xtickpadding) | `` number \| ParamRef `` |
+| [`xTickFormat(value)`](#xtickformat) | `` string \| null \| ParamRef `` |
+| [`xTickRotate(value)`](#xtickrotate) | `` number \| ParamRef `` |
+| [`xGrid(value)`](#xgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`xLine(value)`](#xline) | `` boolean \| ParamRef `` |
+| [`xLabel(value)`](#xlabel) | `` string \| null \| ParamRef `` |
+| [`xLabelAnchor(value)`](#xlabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`xLabelArrow(value)`](#xlabelarrow) | `` LabelArrow \| ParamRef `` |
+| [`xLabelOffset(value)`](#xlabeloffset) | `` number \| ParamRef `` |
+| [`xFontVariant(value)`](#xfontvariant) | `` string \| ParamRef `` |
+| [`xAriaLabel(value)`](#xarialabel) | `` string \| ParamRef `` |
+| [`xAriaDescription(value)`](#xariadescription) | `` string \| ParamRef `` |
+| [`xPercent(value)`](#xpercent) | `` boolean \| ParamRef `` |
+| [`xReverse(value)`](#xreverse) | `` boolean \| ParamRef `` |
+| [`xZero(value)`](#xzero) | `` boolean \| ParamRef `` |
+| [`xExponent(value)`](#xexponent) | `` number \| ParamRef `` |
+| [`xBase(value)`](#xbase) | `` number \| ParamRef `` |
+| [`xConstant(value)`](#xconstant) | `` number \| ParamRef `` |
+## Paired Scale Domains
+
+| Directive | Value type |
+| --- | --- |
+| [`xyDomain(value)`](#xydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+
+## y Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`yScale(value)`](#yscale) | `` PositionScaleType \| null \| ParamRef `` |
+| [`yDomain(value)`](#ydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`yRange(value)`](#yrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`yNice(value)`](#ynice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`yInset(value)`](#yinset) | `` number \| ParamRef `` |
+| [`yInsetTop(value)`](#yinsettop) | `` number \| ParamRef `` |
+| [`yInsetBottom(value)`](#yinsetbottom) | `` number \| ParamRef `` |
+| [`yClamp(value)`](#yclamp) | `` boolean \| ParamRef `` |
+| [`yRound(value)`](#yround) | `` boolean \| ParamRef `` |
+| [`yAlign(value)`](#yalign) | `` number \| ParamRef `` |
+| [`yPadding(value)`](#ypadding) | `` number \| ParamRef `` |
+| [`yPaddingInner(value)`](#ypaddinginner) | `` number \| ParamRef `` |
+| [`yPaddingOuter(value)`](#ypaddingouter) | `` number \| ParamRef `` |
+| [`yAxis(value)`](#yaxis) | `` 'left' \| 'right' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`yTicks(value)`](#yticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`yTickSize(value)`](#yticksize) | `` number \| ParamRef `` |
+| [`yTickSpacing(value)`](#ytickspacing) | `` number \| ParamRef `` |
+| [`yTickPadding(value)`](#ytickpadding) | `` number \| ParamRef `` |
+| [`yTickFormat(value)`](#ytickformat) | `` string \| null \| ParamRef `` |
+| [`yTickRotate(value)`](#ytickrotate) | `` number \| ParamRef `` |
+| [`yGrid(value)`](#ygrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`yLine(value)`](#yline) | `` boolean \| ParamRef `` |
+| [`yLabel(value)`](#ylabel) | `` string \| null \| ParamRef `` |
+| [`yLabelAnchor(value)`](#ylabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`yLabelArrow(value)`](#ylabelarrow) | `` LabelArrow \| ParamRef `` |
+| [`yLabelOffset(value)`](#ylabeloffset) | `` number \| ParamRef `` |
+| [`yFontVariant(value)`](#yfontvariant) | `` string \| ParamRef `` |
+| [`yAriaLabel(value)`](#yarialabel) | `` string \| ParamRef `` |
+| [`yAriaDescription(value)`](#yariadescription) | `` string \| ParamRef `` |
+| [`yPercent(value)`](#ypercent) | `` boolean \| ParamRef `` |
+| [`yReverse(value)`](#yreverse) | `` boolean \| ParamRef `` |
+| [`yZero(value)`](#yzero) | `` boolean \| ParamRef `` |
+| [`yExponent(value)`](#yexponent) | `` number \| ParamRef `` |
+| [`yBase(value)`](#ybase) | `` number \| ParamRef `` |
+| [`yConstant(value)`](#yconstant) | `` number \| ParamRef `` |
+
 </template>
 
 <template v-else-if="language === 'python'">
@@ -47,6 +132,91 @@ In addition to value arrays, scale domain attributes accept the string `"Fixed"`
 | [`vg.aria_label(value)`](#arialabel) |
 | [`vg.aria_description(value)`](#ariadescription) |
 | [`vg.clip(value=True)`](#clip) |
+
+## x Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.x_scale(value)`](#xscale) | `` PositionScaleType \| null \| ParamRef `` |
+| [`vg.x_domain(value)`](#xdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.x_range(value)`](#xrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.x_nice(value=True)`](#xnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.x_inset(value)`](#xinset) | `` number \| ParamRef `` |
+| [`vg.x_inset_right(value)`](#xinsetright) | `` number \| ParamRef `` |
+| [`vg.x_inset_left(value)`](#xinsetleft) | `` number \| ParamRef `` |
+| [`vg.x_clamp(value=True)`](#xclamp) | `` boolean \| ParamRef `` |
+| [`vg.x_round(value=True)`](#xround) | `` boolean \| ParamRef `` |
+| [`vg.x_align(value)`](#xalign) | `` number \| ParamRef `` |
+| [`vg.x_padding(value)`](#xpadding) | `` number \| ParamRef `` |
+| [`vg.x_padding_inner(value)`](#xpaddinginner) | `` number \| ParamRef `` |
+| [`vg.x_padding_outer(value)`](#xpaddingouter) | `` number \| ParamRef `` |
+| [`vg.x_axis(value=True)`](#xaxis) | `` 'top' \| 'bottom' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`vg.x_ticks(value)`](#xticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.x_tick_size(value)`](#xticksize) | `` number \| ParamRef `` |
+| [`vg.x_tick_spacing(value)`](#xtickspacing) | `` number \| ParamRef `` |
+| [`vg.x_tick_padding(value)`](#xtickpadding) | `` number \| ParamRef `` |
+| [`vg.x_tick_format(value)`](#xtickformat) | `` string \| null \| ParamRef `` |
+| [`vg.x_tick_rotate(value)`](#xtickrotate) | `` number \| ParamRef `` |
+| [`vg.x_grid(value=True)`](#xgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.x_line(value=True)`](#xline) | `` boolean \| ParamRef `` |
+| [`vg.x_label(value)`](#xlabel) | `` string \| null \| ParamRef `` |
+| [`vg.x_label_anchor(value)`](#xlabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`vg.x_label_arrow(value)`](#xlabelarrow) | `` LabelArrow \| ParamRef `` |
+| [`vg.x_label_offset(value)`](#xlabeloffset) | `` number \| ParamRef `` |
+| [`vg.x_font_variant(value)`](#xfontvariant) | `` string \| ParamRef `` |
+| [`vg.x_aria_label(value)`](#xarialabel) | `` string \| ParamRef `` |
+| [`vg.x_aria_description(value)`](#xariadescription) | `` string \| ParamRef `` |
+| [`vg.x_percent(value=True)`](#xpercent) | `` boolean \| ParamRef `` |
+| [`vg.x_reverse(value=True)`](#xreverse) | `` boolean \| ParamRef `` |
+| [`vg.x_zero(value=True)`](#xzero) | `` boolean \| ParamRef `` |
+| [`vg.x_exponent(value)`](#xexponent) | `` number \| ParamRef `` |
+| [`vg.x_base(value)`](#xbase) | `` number \| ParamRef `` |
+| [`vg.x_constant(value)`](#xconstant) | `` number \| ParamRef `` |
+## Paired Scale Domains
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.xy_domain(value)`](#xydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+
+## y Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.y_scale(value)`](#yscale) | `` PositionScaleType \| null \| ParamRef `` |
+| [`vg.y_domain(value)`](#ydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.y_range(value)`](#yrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.y_nice(value=True)`](#ynice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.y_inset(value)`](#yinset) | `` number \| ParamRef `` |
+| [`vg.y_inset_top(value)`](#yinsettop) | `` number \| ParamRef `` |
+| [`vg.y_inset_bottom(value)`](#yinsetbottom) | `` number \| ParamRef `` |
+| [`vg.y_clamp(value=True)`](#yclamp) | `` boolean \| ParamRef `` |
+| [`vg.y_round(value=True)`](#yround) | `` boolean \| ParamRef `` |
+| [`vg.y_align(value)`](#yalign) | `` number \| ParamRef `` |
+| [`vg.y_padding(value)`](#ypadding) | `` number \| ParamRef `` |
+| [`vg.y_padding_inner(value)`](#ypaddinginner) | `` number \| ParamRef `` |
+| [`vg.y_padding_outer(value)`](#ypaddingouter) | `` number \| ParamRef `` |
+| [`vg.y_axis(value=True)`](#yaxis) | `` 'left' \| 'right' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`vg.y_ticks(value)`](#yticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.y_tick_size(value)`](#yticksize) | `` number \| ParamRef `` |
+| [`vg.y_tick_spacing(value)`](#ytickspacing) | `` number \| ParamRef `` |
+| [`vg.y_tick_padding(value)`](#ytickpadding) | `` number \| ParamRef `` |
+| [`vg.y_tick_format(value)`](#ytickformat) | `` string \| null \| ParamRef `` |
+| [`vg.y_tick_rotate(value)`](#ytickrotate) | `` number \| ParamRef `` |
+| [`vg.y_grid(value=True)`](#ygrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.y_line(value=True)`](#yline) | `` boolean \| ParamRef `` |
+| [`vg.y_label(value)`](#ylabel) | `` string \| null \| ParamRef `` |
+| [`vg.y_label_anchor(value)`](#ylabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`vg.y_label_arrow(value)`](#ylabelarrow) | `` LabelArrow \| ParamRef `` |
+| [`vg.y_label_offset(value)`](#ylabeloffset) | `` number \| ParamRef `` |
+| [`vg.y_font_variant(value)`](#yfontvariant) | `` string \| ParamRef `` |
+| [`vg.y_aria_label(value)`](#yarialabel) | `` string \| ParamRef `` |
+| [`vg.y_aria_description(value)`](#yariadescription) | `` string \| ParamRef `` |
+| [`vg.y_percent(value=True)`](#ypercent) | `` boolean \| ParamRef `` |
+| [`vg.y_reverse(value=True)`](#yreverse) | `` boolean \| ParamRef `` |
+| [`vg.y_zero(value=True)`](#yzero) | `` boolean \| ParamRef `` |
+| [`vg.y_exponent(value)`](#yexponent) | `` number \| ParamRef `` |
+| [`vg.y_base(value)`](#ybase) | `` number \| ParamRef `` |
+| [`vg.y_constant(value)`](#yconstant) | `` number \| ParamRef `` |
 
 </template>
 
@@ -699,3 +869,416 @@ The default clip for all marks.
 ### Plot attribute examples
 
 `margins`: [JSON](/templates/attributes/plot/margins.json) · [YAML](/templates/attributes/plot/margins.yaml) · [JavaScript](/templates/attributes/plot/margins.js) · <a :href="withBase('/templates/attributes/plot/margins.py')" download>Python</a>.
+
+## cartesian attribute reference
+
+### xScale
+
+The *x* scale type, affecting how the scale encodes abstract data, say by
+applying a mathematical transformation. If null, the scale is disabled.
+
+For quantitative data (numbers), defaults to *linear*; for temporal data
+(dates), defaults to *utc*; for ordinal data (strings or booleans),
+defaults to *point* for position scales, *categorical* for color scales,
+and otherwise *ordinal*. However, the radius scale defaults to *sqrt*, and
+the length and opacity scales default to *linear*; these scales are
+intended for quantitative data. The plot’s marks may also impose a scale
+type; for example, the barY mark requires that *x* is a *band* scale.
+
+### xDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred
+from channel values. For continuous data (numbers and dates), it is
+typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
+For ordinal data (strings or booleans), it is an array (or iterable) of
+values is the desired order, defaulting to natural ascending order.
+
+Linear scales have a default domain of [0, 1]. Log scales have a default
+domain of [1, 10] and cannot include zero. Radius scales have a default
+domain from 0 to the median first quartile of associated channels. Length
+have a default domain from 0 to the median median of associated channels.
+Opacity scales have a default domain from 0 to the maximum value of
+associated channels.
+
+### xRange
+
+The extent of the scale’s outputs (visual values). By default inferred from
+the scale’s **type** and **domain**, and for position scales, the plot’s
+dimensions. For continuous data (numbers and dates), and for ordinal
+position scales (*point* and *band*), it is typically [*min*, *max*]; it
+can be [*max*, *min*] to reverse the scale.
+
+### xNice
+
+<span id="ynice"></span>
+Applies to `xNice`, `yNice`.
+
+If true, or a tick count or interval, extend the domain to nice round
+values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
+nice time intervals for *utc* and *time* scales. Pass an interval such as
+*minute*, *wednesday* or *month* to specify what constitutes a nice
+interval.
+
+For continuous scales only.
+
+### xInset
+
+<span id="yinset"></span>
+Applies to `xInset`, `yInset`.
+
+Shorthand to set the same default for all four insets: **insetTop**,
+**insetRight**, **insetBottom**, and **insetLeft**. All insets typically
+default to zero, though not always (say when using bin transform). A
+positive inset reduces effective area, while a negative inset increases it.
+
+### xInsetRight
+
+Insets the right edge by the specified number of pixels. A positive value
+insets towards the left edge (reducing effective area), while a negative
+value insets away from the left edge (increasing it).
+
+### xInsetLeft
+
+Insets the left edge by the specified number of pixels. A positive value
+insets towards the right edge (reducing effective area), while a negative
+value insets away from the right edge (increasing it).
+
+### xClamp
+
+<span id="yclamp"></span>
+Applies to `xClamp`, `yClamp`.
+
+If true, values below the domain minimum are treated as the domain minimum,
+and values above the domain maximum are treated as the domain maximum.
+
+Clamping is useful for focusing on a subset of the data while ensuring that
+extreme values remain visible, but use caution: clamped values may need an
+annotation to avoid misinterpretation. Clamping typically requires setting
+an explicit **domain** since if the domain is inferred, no values will be
+outside the domain.
+
+For continuous scales only.
+
+### xRound
+
+<span id="yround"></span>
+Applies to `xRound`, `yRound`.
+
+If true, round the output value to the nearest integer (pixel); useful for
+crisp edges when rendering.
+
+For position scales only.
+
+### xAlign
+
+<span id="yalign"></span>
+Applies to `xAlign`, `yAlign`.
+
+How to distribute unused space in the **range** for *point* and *band*
+scales. A number in [0, 1], such as:
+
+- 0 - use the start of the range, putting unused space at the end
+- 0.5 (default) - use the middle, distributing unused space evenly
+- 1 use the end, putting unused space at the start
+
+For ordinal position scales only.
+
+### xPadding
+
+<span id="ypadding"></span>
+Applies to `xPadding`, `yPadding`.
+
+For *band* scales, how much of the **range** to reserve to separate
+adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
+inset for the first and last value as a proportion of the bandwidth;
+defaults to 0.5 (50%).
+
+For ordinal position scales only.
+
+### xPaddingInner
+
+<span id="ypaddinginner"></span>
+Applies to `xPaddingInner`, `yPaddingInner`.
+
+For a *band* scale, how much of the range to reserve to separate
+adjacent bands.
+
+### xPaddingOuter
+
+<span id="ypaddingouter"></span>
+Applies to `xPaddingOuter`, `yPaddingOuter`.
+
+For a *band* scale, how much of the range to reserve to inset first and
+last bands.
+
+### xAxis
+
+The side of the frame on which to place the implicit axis: *top* or
+*bottom* for *x*. Defaults to *bottom* for an *x* scale.
+
+If *both*, an implicit axis will be rendered on both sides of the plot
+(*top* and *bottom* for *x*). If null, the implicit axis is suppressed.
+
+### xTicks
+
+<span id="yticks"></span>
+Applies to `xTicks`, `yTicks`.
+
+The desired approximate number of axis ticks, or an explicit array of tick
+values, or an interval such as *day* or *month*.
+
+### xTickSize
+
+<span id="yticksize"></span>
+Applies to `xTickSize`, `yTickSize`.
+
+The length of axis tick marks in pixels; negative values extend in the
+opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
+*opacity* *ramp* legends, and 0 for *fx* and *fy* axes.
+
+### xTickSpacing
+
+<span id="ytickspacing"></span>
+Applies to `xTickSpacing`, `yTickSpacing`.
+
+The desired approximate spacing between adjacent axis ticks, affecting the
+default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels
+for *y* and *fy*.
+
+### xTickPadding
+
+The distance between an axis tick mark and its associated text label (in
+pixels); often defaults to 3, but may be affected by **xTickSize** and
+**xTickRotate**.
+
+### xTickFormat
+
+<span id="ytickformat"></span>
+Applies to `xTickFormat`, `yTickFormat`.
+
+How to format inputs (abstract values) for axis tick labels; one of:
+
+- a [d3-format](https://d3js.org/d3-time) string for numeric scales
+- a [d3-time-format](https://d3js.org/d3-time-format) string for temporal scales
+
+### xTickRotate
+
+<span id="ytickrotate"></span>
+Applies to `xTickRotate`, `yTickRotate`.
+
+The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
+
+### xGrid
+
+<span id="ygrid"></span>
+Applies to `xGrid`, `yGrid`.
+
+Whether to show a grid aligned with the scale’s ticks. If true, show a grid
+with the currentColor stroke; if a string, show a grid with the specified
+stroke color; if an approximate number of ticks, an interval, or an array
+of tick values, show corresponding grid lines. See also the grid mark.
+
+For axes only.
+
+### xLine
+
+<span id="yline"></span>
+Applies to `xLine`, `yLine`.
+
+If true, draw a line along the axis; if false (default), do not.
+
+### xLabel
+
+<span id="ylabel"></span>
+Applies to `xLabel`, `yLabel`.
+
+A textual label to show on the axis or legend; if null, show no label. By
+default the scale label is inferred from channel definitions, possibly with
+an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+
+For axes and legends only.
+
+### xLabelAnchor
+
+<span id="ylabelanchor"></span>
+Applies to `xLabelAnchor`, `yLabelAnchor`.
+
+Where to place the axis **label** relative to the plot’s frame. For
+vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
+*center*; for horizontal position scales (*x* and *fx*), may be *left*,
+*right*, or *center*. Defaults to *center* for ordinal scales (including
+*fx* and *fy*), and otherwise *top* for *y*, and *right* for *x*.
+
+### xLabelArrow
+
+<span id="ylabelarrow"></span>
+Applies to `xLabelArrow`, `yLabelArrow`.
+
+Whether to apply a directional arrow such as → or ↑ to the x-axis scale
+label. If *auto* (the default), the presence of the arrow depends on
+whether the scale is ordinal.
+
+### xLabelOffset
+
+<span id="ylabeloffset"></span>
+Applies to `xLabelOffset`, `yLabelOffset`.
+
+The axis **label** position offset (in pixels); default depends on margins
+and orientation.
+
+### xFontVariant
+
+<span id="yfontvariant"></span>
+Applies to `xFontVariant`, `yFontVariant`.
+
+The font-variant attribute for axis ticks; defaults to *tabular-nums* for
+quantitative axes.
+
+### xAriaLabel
+
+<span id="yarialabel"></span>
+Applies to `xAriaLabel`, `yAriaLabel`.
+
+A short label representing the axis in the accessibility tree.
+
+### xAriaDescription
+
+<span id="yariadescription"></span>
+Applies to `xAriaDescription`, `yAriaDescription`.
+
+A textual description for the axis in the accessibility tree.
+
+### xPercent
+
+<span id="ypercent"></span>
+Applies to `xPercent`, `yPercent`.
+
+If true, shorthand for a transform suitable for percentages, mapping
+proportions in [0, 1] to [0, 100].
+
+### xReverse
+
+Whether to reverse the scale’s encoding; equivalent to reversing either the
+**domain** or **range**.
+
+### xZero
+
+<span id="yzero"></span>
+Applies to `xZero`, `yZero`.
+
+Whether the **domain** must include zero. If the domain minimum is
+positive, it will be set to zero; otherwise if the domain maximum is
+negative, it will be set to zero.
+
+For quantitative scales only.
+
+### xExponent
+
+<span id="yexponent"></span>
+Applies to `xExponent`, `yExponent`.
+
+A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
+linear scale. For *pow* scales only.
+
+### xBase
+
+<span id="ybase"></span>
+Applies to `xBase`, `yBase`.
+
+A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
+but rather the default ticks. For *log* scales only.
+
+### xConstant
+
+<span id="yconstant"></span>
+Applies to `xConstant`, `yConstant`.
+
+A symlog scale’s constant, expressing the magnitude of the linear region
+around the origin; defaults to 1. For *symlog* scales only.
+
+### yScale
+
+The *y* scale type, affecting how the scale encodes abstract data, say by
+applying a mathematical transformation. If null, the scale is disabled.
+
+For quantitative data (numbers), defaults to *linear*; for temporal data
+(dates), defaults to *utc*; for ordinal data (strings or booleans),
+defaults to *point* for position scales,  The plot’s marks may also impose
+a scale type; for example, the barY mark requires that *x* is a *band*
+scale.
+
+### yDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred
+from channel values. For continuous data (numbers and dates), it is
+typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
+For ordinal data (strings or booleans), it is an array (or iterable) of
+values is the desired order, defaulting to natural ascending order.
+
+Linear scales have a default domain of [0, 1]. Log scales have a default
+domain of [1, 10] and cannot include zero.
+
+### yRange
+
+The extent of the scale’s outputs (visual values). By default inferred
+from the scale’s **type** and **domain**, and for position scales, the
+plot’s dimensions. For continuous data (numbers and dates), and for
+ordinal position scales (*point* and *band*), it is typically [*min*,
+*max*]; it can be [*max*, *min*] to reverse the scale.
+
+### yInsetTop
+
+Insets the top edge by the specified number of pixels. A positive value
+insets towards the bottom edge (reducing effective area), while a negative
+value insets away from the bottom edge (increasing it).
+
+### yInsetBottom
+
+Insets the bottom edge by the specified number of pixels. A positive value
+insets towards the top edge (reducing effective area), while a negative
+value insets away from the top edge (increasing it).
+
+### yAxis
+
+The side of the frame on which to place the implicit axis: *left* or
+*right* for *y*. Defaults to *left* for a *y* scale.
+
+If *both*, an implicit axis will be rendered on both sides of the plot
+(*left* and *right* for *y*). If null, the implicit axis is suppressed.
+
+### yTickPadding
+
+The distance between an axis tick mark and its associated text label (in
+pixels); often defaults to 3, but may be affected by **yTickSize** and
+**yTickRotate**.
+
+### yReverse
+
+Whether to reverse the scale’s encoding; equivalent to reversing either the
+**domain** or **range**. Note that by default, when the *y* scale is
+continuous, the *max* value points to the top of the screen, whereas
+ordinal values are ranked from top to bottom.
+
+### xyDomain
+
+Set the *x* and *y* scale domains.
+
+**`xRange`:** **Known limitation**: Fixed is admitted and serializes for ranges, but the renderer only implements Fixed domain inference. Use an explicit range array.
+
+**`yRange`:** **Known limitation**: Fixed is admitted and serializes for ranges, but the renderer only implements Fixed domain inference. Use an explicit range array.
+
+**`xScale`:** **Known limitation**: Null is admitted and serializes, but scale creation rejects it with unknown scale type: null.
+
+**`yScale`:** **Known limitation**: Null is admitted and serializes, but scale creation rejects it with unknown scale type: null.
+
+**`xLabelAnchor`:** **Known limitation**: The renderer accepts left/right/center for horizontal label anchors and top/bottom/center for vertical label anchors.
+
+**`yLabelAnchor`:** **Known limitation**: The renderer accepts left/right/center for horizontal label anchors and top/bottom/center for vertical label anchors.
+
+**`xTickFormat`, `yTickFormat`:** JavaScript formatter functions are native execution adapters beyond the string/null/reference wire contract.
+
+**`xGrid`, `yGrid`:** Native JavaScript and Python authoring can retain null, and JavaScript can execute numeric interval counts. The current wire Interval default is a string, so those native variants are not presented as JSON/YAML starters.
+
+### Cartesian examples
+
+`xDomain-parameter`: [json](/templates/attributes/cartesian/xDomain-parameter.json) · [yaml](/templates/attributes/cartesian/xDomain-parameter.yaml) · [js](/templates/attributes/cartesian/xDomain-parameter.js) · <a :href="withBase('/templates/attributes/cartesian/xDomain-parameter.py')" download>Python</a>.

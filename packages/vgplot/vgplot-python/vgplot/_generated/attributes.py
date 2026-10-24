@@ -3,6 +3,79 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..plot import Directive
+from .cartesian_attributes import (
+    x_align,
+    x_aria_description,
+    x_aria_label,
+    x_axis,
+    x_base,
+    x_clamp,
+    x_constant,
+    x_domain,
+    x_exponent,
+    x_font_variant,
+    x_grid,
+    x_inset,
+    x_inset_left,
+    x_inset_right,
+    x_label,
+    x_label_anchor,
+    x_label_arrow,
+    x_label_offset,
+    x_line,
+    x_nice,
+    x_padding,
+    x_padding_inner,
+    x_padding_outer,
+    x_percent,
+    x_range,
+    x_reverse,
+    x_round,
+    x_scale,
+    x_tick_format,
+    x_tick_padding,
+    x_tick_rotate,
+    x_tick_size,
+    x_tick_spacing,
+    x_ticks,
+    x_zero,
+    xy_domain,
+    y_align,
+    y_aria_description,
+    y_aria_label,
+    y_axis,
+    y_base,
+    y_clamp,
+    y_constant,
+    y_domain,
+    y_exponent,
+    y_font_variant,
+    y_grid,
+    y_inset,
+    y_inset_bottom,
+    y_inset_top,
+    y_label,
+    y_label_anchor,
+    y_label_arrow,
+    y_label_offset,
+    y_line,
+    y_nice,
+    y_padding,
+    y_padding_inner,
+    y_padding_outer,
+    y_percent,
+    y_range,
+    y_reverse,
+    y_round,
+    y_scale,
+    y_tick_format,
+    y_tick_padding,
+    y_tick_rotate,
+    y_tick_size,
+    y_tick_spacing,
+    y_ticks,
+    y_zero,
+)
 from .plot_attributes import (
     align,
     aria_description,
@@ -651,361 +724,6 @@ def symbol_range(value: AttrValue) -> Directive:
 def symbol_scale(value: AttrValue) -> Directive:
     """The *symbol* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
     return Directive("symbolScale", value)
-
-
-def x_align(value: AttrValue) -> Directive:
-    """How to distribute unused space in the **range** for *point* and *band* scales."""
-    return Directive("xAlign", value)
-
-
-def x_aria_description(value: AttrValue) -> Directive:
-    """A textual description for the axis in the accessibility tree."""
-    return Directive("xAriaDescription", value)
-
-
-def x_aria_label(value: AttrValue) -> Directive:
-    """A short label representing the axis in the accessibility tree."""
-    return Directive("xAriaLabel", value)
-
-
-def x_axis(value: AttrValue = True) -> Directive:
-    """The side of the frame on which to place the implicit axis: *top* or *bottom* for *x*."""
-    return Directive("xAxis", value)
-
-
-def x_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("xBase", value)
-
-
-def x_clamp(value: AttrValue = True) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("xClamp", value)
-
-
-def x_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("xConstant", value)
-
-
-def x_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("xDomain", value)
-
-
-def x_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("xExponent", value)
-
-
-def x_font_variant(value: AttrValue) -> Directive:
-    """The font-variant attribute for axis ticks; defaults to *tabular-nums* for quantitative axes."""
-    return Directive("xFontVariant", value)
-
-
-def x_grid(value: AttrValue = True) -> Directive:
-    """Whether to show a grid aligned with the scale’s ticks."""
-    return Directive("xGrid", value)
-
-
-def x_inset(value: AttrValue) -> Directive:
-    """Shorthand to set the same default for all four insets: **insetTop**, **insetRight**, **insetBottom**, and **insetLeft**."""
-    return Directive("xInset", value)
-
-
-def x_inset_left(value: AttrValue) -> Directive:
-    """Insets the left edge by the specified number of pixels."""
-    return Directive("xInsetLeft", value)
-
-
-def x_inset_right(value: AttrValue) -> Directive:
-    """Insets the right edge by the specified number of pixels."""
-    return Directive("xInsetRight", value)
-
-
-def x_label(value: AttrValue) -> Directive:
-    """A textual label to show on the axis or legend; if null, show no label."""
-    return Directive("xLabel", value)
-
-
-def x_label_anchor(value: AttrValue) -> Directive:
-    """Where to place the axis **label** relative to the plot’s frame."""
-    return Directive("xLabelAnchor", value)
-
-
-def x_label_arrow(value: AttrValue) -> Directive:
-    """Whether to apply a directional arrow such as → or ↑ to the x-axis scale label."""
-    return Directive("xLabelArrow", value)
-
-
-def x_label_offset(value: AttrValue) -> Directive:
-    """The axis **label** position offset (in pixels); default depends on margins and orientation."""
-    return Directive("xLabelOffset", value)
-
-
-def x_line(value: AttrValue = True) -> Directive:
-    """If true, draw a line along the axis; if false (default), do not."""
-    return Directive("xLine", value)
-
-
-def x_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("xNice", value)
-
-
-def x_padding(value: AttrValue) -> Directive:
-    """For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%)."""
-    return Directive("xPadding", value)
-
-
-def x_padding_inner(value: AttrValue) -> Directive:
-    """For a *band* scale, how much of the range to reserve to separate adjacent bands."""
-    return Directive("xPaddingInner", value)
-
-
-def x_padding_outer(value: AttrValue) -> Directive:
-    """For a *band* scale, how much of the range to reserve to inset first and last bands."""
-    return Directive("xPaddingOuter", value)
-
-
-def x_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("xPercent", value)
-
-
-def x_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("xRange", value)
-
-
-def x_reverse(value: AttrValue = True) -> Directive:
-    """Whether to reverse the scale’s encoding; equivalent to reversing either the **domain** or **range**."""
-    return Directive("xReverse", value)
-
-
-def x_round(value: AttrValue = True) -> Directive:
-    """If true, round the output value to the nearest integer (pixel); useful for crisp edges when rendering."""
-    return Directive("xRound", value)
-
-
-def x_scale(value: AttrValue) -> Directive:
-    """The *x* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("xScale", value)
-
-
-def x_tick_format(value: AttrValue) -> Directive:
-    """How to format inputs (abstract values) for axis tick labels; one of: - a d3-format string for numeric scales - a d3-time-format string for temporal scales : https://d3js.org/d3-time : https://d3js.org/d3-time-format"""
-    return Directive("xTickFormat", value)
-
-
-def x_tick_padding(value: AttrValue) -> Directive:
-    """The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **xTickSize** and **xTickRotate**."""
-    return Directive("xTickPadding", value)
-
-
-def x_tick_rotate(value: AttrValue) -> Directive:
-    """The rotation angle of axis tick labels in degrees clocksize; defaults to 0."""
-    return Directive("xTickRotate", value)
-
-
-def x_ticks(value: AttrValue) -> Directive:
-    """The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*."""
-    return Directive("xTicks", value)
-
-
-def x_tick_size(value: AttrValue) -> Directive:
-    """The length of axis tick marks in pixels; negative values extend in the opposite direction."""
-    return Directive("xTickSize", value)
-
-
-def x_tick_spacing(value: AttrValue) -> Directive:
-    """The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*."""
-    return Directive("xTickSpacing", value)
-
-
-def xy_domain(value: AttrValue) -> Directive:
-    """Set the *x* and *y* scale domains."""
-    return Directive("xyDomain", value)
-
-
-def x_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("xZero", value)
-
-
-def y_align(value: AttrValue) -> Directive:
-    """How to distribute unused space in the **range** for *point* and *band* scales."""
-    return Directive("yAlign", value)
-
-
-def y_aria_description(value: AttrValue) -> Directive:
-    """A textual description for the axis in the accessibility tree."""
-    return Directive("yAriaDescription", value)
-
-
-def y_aria_label(value: AttrValue) -> Directive:
-    """A short label representing the axis in the accessibility tree."""
-    return Directive("yAriaLabel", value)
-
-
-def y_axis(value: AttrValue = True) -> Directive:
-    """The side of the frame on which to place the implicit axis: *left* or *right* for *y*."""
-    return Directive("yAxis", value)
-
-
-def y_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("yBase", value)
-
-
-def y_clamp(value: AttrValue = True) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("yClamp", value)
-
-
-def y_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("yConstant", value)
-
-
-def y_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("yDomain", value)
-
-
-def y_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("yExponent", value)
-
-
-def y_font_variant(value: AttrValue) -> Directive:
-    """The font-variant attribute for axis ticks; defaults to *tabular-nums* for quantitative axes."""
-    return Directive("yFontVariant", value)
-
-
-def y_grid(value: AttrValue = True) -> Directive:
-    """Whether to show a grid aligned with the scale’s ticks."""
-    return Directive("yGrid", value)
-
-
-def y_inset(value: AttrValue) -> Directive:
-    """Shorthand to set the same default for all four insets: **insetTop**, **insetRight**, **insetBottom**, and **insetLeft**."""
-    return Directive("yInset", value)
-
-
-def y_inset_bottom(value: AttrValue) -> Directive:
-    """Insets the bottom edge by the specified number of pixels."""
-    return Directive("yInsetBottom", value)
-
-
-def y_inset_top(value: AttrValue) -> Directive:
-    """Insets the top edge by the specified number of pixels."""
-    return Directive("yInsetTop", value)
-
-
-def y_label(value: AttrValue) -> Directive:
-    """A textual label to show on the axis or legend; if null, show no label."""
-    return Directive("yLabel", value)
-
-
-def y_label_anchor(value: AttrValue) -> Directive:
-    """Where to place the axis **label** relative to the plot’s frame."""
-    return Directive("yLabelAnchor", value)
-
-
-def y_label_arrow(value: AttrValue) -> Directive:
-    """Whether to apply a directional arrow such as → or ↑ to the x-axis scale label."""
-    return Directive("yLabelArrow", value)
-
-
-def y_label_offset(value: AttrValue) -> Directive:
-    """The axis **label** position offset (in pixels); default depends on margins and orientation."""
-    return Directive("yLabelOffset", value)
-
-
-def y_line(value: AttrValue = True) -> Directive:
-    """If true, draw a line along the axis; if false (default), do not."""
-    return Directive("yLine", value)
-
-
-def y_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("yNice", value)
-
-
-def y_padding(value: AttrValue) -> Directive:
-    """For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%)."""
-    return Directive("yPadding", value)
-
-
-def y_padding_inner(value: AttrValue) -> Directive:
-    """For a *band* scale, how much of the range to reserve to separate adjacent bands."""
-    return Directive("yPaddingInner", value)
-
-
-def y_padding_outer(value: AttrValue) -> Directive:
-    """For a *band* scale, how much of the range to reserve to inset first and last bands."""
-    return Directive("yPaddingOuter", value)
-
-
-def y_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("yPercent", value)
-
-
-def y_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("yRange", value)
-
-
-def y_reverse(value: AttrValue = True) -> Directive:
-    """Whether to reverse the scale’s encoding; equivalent to reversing either the **domain** or **range**."""
-    return Directive("yReverse", value)
-
-
-def y_round(value: AttrValue = True) -> Directive:
-    """If true, round the output value to the nearest integer (pixel); useful for crisp edges when rendering."""
-    return Directive("yRound", value)
-
-
-def y_scale(value: AttrValue) -> Directive:
-    """The *y* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("yScale", value)
-
-
-def y_tick_format(value: AttrValue) -> Directive:
-    """How to format inputs (abstract values) for axis tick labels; one of: - a d3-format string for numeric scales - a d3-time-format string for temporal scales : https://d3js.org/d3-time : https://d3js.org/d3-time-format"""
-    return Directive("yTickFormat", value)
-
-
-def y_tick_padding(value: AttrValue) -> Directive:
-    """The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **yTickSize** and **yTickRotate**."""
-    return Directive("yTickPadding", value)
-
-
-def y_tick_rotate(value: AttrValue) -> Directive:
-    """The rotation angle of axis tick labels in degrees clocksize; defaults to 0."""
-    return Directive("yTickRotate", value)
-
-
-def y_ticks(value: AttrValue) -> Directive:
-    """The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*."""
-    return Directive("yTicks", value)
-
-
-def y_tick_size(value: AttrValue) -> Directive:
-    """The length of axis tick marks in pixels; negative values extend in the opposite direction."""
-    return Directive("yTickSize", value)
-
-
-def y_tick_spacing(value: AttrValue) -> Directive:
-    """The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*."""
-    return Directive("yTickSpacing", value)
-
-
-def y_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("yZero", value)
 
 
 __all__ = [

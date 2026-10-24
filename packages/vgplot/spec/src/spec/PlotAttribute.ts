@@ -4,17 +4,7 @@ import {
   ColorScaleType, ColorScheme, ContinuousScaleType, DiscreteScaleType,
   Fixed, Interpolate, Interval, PositionScaleType, ProjectionName
 } from './PlotTypes.js';
-
-export type LabelArrow =
-  | 'auto'
-  | 'up'
-  | 'right'
-  | 'down'
-  | 'left'
-  | 'none'
-  | true
-  | false
-  | null;
+export type LabelArrow = 'auto' | 'up' | 'right' | 'down' | 'left' | 'none' | true | false | null;
 
 /** Plot attributes. */
 export interface PlotAttributes {
@@ -217,8 +207,6 @@ export interface PlotAttributes {
   clip?: 'frame' | 'sphere' | boolean | null | ParamRef;
 
 
-  // x scale attributes
-
   /**
    * The *x* scale type, affecting how the scale encodes abstract data, say by
    * applying a mathematical transformation. If null, the scale is disabled.
@@ -232,6 +220,7 @@ export interface PlotAttributes {
    * type; for example, the barY mark requires that *x* is a *band* scale.
    */
   xScale?: PositionScaleType | null | ParamRef;
+
 
   /**
    * The extent of the scale’s inputs (abstract values). By default inferred
@@ -247,7 +236,8 @@ export interface PlotAttributes {
    * Opacity scales have a default domain from 0 to the maximum value of
    * associated channels.
    */
-  xDomain?: any[] | Fixed | ParamRef;
+  xDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * The extent of the scale’s outputs (visual values). By default inferred from
@@ -256,7 +246,8 @@ export interface PlotAttributes {
    * position scales (*point* and *band*), it is typically [*min*, *max*]; it
    * can be [*max*, *min*] to reverse the scale.
    */
-  xRange?: any[] | Fixed | ParamRef;
+  xRange?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * If true, or a tick count or interval, extend the domain to nice round
@@ -269,6 +260,7 @@ export interface PlotAttributes {
    */
   xNice?: boolean | number | Interval | ParamRef;
 
+
   /**
    * Shorthand to set the same default for all four insets: **insetTop**,
    * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically
@@ -277,6 +269,7 @@ export interface PlotAttributes {
    */
   xInset?: number | ParamRef;
 
+
   /**
    * Insets the right edge by the specified number of pixels. A positive value
    * insets towards the left edge (reducing effective area), while a negative
@@ -284,12 +277,14 @@ export interface PlotAttributes {
    */
   xInsetRight?: number | ParamRef;
 
+
   /**
    * Insets the left edge by the specified number of pixels. A positive value
    * insets towards the right edge (reducing effective area), while a negative
    * value insets away from the right edge (increasing it).
    */
   xInsetLeft?: number | ParamRef;
+
 
   /**
    * If true, values below the domain minimum are treated as the domain minimum,
@@ -305,6 +300,7 @@ export interface PlotAttributes {
    */
   xClamp?: boolean | ParamRef;
 
+
   /**
    * If true, round the output value to the nearest integer (pixel); useful for
    * crisp edges when rendering.
@@ -312,6 +308,7 @@ export interface PlotAttributes {
    * For position scales only.
    */
   xRound?: boolean | ParamRef;
+
 
   /**
    * How to distribute unused space in the **range** for *point* and *band*
@@ -325,6 +322,7 @@ export interface PlotAttributes {
    */
   xAlign?: number | ParamRef;
 
+
   /**
    * For *band* scales, how much of the **range** to reserve to separate
    * adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
@@ -335,17 +333,20 @@ export interface PlotAttributes {
    */
   xPadding?: number | ParamRef;
 
+
   /**
    * For a *band* scale, how much of the range to reserve to separate
    * adjacent bands.
    */
   xPaddingInner?: number | ParamRef;
 
+
   /**
    * For a *band* scale, how much of the range to reserve to inset first and
    * last bands.
    */
   xPaddingOuter?: number | ParamRef;
+
 
   /**
    * The side of the frame on which to place the implicit axis: *top* or
@@ -356,11 +357,13 @@ export interface PlotAttributes {
    */
   xAxis?: 'top' | 'bottom' | 'both' | boolean | null | ParamRef;
 
+
   /**
    * The desired approximate number of axis ticks, or an explicit array of tick
    * values, or an interval such as *day* or *month*.
    */
-  xTicks?: number | Interval | any[] | ParamRef;
+  xTicks?: number | Interval | Array<any> | ParamRef;
+
 
   /**
    * The length of axis tick marks in pixels; negative values extend in the
@@ -369,6 +372,7 @@ export interface PlotAttributes {
    */
   xTickSize?: number | ParamRef;
 
+
   /**
    * The desired approximate spacing between adjacent axis ticks, affecting the
    * default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels
@@ -376,12 +380,14 @@ export interface PlotAttributes {
    */
   xTickSpacing?: number | ParamRef;
 
+
   /**
    * The distance between an axis tick mark and its associated text label (in
    * pixels); often defaults to 3, but may be affected by **xTickSize** and
    * **xTickRotate**.
    */
   xTickPadding?: number | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -394,10 +400,12 @@ export interface PlotAttributes {
    */
   xTickFormat?: string | null | ParamRef;
 
+
   /**
    * The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
    */
   xTickRotate?: number | ParamRef;
+
 
   /**
    * Whether to show a grid aligned with the scale’s ticks. If true, show a grid
@@ -407,12 +415,14 @@ export interface PlotAttributes {
    *
    * For axes only.
    */
-  xGrid?: boolean | string | Interval | any[] | ParamRef;
+  xGrid?: boolean | string | Interval | Array<any> | ParamRef;
+
 
   /**
    * If true, draw a line along the axis; if false (default), do not.
    */
   xLine?: boolean | ParamRef;
+
 
   /**
    * A textual label to show on the axis or legend; if null, show no label. By
@@ -423,6 +433,7 @@ export interface PlotAttributes {
    */
   xLabel?: string | null | ParamRef;
 
+
   /**
    * Where to place the axis **label** relative to the plot’s frame. For
    * vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
@@ -432,6 +443,7 @@ export interface PlotAttributes {
    */
   xLabelAnchor?: 'top' | 'right' | 'bottom' | 'left' | 'center' | ParamRef;
 
+
   /**
    * Whether to apply a directional arrow such as → or ↑ to the x-axis scale
    * label. If *auto* (the default), the presence of the arrow depends on
@@ -439,11 +451,13 @@ export interface PlotAttributes {
    */
   xLabelArrow?: LabelArrow | ParamRef;
 
+
   /**
    * The axis **label** position offset (in pixels); default depends on margins
    * and orientation.
    */
   xLabelOffset?: number | ParamRef;
+
 
   /**
    * The font-variant attribute for axis ticks; defaults to *tabular-nums* for
@@ -451,15 +465,18 @@ export interface PlotAttributes {
    */
   xFontVariant?: string | ParamRef;
 
+
   /**
    * A short label representing the axis in the accessibility tree.
    */
   xAriaLabel?: string | ParamRef;
 
+
   /**
    * A textual description for the axis in the accessibility tree.
    */
   xAriaDescription?: string | ParamRef;
+
 
   /**
    * If true, shorthand for a transform suitable for percentages, mapping
@@ -467,11 +484,13 @@ export interface PlotAttributes {
    */
   xPercent?: boolean | ParamRef;
 
+
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the
    * **domain** or **range**.
    */
   xReverse?: boolean | ParamRef;
+
 
   /**
    * Whether the **domain** must include zero. If the domain minimum is
@@ -482,11 +501,13 @@ export interface PlotAttributes {
    */
   xZero?: boolean | ParamRef;
 
+
   /**
    * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
    * linear scale. For *pow* scales only.
    */
   xExponent?: number | ParamRef;
+
 
   /**
    * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
@@ -494,14 +515,13 @@ export interface PlotAttributes {
    */
   xBase?: number | ParamRef;
 
+
   /**
    * A symlog scale’s constant, expressing the magnitude of the linear region
    * around the origin; defaults to 1. For *symlog* scales only.
    */
   xConstant?: number | ParamRef;
 
-
-  // y scale attributes
 
   /**
    * The *y* scale type, affecting how the scale encodes abstract data, say by
@@ -515,6 +535,7 @@ export interface PlotAttributes {
    */
   yScale?: PositionScaleType | null | ParamRef;
 
+
   /**
    * The extent of the scale’s inputs (abstract values). By default inferred
    * from channel values. For continuous data (numbers and dates), it is
@@ -525,7 +546,8 @@ export interface PlotAttributes {
    * Linear scales have a default domain of [0, 1]. Log scales have a default
    * domain of [1, 10] and cannot include zero.
    */
-  yDomain?: any[] | Fixed | ParamRef;
+  yDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * The extent of the scale’s outputs (visual values). By default inferred
@@ -534,7 +556,8 @@ export interface PlotAttributes {
    * ordinal position scales (*point* and *band*), it is typically [*min*,
    * *max*]; it can be [*max*, *min*] to reverse the scale.
    */
-  yRange?: any[] | Fixed | ParamRef;
+  yRange?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * If true, or a tick count or interval, extend the domain to nice round
@@ -547,6 +570,7 @@ export interface PlotAttributes {
    */
   yNice?: boolean | number | Interval | ParamRef;
 
+
   /**
    * Shorthand to set the same default for all four insets: **insetTop**,
    * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically
@@ -555,6 +579,7 @@ export interface PlotAttributes {
    */
   yInset?: number | ParamRef;
 
+
   /**
    * Insets the top edge by the specified number of pixels. A positive value
    * insets towards the bottom edge (reducing effective area), while a negative
@@ -562,12 +587,14 @@ export interface PlotAttributes {
    */
   yInsetTop?: number | ParamRef;
 
+
   /**
    * Insets the bottom edge by the specified number of pixels. A positive value
    * insets towards the top edge (reducing effective area), while a negative
    * value insets away from the top edge (increasing it).
    */
   yInsetBottom?: number | ParamRef;
+
 
   /**
    * If true, values below the domain minimum are treated as the domain minimum,
@@ -583,6 +610,7 @@ export interface PlotAttributes {
    */
   yClamp?: boolean | ParamRef;
 
+
   /**
    * If true, round the output value to the nearest integer (pixel); useful for
    * crisp edges when rendering.
@@ -590,6 +618,7 @@ export interface PlotAttributes {
    * For position scales only.
    */
   yRound?: boolean | ParamRef;
+
 
   /**
    * How to distribute unused space in the **range** for *point* and *band*
@@ -603,6 +632,7 @@ export interface PlotAttributes {
    */
   yAlign?: number | ParamRef;
 
+
   /**
    * For *band* scales, how much of the **range** to reserve to separate
    * adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
@@ -613,17 +643,20 @@ export interface PlotAttributes {
    */
   yPadding?: number | ParamRef;
 
+
   /**
    * For a *band* scale, how much of the range to reserve to separate
    * adjacent bands.
    */
   yPaddingInner?: number | ParamRef;
 
+
   /**
    * For a *band* scale, how much of the range to reserve to inset first and
    * last bands.
    */
   yPaddingOuter?: number | ParamRef;
+
 
   /**
    * The side of the frame on which to place the implicit axis: *left* or
@@ -634,11 +667,13 @@ export interface PlotAttributes {
    */
   yAxis?: 'left' | 'right' | 'both' | boolean | null | ParamRef;
 
+
   /**
    * The desired approximate number of axis ticks, or an explicit array of tick
    * values, or an interval such as *day* or *month*.
    */
-  yTicks?: number | Interval | any[] | ParamRef;
+  yTicks?: number | Interval | Array<any> | ParamRef;
+
 
   /**
    * The length of axis tick marks in pixels; negative values extend in the
@@ -647,6 +682,7 @@ export interface PlotAttributes {
    */
   yTickSize?: number | ParamRef;
 
+
   /**
    * The desired approximate spacing between adjacent axis ticks, affecting the
    * default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels
@@ -654,12 +690,14 @@ export interface PlotAttributes {
    */
   yTickSpacing?: number | ParamRef;
 
+
   /**
    * The distance between an axis tick mark and its associated text label (in
    * pixels); often defaults to 3, but may be affected by **yTickSize** and
    * **yTickRotate**.
    */
   yTickPadding?: number | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -672,10 +710,12 @@ export interface PlotAttributes {
    */
   yTickFormat?: string | null | ParamRef;
 
+
   /**
    * The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
    */
   yTickRotate?: number | ParamRef;
+
 
   /**
    * Whether to show a grid aligned with the scale’s ticks. If true, show a grid
@@ -685,12 +725,14 @@ export interface PlotAttributes {
    *
    * For axes only.
    */
-  yGrid?: boolean | string | Interval | any[] | ParamRef;
+  yGrid?: boolean | string | Interval | Array<any> | ParamRef;
+
 
   /**
    * If true, draw a line along the axis; if false (default), do not.
    */
   yLine?: boolean | ParamRef;
+
 
   /**
    * A textual label to show on the axis or legend; if null, show no label. By
@@ -701,6 +743,7 @@ export interface PlotAttributes {
    */
   yLabel?: string | null | ParamRef;
 
+
   /**
    * Where to place the axis **label** relative to the plot’s frame. For
    * vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
@@ -710,6 +753,7 @@ export interface PlotAttributes {
    */
   yLabelAnchor?: 'top' | 'right' | 'bottom' | 'left' | 'center' | ParamRef;
 
+
   /**
    * Whether to apply a directional arrow such as → or ↑ to the x-axis scale
    * label. If *auto* (the default), the presence of the arrow depends on
@@ -717,11 +761,13 @@ export interface PlotAttributes {
    */
   yLabelArrow?: LabelArrow | ParamRef;
 
+
   /**
    * The axis **label** position offset (in pixels); default depends on margins
    * and orientation.
    */
   yLabelOffset?: number | ParamRef;
+
 
   /**
    * The font-variant attribute for axis ticks; defaults to *tabular-nums* for
@@ -729,21 +775,25 @@ export interface PlotAttributes {
    */
   yFontVariant?: string | ParamRef;
 
+
   /**
    * A short label representing the axis in the accessibility tree.
    */
   yAriaLabel?: string | ParamRef;
+
 
   /**
    * A textual description for the axis in the accessibility tree.
    */
   yAriaDescription?: string | ParamRef;
 
+
   /**
    * If true, shorthand for a transform suitable for percentages, mapping
    * proportions in [0, 1] to [0, 100].
    */
   yPercent?: boolean | ParamRef;
+
 
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the
@@ -752,6 +802,7 @@ export interface PlotAttributes {
    * ordinal values are ranked from top to bottom.
    */
   yReverse?: boolean | ParamRef;
+
 
   /**
    * Whether the **domain** must include zero. If the domain minimum is
@@ -762,17 +813,20 @@ export interface PlotAttributes {
    */
   yZero?: boolean | ParamRef;
 
+
   /**
    * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
    * linear scale. For *pow* scales only.
    */
   yExponent?: number | ParamRef;
 
+
   /**
    * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
    * but rather the default ticks. For *log* scales only.
    */
   yBase?: number | ParamRef;
+
 
   /**
    * A symlog scale’s constant, expressing the magnitude of the linear region
@@ -784,7 +838,7 @@ export interface PlotAttributes {
   /**
    * Set the *x* and *y* scale domains.
    */
-  xyDomain?: any[] | Fixed | ParamRef;
+  xyDomain?: Array<any> | Fixed | ParamRef;
 
 
   // facet attributes
