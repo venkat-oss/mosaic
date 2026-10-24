@@ -1,6 +1,4 @@
 import {
-  Mark,
-  ConnectedMark,
   ContourMark,
   Density1DMark,
   Density2DMark,
@@ -14,37 +12,7 @@ import {
   RegressionMark,
 } from '@uwdata/mosaic-plot';
 
-const decorators = new Set([
-  'frame',
-  'axisX', 'axisY', 'axisFx', 'axisFy',
-  'gridX', 'gridY', 'gridFx', 'gridFy',
-  'hexgrid',
-  'graticule', 'sphere'
-]);
-
-function mark(type, data, channels = {}) {
-  if (arguments.length === 2 && !Array.isArray(data)) {
-    channels = data;
-    data = decorators.has(type) ? null : [{}];
-  }
-  const MarkClass = type.startsWith('area') || type.startsWith('line')
-    ? ConnectedMark
-    : Mark;
-
-  return explicitType(MarkClass, type, data, channels);
-}
-
-function explicitType(MarkClass, type, data, channels) {
-  return plot => {
-    plot.addMark(new MarkClass(type, data, channels));
-  };
-}
-
-function implicitType(MarkClass, data, channels) {
-  return plot => {
-    plot.addMark(new MarkClass(data, channels));
-  };
-}
+import { mark, explicitType, implicitType } from './mark-runtime.js';
 
 export const area = (...args) => mark('area', ...args);
 export const areaX = (...args) => mark('areaX', ...args);

@@ -4,8 +4,16 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from . import _input_api, _source_api, _source_runtime, _table_api
+from . import (
+    _input_api,
+    _mark_api,
+    _mark_runtime,
+    _source_api,
+    _source_runtime,
+    _table_api,
+)
 from ._generated import layouts as _layouts
+from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
 from .util import camelize, omit_none
@@ -33,8 +41,9 @@ class Mark:
     def to_dict(self, param_names: dict[int, str] | None = None) -> dict[str, Any]:
         payload: dict[str, Any] = {"mark": self.mark}
         enc = dict(self.enc or {})
-        _DATA_OPTS = {"filter_by": "filterBy", "optimize": "optimize"}
-        data_opts = {out: enc.pop(key) for key, out in _DATA_OPTS.items() if key in enc}
+        data_opts = {
+            out: enc.pop(key) for key, out in _DATA_OPTIONS.items() if key in enc
+        }
         if self.data is not None:
             if isinstance(self.data, (str, _ParamBase)):
                 data_dict: Any = {"from": self.data}
@@ -107,14 +116,6 @@ def plot(
     root: dict[str, Any] = {"plot": marks}
     root.update(directives)
     return View(root, **kwargs)
-
-
-def directive(key: str, value: Any) -> Directive:
-    return Directive(key, value)
-
-
-def mark(name: str, data: MarkData = None, **enc: Any) -> Mark:
-    return Mark(name, data=data, enc=enc)
 
 
 def margins(
@@ -393,3 +394,9 @@ select = _input_api.select
 slider = _input_api.slider
 
 table_input = _table_api.table_input
+
+directive = _mark_api.directive
+mark = _mark_api.mark
+
+
+_mark_runtime.bind_annotations(globals(), vars(_mark_api), _mark_api._RETURN_TYPES)

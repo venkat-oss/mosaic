@@ -1,0 +1,13 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "commonmodel",
+    deps = [
+        "//api/model:package",
+        "//api/values:model",
+    ],
+    visibility = ["//visibility:public"],
+)

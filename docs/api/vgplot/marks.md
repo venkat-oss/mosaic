@@ -2,6 +2,7 @@
 title: Marks
 ---
 <script setup>
+import { withBase } from 'vitepress';
   import { useLang } from '../../.vitepress/theme/useLang.js';
   const { language, setLanguage } = useLang();
 </script>
@@ -12,31 +13,19 @@ title: Marks
 
 # Marks
 
-Marks are graphical elements that visualize data through encoding _channels_ such as _x_ and _y_ position, _fill_ color, and _r_ (radius) size.
-Marks are added to a [`Plot`](./plot) using the mark directive functions listed below.
+Marks visualize data through named channels, including position, color, opacity, and size. The set of known channel names. The [common mark contracts](../spec/common-marks) describe channel values, shared options, and target-specific behavior.
 
-Most mark functions take two arguments: a _data_ source and an _options_ object that specifies encoding channels or constant values.
-To visualize data from a backing database, the `from()` method should be used to specify the data source. For example, `from("data", { filterBy: sel })` indicates that data should be drawn from the database table `"data"`, interactively filtered by the selection `sel`.
+Most mark functions accept a data source and an options object. Use `from(tableName)` for database data, or pass an array for inline data. Passing only an options object to an ordinary mark uses a single empty row; reference marks such as axes, grids, and frames can omit data.
 
-``` js
-import { barY, from, plot } from "@uwdata/vgplot";
-plot(
-  barY(from("data"), { x: "a", y: "b", fill: "steelblue", opacity: 0.5 })
-)
+```js
+import * as vg from '@uwdata/vgplot';
+
+vg.plot(vg.dot(vg.from('data'), {x: 'x', y: 'y'}));
 ```
 
-The example above specifies a bar chart with bars oriented vertically.
-Data is drawn from the `"data"` table, with the column `"a"` mapped to an ordinal _x_ axis and the column `"b"` mapped to the _y_ axis.
-The _fill_ option is the constant CSS color `"steelblue"` and the _opacity_ is a constant `0.5`.
-For encoding channels, strings are interpreted as column names _unless_ they match a reserved constant for that key, such as a CSS color name for the _fill_ or _stroke_ options.
+Marks follow [Observable Plot](https://observablehq.com/plot/features/marks) semantics. Mark variants can imply different scale types; for example, `barY` uses an ordinal horizontal scale while `rectY` uses a continuous one.
 
-If an explicit array of data values is provided instead of a backing `from(tableName)` reference, vgplot will visualize that data without issuing any queries to the database. This functionality is particularly useful for adding manual annotations, such as custom rules or text labels.
-
-Marks that only add reference lines or shapes (e.g., [`frame`](#frame), [`axisX`](#axis), [`gridY`](#grid), [`hexgrid`](#hexgrid), [`graticule`](#geo), [`sphere`](#geo)) do not require corresponding data, and take only _options_.
-
-Marks use the semantics of [Observable Plot](https://observablehq.com/plot/features/marks).
-For example, mark variants may indicate not only shapes but also data type assumptions.
-The [`barY`](#bar) mark above assumes a discrete (ordinal) _x_ axis and will produce a `band` scale, whereas the related [`rectY`](#rect) mark instead assumes a continuous _x_ axis and by default will produce a `linear` scale.
+[Examples and target-specific authoring](../spec/common-marks#examples).
 
 ## Area
 
@@ -292,32 +281,19 @@ For supported options, see the [Observable Plot `vector` documentation](https://
 
 # Marks
 
-Marks are graphical elements that visualize data through encoding _channels_ such as _x_ and _y_ position, _fill_ color, and _r_ (radius) size.
-Marks are added to a [`Plot`](./plot) using mark directives from `vgplot` (for example `vg.bar_y(...)`).
+Marks visualize data through named channels, including position, color, opacity, and size. The set of known channel names. The [common mark contracts](../spec/common-marks) describe channel values, shared options, and target-specific behavior.
 
-Most mark functions take a _data_ source and an _options_ object that specifies encoding channels or constant values.
-To visualize data from a backing database, pass a `DataDef` object (from `vg.parquet()`, `vg.csv()`, etc.) or a `vg.source("table")` reference as the first positional argument. Interactive filtering is expressed via the `filter_by` keyword (see the [Python vgplot README](https://pypi.org/project/vgplot/) for details on selection wiring).
+Use a named mark helper or `vg.mark(name, data, **options)` to create marks. Data can be a `DataDef`, a `vg.source(tableName)` reference, an inline array, or a supported frame. Named helpers omit `UNSET` keyword values; the generic `vg.mark` retains the supplied encoding values.
 
-``` python
+```python
 import vgplot as vg
 
-vg.plot(
-    vg.bar_y(vg.source("data"), x="a", y="b", fill="steelblue", opacity=0.5),
-)
+vg.plot(vg.mark('dot', vg.source('data'), x='x', y='y'));
 ```
 
-The example above specifies a bar chart with bars oriented vertically.
-Data is drawn from the `"data"` table, with the column `"a"` mapped to an ordinal _x_ axis and the column `"b"` mapped to the _y_ axis.
-The _fill_ option is the constant CSS color `"steelblue"` and the _opacity_ is a constant `0.5`.
-For encoding channels, strings are interpreted as column names _unless_ they match a reserved constant for that key, such as a CSS color name for the _fill_ or _stroke_ options.
+`vg.channels(**kwargs)` preserves channel keys and values. `vg.directive(key, value)` creates a plot directive. For source-backed marks, the data options `filter_by` → `filterBy`, `optimize` → `optimize` are attached to the data reference. See [Python helpers](../spec/common-marks#python-helpers) for signatures.
 
-If an explicit array of data values is provided instead of a database-backed source, vgplot will visualize that data without issuing any queries to the database. This functionality is particularly useful for adding manual annotations, such as custom rules or text labels.
-
-Marks that only add reference lines or shapes (e.g., [`frame`](#frame), [`axis_x`](#axis), [`grid_y`](#grid), [`hexgrid`](#hexgrid), [`graticule`](#geo), [`sphere`](#geo)) do not require corresponding data, and take only _options_.
-
-Marks use the semantics of [Observable Plot](https://observablehq.com/plot/features/marks).
-For example, mark variants may indicate not only shapes but also data type assumptions.
-The [`bar_y`](#bar) mark above assumes a discrete (ordinal) _x_ axis and will produce a `band` scale, whereas the related [`rect_y`](#rect) mark instead assumes a continuous _x_ axis and by default will produce a `linear` scale.
+[Examples and target-specific authoring](../spec/common-marks#examples).
 
 ## Area
 
