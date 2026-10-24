@@ -25,7 +25,7 @@ def _caller_locals() -> dict[str, Any]:
     frame = inspect.currentframe()
     method = frame.f_back if frame is not None else None
     caller = method.f_back if method is not None else None
-    return caller.f_locals if caller is not None else {}
+    return dict(caller.f_locals) if caller is not None else {}
 
 
 def _collect_params(node: Any) -> list[_ParamBase]:
@@ -268,7 +268,7 @@ class View:
             if any(v is self for v in frame.f_locals.values()):
                 break
             frame = frame.f_back
-        locals_ = frame.f_locals if frame is not None else {}
+        locals_ = dict(frame.f_locals) if frame is not None else {}
         return self._build_spec(locals_)._repr_mimebundle_(**kwargs)
 
 
