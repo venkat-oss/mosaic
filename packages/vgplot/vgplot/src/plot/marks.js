@@ -13,11 +13,9 @@ import {
 } from '@uwdata/mosaic-plot';
 
 import { mark, explicitType, implicitType } from './mark-runtime.js';
-
 export const area = (...args) => mark('area', ...args);
 export const areaX = (...args) => mark('areaX', ...args);
 export const areaY = (...args) => mark('areaY', ...args);
-
 export const line = (...args) => mark('line', ...args);
 export const lineX = (...args) => mark('lineX', ...args);
 export const lineY = (...args) => mark('lineY', ...args);
@@ -73,7 +71,6 @@ export const voronoiMesh = (...args) => mark('voronoiMesh', ...args);
 export const delaunayLink = (...args) => mark('delaunayLink', ...args);
 export const delaunayMesh = (...args) => mark('delaunayMesh', ...args);
 export const hull = (...args) => mark('hull', ...args);
-
 export const arrow = (...args) => mark('arrow', ...args);
 export const link = (...args) => mark('link', ...args);
 

@@ -29,15 +29,55 @@ Marks follow [Observable Plot](https://observablehq.com/plot/features/marks) sem
 
 ## Area
 
-An `area` mark, with `areaX` and `areaY` variants.
-When feasible, the `areaX` and `areaY` marks will perform [M4 optimization](https://observablehq.com/@uwdata/m4-scalable-time-series-visualization) to limit the number of sample points returned from the database.
-Use `from("data", { optimize: false })` to disable this behavior.
-For supported options, see the [Observable Plot `area` documentation](https://observablehq.com/plot/marks/area).
+### area
+
+`area(data, options)`
+
+An area mark. The area mark is rarely used directly; it is only needed when the baseline and topline have neither *x* nor *y* values in common. Use areaY for a horizontal orientation where the baseline and topline share *x* values, or areaX for a vertical orientation where the baseline and topline share *y* values.
+
+[Options](#area-options).
+
+### areaX
+
+`areaX(data, options)`
+
+A vertically-oriented area mark, where the baseline and topline share
+**y** values, as in a time-series area chart where time goes up↑.
+
+If neither **x1** nor **x2** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+If an **interval** is specified, **y** values are binned accordingly, allowing zeroes for empty bins instead of interpolating across gaps. This is recommended to “regularize” sampled data; for example, if your data represents timestamped observations and you expect one observation per day, use *day* as the **interval**.
+
+Variable aesthetic channels are supported: if the **fill** is defined as a channel, the area will be broken into contiguous overlapping sections when the fill color changes; the fill color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fillOpacity**, **stroke**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#areax-options).
+
+### areaY
+
+`areaY(data, options)`
+
+A horizontally-oriented area mark, where the baseline and topline share
+**x** values, as in a time-series area chart where time goes right→.
+
+If neither **y1** nor **y2** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+If an **interval** is specified, **x** values are binned accordingly, allowing zeroes for empty bins instead of interpolating across gaps. This is recommended to “regularize” sampled data; for example, if your data represents timestamped observations and you expect one observation per day, use *day* as the **interval**.
+
+Variable aesthetic channels are supported: if the **fill** is defined as a channel, the area will be broken into contiguous overlapping sections when the fill color changes; the fill color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fillOpacity**, **stroke**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#areay-options).
 
 ## Arrow
 
-The `arrow` mark provides line segments with arrow heads.
-For supported options, see the [Observable Plot `arrow` documentation](https://observablehq.com/plot/marks/arrow).
+### arrow
+
+`arrow(data, options)`
+
+An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
+
+[Options](#arrow-options).
 
 ## Axis
 
@@ -300,10 +340,36 @@ For supported options, see the [Observable Plot `image` documentation](https://o
 
 ## Line
 
-A `line` mark, with `lineX` and `lineY` variants.
-When feasible, the `lineX` and `lineY` marks will perform [M4 optimization](https://observablehq.com/@uwdata/m4-scalable-time-series-visualization) to limit the number of sample points returned from the database.
-Use `from("data", { optimize: false })` to disable this behavior.
-For supported options, see the [Observable Plot `line` documentation](https://observablehq.com/plot/marks/line).
+### line
+
+`line(data, options)`
+
+A line mark that connects control points.
+
+Points along the line are connected in input order. If there are multiple series via the **z**, **fill**, or **stroke** channel, series are drawn in input order such that the last series is drawn on top. Typically *data* is already in sorted order, such as chronological for time series; if needed, consider a **sort** transform.
+
+If any **x** or **y** values are invalid (undefined, null, or NaN), the line will be interrupted, resulting in a break that divides the line shape into multiple segments. If a line segment consists of only a single point, it may appear invisible unless rendered with rounded or square line caps. In addition, some curves such as *cardinal-open* only render a visible segment if it contains multiple points.
+
+Variable aesthetic channels are supported: if the **stroke** is defined as a channel, the line will be broken into contiguous overlapping segments when the stroke color changes; the stroke color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fill**, **fillOpacity**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#line-options).
+
+### lineX
+
+`lineX(data, options)`
+
+Like line, except that **x** defaults to the identity function assuming that *data* = [*x₀*, *x₁*, *x₂*, …] and **y** defaults to the zero-based index [0, 1, 2, …].
+
+[Options](#linex-options).
+
+### lineY
+
+`lineY(data, options)`
+
+Like line, except **y** defaults to the identity function and assumes that *data* = [*y₀*, *y₁*, *y₂*, …] and **x** defaults to the zero-based index [0, 1, 2, …].
+
+[Options](#liney-options).
 
 ## Regression
 
@@ -319,8 +385,16 @@ The supported _options_ are:
 
 ## Link
 
-The `link` mark draws straight lines between two points [_x1_, _y1_] and [_x2_, _y2_] in quantitative dimensions.
-For supported options, see the [Observable Plot `link` documentation](https://observablehq.com/plot/marks/link).
+### link
+
+`link(data, options)`
+
+A link mark, drawing line segments (curves) connecting pairs of points.
+
+If the plot uses a spherical **projection**, the default *auto* **curve** will render links as geodesics; to draw a straight line instead, use the
+*linear* **curve**.
+
+[Options](#link-options).
 
 ## Raster
 
@@ -463,15 +537,55 @@ vg.plot(vg.mark('dot', vg.source('data'), x='x', y='y'));
 
 ## Area
 
-An `area` mark, with `area_x` and `area_y` variants.
-When feasible, the `area_x` and `area_y` marks will perform [M4 optimization](https://observablehq.com/@uwdata/m4-scalable-time-series-visualization) to limit the number of sample points returned from the database.
-Use `vg.source("data", optimize=False)` as the mark `data` argument to disable this behavior.
-For supported options, see the [Observable Plot `area` documentation](https://observablehq.com/plot/marks/area).
+### area
+
+`area(data=None, **options)`
+
+An area mark. The area mark is rarely used directly; it is only needed when the baseline and topline have neither *x* nor *y* values in common. Use areaY for a horizontal orientation where the baseline and topline share *x* values, or areaX for a vertical orientation where the baseline and topline share *y* values.
+
+[Options](#area-options).
+
+### area_x
+
+`area_x(data=None, **options)`
+
+A vertically-oriented area mark, where the baseline and topline share
+**y** values, as in a time-series area chart where time goes up↑.
+
+If neither **x1** nor **x2** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+If an **interval** is specified, **y** values are binned accordingly, allowing zeroes for empty bins instead of interpolating across gaps. This is recommended to “regularize” sampled data; for example, if your data represents timestamped observations and you expect one observation per day, use *day* as the **interval**.
+
+Variable aesthetic channels are supported: if the **fill** is defined as a channel, the area will be broken into contiguous overlapping sections when the fill color changes; the fill color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fillOpacity**, **stroke**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#areax-options).
+
+### area_y
+
+`area_y(data=None, **options)`
+
+A horizontally-oriented area mark, where the baseline and topline share
+**x** values, as in a time-series area chart where time goes right→.
+
+If neither **y1** nor **y2** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+If an **interval** is specified, **x** values are binned accordingly, allowing zeroes for empty bins instead of interpolating across gaps. This is recommended to “regularize” sampled data; for example, if your data represents timestamped observations and you expect one observation per day, use *day* as the **interval**.
+
+Variable aesthetic channels are supported: if the **fill** is defined as a channel, the area will be broken into contiguous overlapping sections when the fill color changes; the fill color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fillOpacity**, **stroke**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#areay-options).
 
 ## Arrow
 
-The `arrow` mark provides line segments with arrow heads.
-For supported options, see the [Observable Plot `arrow` documentation](https://observablehq.com/plot/marks/arrow).
+### arrow
+
+`arrow(data=None, **options)`
+
+An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
+
+[Options](#arrow-options).
 
 ## Axis
 
@@ -734,10 +848,36 @@ For supported options, see the [Observable Plot `image` documentation](https://o
 
 ## Line
 
-A `line` mark, with `line_x` and `line_y` variants.
-When feasible, the `line_x` and `line_y` marks will perform [M4 optimization](https://observablehq.com/@uwdata/m4-scalable-time-series-visualization) to limit the number of sample points returned from the database.
-Use `vg.source("data", optimize=False)` as the mark `data` argument to disable this behavior.
-For supported options, see the [Observable Plot `line` documentation](https://observablehq.com/plot/marks/line).
+### line
+
+`line(data=None, **options)`
+
+A line mark that connects control points.
+
+Points along the line are connected in input order. If there are multiple series via the **z**, **fill**, or **stroke** channel, series are drawn in input order such that the last series is drawn on top. Typically *data* is already in sorted order, such as chronological for time series; if needed, consider a **sort** transform.
+
+If any **x** or **y** values are invalid (undefined, null, or NaN), the line will be interrupted, resulting in a break that divides the line shape into multiple segments. If a line segment consists of only a single point, it may appear invisible unless rendered with rounded or square line caps. In addition, some curves such as *cardinal-open* only render a visible segment if it contains multiple points.
+
+Variable aesthetic channels are supported: if the **stroke** is defined as a channel, the line will be broken into contiguous overlapping segments when the stroke color changes; the stroke color will apply to the interval spanning the current data point and the following data point. This behavior also applies to the **fill**, **fillOpacity**, **strokeOpacity**,
+**strokeWidth**, **opacity**, **href**, **title**, and **ariaLabel** channels. When any of these channels are used, setting an explicit **z** channel (possibly to null) is strongly recommended.
+
+[Options](#line-options).
+
+### line_x
+
+`line_x(data=None, **options)`
+
+Like line, except that **x** defaults to the identity function assuming that *data* = [*x₀*, *x₁*, *x₂*, …] and **y** defaults to the zero-based index [0, 1, 2, …].
+
+[Options](#linex-options).
+
+### line_y
+
+`line_y(data=None, **options)`
+
+Like line, except **y** defaults to the identity function and assumes that *data* = [*y₀*, *y₁*, *y₂*, …] and **x** defaults to the zero-based index [0, 1, 2, …].
+
+[Options](#liney-options).
 
 ## Regression
 
@@ -753,8 +893,16 @@ The supported _options_ are:
 
 ## Link
 
-The `link` mark draws straight lines between two points [_x1_, _y1_] and [_x2_, _y2_] in quantitative dimensions.
-For supported options, see the [Observable Plot `link` documentation](https://observablehq.com/plot/marks/link).
+### link
+
+`link(data=None, **options)`
+
+A link mark, drawing line segments (curves) connecting pairs of points.
+
+If the plot uses a spherical **projection**, the default *auto* **curve** will render links as geodesics; to draw a straight line instead, use the
+*linear* **curve**.
+
+[Options](#link-options).
 
 ## Raster
 
@@ -1249,3 +1397,184 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`TickYOptions`](#tickyopti
 ### basic examples
 
 `dot`: [json](/templates/marks/basic/dot.json) · [yaml](/templates/marks/basic/dot.yaml) · [js](/templates/marks/basic/dot.js) · <a :href="withBase('/templates/marks/basic/dot.py')" download>Python</a>.
+
+## connected mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### AreaOptions options
+
+Options for the area, areaX, and areaY marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`StackOptions`](../spec/common-marks#stackoptions), [`CurveOptions`](../spec/common-marks#curveoptions).
+
+**x1** (`ChannelValueSpec`) — The required primary (starting, often left) horizontal position channel, representing the area’s baseline, typically bound to the *x* scale. For areaX, setting this option disables the implicit stackX transform.
+
+**x2** (`ChannelValueSpec`) — The optional secondary (ending, often right) horizontal position channel, representing the area’s topline, typically bound to the *x* scale; if not specified, **x1** is used. For areaX, setting this option disables the implicit stackX transform.
+
+**y1** (`ChannelValueSpec`) — The required primary (starting, often bottom) vertical position channel, representing the area’s baseline, typically bound to the *y* scale. For areaY, setting this option disables the implicit stackY transform.
+
+**y2** (`ChannelValueSpec`) — The optional secondary (ending, often top) vertical position channel, representing the area’s topline, typically bound to the *y* scale; if not specified, **y1** is used. For areaY, setting this option disables the implicit stackY transform.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into (possibly stacked) series to be drawn as separate areas; defaults to **fill** if a channel, or
+**stroke** if a channel.
+
+### AreaXOptions options
+
+Options for the areaX mark.
+
+Extends [`Omit<AreaOptions, 'y1' | 'y2'>`](#areaoptions-options).
+
+**x** (`ChannelValueSpec`) — The horizontal position (or length) channel, typically bound to the *x* scale.
+
+If neither **x1** nor **x2** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+### AreaYOptions options
+
+Options for the areaY mark.
+
+Extends [`Omit<AreaOptions, 'x1' | 'x2'>`](#areaoptions-options).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+**y** (`ChannelValueSpec`) — The vertical position (or length) channel, typically bound to the *y* scale.
+
+If neither **y1** nor **y2** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+### Area options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`AreaOptions`](#areaoptions-options).
+
+
+### AreaX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`AreaXOptions`](#areaxoptions-options).
+
+
+### AreaY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`AreaYOptions`](#areayoptions-options).
+
+
+### LineOptions options
+
+Options for the line mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`CurveAutoOptions`](../spec/common-marks#curveautooptions).
+
+**x** (`ChannelValueSpec`) — The required horizontal position channel, typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The required vertical position channel, typically bound to the *y* scale.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into (possibly stacked) series to be drawn as separate lines. If not specified, it defaults to
+**fill** if a channel, or **stroke** if a channel.
+
+### LineXOptions options
+
+Options for the lineX mark.
+
+Extends [`LineOptions`](#lineoptions-options).
+
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+### LineYOptions options
+
+Options for the lineY mark.
+
+Extends [`LineOptions`](#lineoptions-options).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+### Line options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`LineOptions`](#lineoptions-options).
+
+
+### LineX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`LineXOptions`](#linexoptions-options).
+
+
+### LineY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`LineYOptions`](#lineyoptions-options).
+
+
+### ArrowOptions options
+
+Options for the arrow mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position, for vertical arrows; typically bound to the *x* scale; shorthand for setting defaults for both **x1** and **x2**.
+
+**y** (`ChannelValueSpec`) — The vertical position, for horizontal arrows; typically bound to the *y* scale; shorthand for setting defaults for both **y1** and **y2**.
+
+**x1** (`ChannelValueSpec`) — The starting horizontal position; typically bound to the *x* scale; also sets a default for **x2**.
+
+**y1** (`ChannelValueSpec`) — The starting vertical position; typically bound to the *y* scale; also sets a default for **y2**.
+
+**x2** (`ChannelValueSpec`) — The ending horizontal position; typically bound to the *x* scale; also sets a default for **x1**.
+
+**y2** (`ChannelValueSpec`) — The ending vertical position; typically bound to the *y* scale; also sets a default for **y1**.
+
+**bend** (`number | boolean | ParamRef`) — The angle, a constant in degrees, between the straight line intersecting the arrow’s two control points and the outgoing tangent direction of the arrow from the start point. The angle must be within ±90°; a positive angle will produce a clockwise curve, while a negative angle will produce a counterclockwise curve; zero (the default) will produce a straight line. Use true for 22.5°.
+
+**headAngle** (`number | ParamRef`) — How pointy the arrowhead is, in degrees; a constant typically between 0° and 180°, and defaults to 60°.
+
+**headLength** (`number | ParamRef`) — The size of the arrowhead relative to the **strokeWidth**; a constant. Assuming the default of stroke width 1.5px, this is the length of the arrowhead’s side in pixels.
+
+**inset** (`number | ParamRef`) — Shorthand to set the same default for **insetStart** and **insetEnd**.
+
+**insetStart** (`number | ParamRef`) — The starting inset, a constant in pixels; defaults to 0. A positive inset shortens the arrow by moving the starting point towards the endpoint point, while a negative inset extends it by moving the starting point in the opposite direction. A positive starting inset may be useful if the arrow emerges from a dot.
+
+**insetEnd** (`number | ParamRef`) — The ending inset, a constant in pixels; defaults to 0. A positive inset shortens the arrow by moving the ending point towards the starting point, while a negative inset extends it by moving the ending point in the opposite direction. A positive ending inset may be useful if the arrow points to a dot.
+
+**sweep** (`number | '+x' | '-x' | '+y' | '-y' | ParamRef`) — The sweep order; defaults to 1 indicating a positive (clockwise) bend angle; -1 indicates a negative (anticlockwise) bend angle; 0 effectively clears the bend angle. If set to *-x*, the bend angle is flipped when the ending point is to the left of the starting point — ensuring all arrows bulge up (down if bend is negative); if set to *-y*, the bend angle is flipped when the ending point is above the starting point — ensuring all arrows bulge right (left if bend is negative); the sign is negated for
+*+x* and *+y*.
+
+### Arrow options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ArrowOptions`](#arrowoptions-options).
+
+
+### LinkOptions options
+
+Options for the link mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`CurveAutoOptions`](../spec/common-marks#curveautooptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position, for vertical links; typically bound to the *x* scale; shorthand for setting defaults for both **x1** and **x2**.
+
+**y** (`ChannelValueSpec`) — The vertical position, for horizontal links; typically bound to the *y* scale; shorthand for setting defaults for both **y1** and **y2**.
+
+**x1** (`ChannelValueSpec`) — The starting horizontal position; typically bound to the *x* scale; also sets a default for **x2**.
+
+**y1** (`ChannelValueSpec`) — The starting vertical position; typically bound to the *y* scale; also sets a default for **y2**.
+
+**x2** (`ChannelValueSpec`) — The ending horizontal position; typically bound to the *x* scale; also sets a default for **x1**.
+
+**y2** (`ChannelValueSpec`) — The ending vertical position; typically bound to the *y* scale; also sets a default for **y1**.
+
+**curve** (`CurveAutoOptions['curve'] | ParamRef`) — The curve (interpolation) method for connecting adjacent points.
+
+Since a link has exactly two points, only the following curves (or a custom curve) are recommended: *linear*, *step*, *step-after*, *step-before*,
+*bump-x*, or *bump-y*. Note that the *linear* curve is incapable of showing a fill since a straight line has zero area. For a curved link, use an arrow mark with the **bend** option.
+
+If the plot uses a spherical **projection**, the default *auto* **curve** will render links as geodesics; to draw a straight line instead, use the
+*linear* **curve**.
+
+### Link options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`LinkOptions`](#linkoptions-options).
+
+
+**`arrow`:** Directional sweep strings (`+x`, `-x`, `+y`, `-y`) are admitted by the specification, but the current SQL-backed runtime interprets them as column names. A missing matching column produces a Binder Error. Use numeric `sweep` values for SQL-backed arrows; the bent-arrow starter uses `1`.
+
+### connected examples
+
+`line`: [json](/templates/marks/connected/line.json) · [yaml](/templates/marks/connected/line.yaml) · [js](/templates/marks/connected/line.js) · <a :href="withBase('/templates/marks/connected/line.py')" download>Python</a>.
+
+JavaScript-only `native-curve`: [js](/templates/marks/connected/native-curve.js).
