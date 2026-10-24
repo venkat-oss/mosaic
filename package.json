@@ -21,7 +21,7 @@
     "generate:python-api": "bazelisk run //bin:generate_python_api",
     "build": "bazelisk build //:build",
     "clean": "bazelisk clean",
-    "lint": "bazelisk test //:lint",
+    "lint": "bazelisk test //:lint //packages/server/duckdb-server-rust:clippy",
     "lint:fix": "bazelisk run //:lint_fix",
     "typecheck": "bazelisk test //:typecheck",
     "test": "bazelisk test //:check",
@@ -29,7 +29,8 @@
     "server:go": "bazelisk run //packages/server/duckdb-server-go:duckdb-server --",
     "server:node": "bazelisk run //packages/server/duckdb:server --",
     "dev": "bazelisk run //:dev",
-    "version": "bazelisk mod deps && git add MODULE.bazel.lock"
+    "version": "bazelisk mod deps && git add MODULE.bazel.lock",
+    "server:rust": "bazelisk run //packages/server/duckdb-server-rust:duckdb-server --"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

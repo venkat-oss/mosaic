@@ -58,6 +58,20 @@ jobs:
           cache-save: ${{ github.event_name != 'pull_request' }}
       - run: bazelisk test --config=ci //:python_checks
 
+  rust:
+    name: Test in Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.1
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+      - run: bazelisk build --config=ci //packages/server/duckdb-server-rust:duckdb-server //packages/server/duckdb-server-rust:benchmark //packages/server/duckdb-server-rust:clippy
+      - run: bazelisk test --config=ci //packages/server/duckdb-server-rust:check //packages/server:protocol_rust
+
   go:
     name: Test in Go
     runs-on: ubuntu-latest

@@ -153,6 +153,9 @@ filegroup(
         "//packages/examples:build",
         "//packages/server/duckdb-server:server",
         "//packages/server/duckdb-server-go:duckdb-server",
+        "//packages/server/duckdb-server-rust:duckdb-server",
+        "//packages/server/duckdb-server-rust:benchmark",
+        "//packages/server/duckdb-server-rust:clippy",
         "//packages/vgplot/widget:bundle",
     ],
 )
@@ -188,7 +191,9 @@ test_suite(
         ":node_checks",
         ":python_checks",
         "//packages/server/duckdb-server-go:check",
+        "//packages/server/duckdb-server-rust:check",
         "//packages/server:protocol_go",
+        "//packages/server:protocol_rust",
     ],
 )
 
@@ -206,6 +211,7 @@ test_suite(
         "//packages/vgplot/widget:javascript_lint",
         "//packages/vgplot/spec:browser_lint",
         "//packages/server/duckdb-server-go:lint",
+        "//packages/server/duckdb-server-rust:format_test",
         "//build/python:check",
         "//dev:lint",
         "//specs:lint",

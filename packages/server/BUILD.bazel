@@ -6,6 +6,7 @@ _SERVERS = {
     "node": "//packages/server/bench:node_server",
     "python": "//packages/server/duckdb-server:server",
     "go": "//packages/server/duckdb-server-go:duckdb-server",
+    "rust": "//packages/server/duckdb-server-rust:duckdb-server",
 }
 
 [

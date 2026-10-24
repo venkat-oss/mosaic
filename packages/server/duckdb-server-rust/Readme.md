@@ -4,14 +4,14 @@
 
 A Rust-based server that runs a local DuckDB instance and supports queries over HTTP/HTTPS, returning data in [Apache Arrow](https://arrow.apache.org/) format.
 
-_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/mosaic-core) package.
+_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/core) package.
 
 ## Usage
 
 Install the server with Cargo or [Cargo B(inary)Install](https://github.com/cargo-bins/cargo-binstall).
 
 ```sh
-cargo install duckdb-server
+cargo install duckdb-server --features bundled
 # or
 cargo binstall duckdb-server
 ```
@@ -46,60 +46,56 @@ With certificates present, the server accepts both HTTP and HTTPS on the same po
 
 ## API
 
-The server supports queries via HTTP GET and POST. The GET endpoint is useful for debugging. For example, you can query it with [this url](<http://localhost:3000/?query={"sql":"select 1","type":"arrow"}>).
+The server implements the [shared HTTP protocol](https://uwdata.github.io/mosaic/api/duckdb/server-protocol): POST accepts `arrow`, `exec`, and `preagg` JSON commands. GET accepts read-only `arrow` commands through flat `type` and `sql` URL parameters. Arrow responses are IPC streams; errors use the common JSON error envelope.
 
-Each endpoint takes a JSON object with a command in the `type`. The server supports the following commands.
-
-### `exec`
-
-Executes the SQL query in the `sql` field.
-
-### `arrow`
-
-Executes the SQL query in the `sql` field and returns the result in Apache Arrow format.
+For example: `http://localhost:3000/?type=arrow&sql=SELECT%201`.
 
 ## Developers
 
 ### Build
 
-Build the release binary with
+From the repository root, build the server and benchmark with
 
 ```sh
-cargo build --release
+bazelisk build //packages/server/duckdb-server-rust:duckdb-server //packages/server/duckdb-server-rust:benchmark
 ```
+
+Use `--config=release` for an optimized build. The server binary is under
+`bazel-bin/packages/server/duckdb-server-rust/duckdb-server`.
 
 ### Develop
 
-To run the server and restart it when the code changes, install `cargo-watch` and `systemfd` with
+Run the server with
 
 ```sh
-cargo install cargo-watch systemfd
+bazelisk run //packages/server/duckdb-server-rust:duckdb-server
 ```
 
-Then run the server with
+Pass server arguments after `--`:
 
 ```sh
-systemfd --no-pid -s https::3000 -- cargo watch -x run
+bazelisk run //packages/server/duckdb-server-rust:duckdb-server -- --port 3001
 ```
 
-Or just use (but this won't restart when the code changes)
+Before sending a pull request, run the runtime tests, format check and Clippy with
 
 ```sh
-cargo run
+bazelisk test //packages/server/duckdb-server-rust:check
+bazelisk build //packages/server/duckdb-server-rust:clippy
 ```
 
-Before sending a pull request, run the tests with
-
-```sh
-cargo test
-cargo clippy
-cargo fmt
-```
+Clippy treats warnings as errors. Bazel resolves the pinned Rust toolchain and
+dependencies from `Cargo.toml` and `Cargo.lock`, and links the declared official
+DuckDB 2 shared library. Run with Bazel so its declared runtime libraries are
+available. A standalone Cargo build can use `--features bundled` to compile the
+engine, or set `DUCKDB_LIB_DIR` to an installed DuckDB 2 SDK. The repository's Bazel
+build also raises the HTTP dependency's URI limit to support large GET queries;
+standalone Cargo builds retain its upstream 64 KiB URI limit.
 
 Run the benchmarks with
 
 ```sh
-cargo bench
+bazelisk run --config=release //packages/server/duckdb-server-rust:benchmark
 ```
 
 ### Update Dependencies

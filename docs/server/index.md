@@ -1,29 +1,40 @@
-# Mosaic DuckDB Server
+# Mosaic DuckDB Servers
 
-The Mosaic `duckdb-server` package provides a Python-based server that runs a local DuckDB instance and supports queries over HTTP, returning data in either [Apache Arrow](https://arrow.apache.org/) or JSON format.
+Mosaic provides Python, Node.js, Go, and Rust servers that expose a native DuckDB instance through the same [HTTP protocol](/api/duckdb/server-protocol). Query results are Apache Arrow IPC streams. Execution commands run SQL statements in order, and preaggregation commands return managed table references. Command metadata and errors use JSON.
 
 ::: tip
-This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` from the [`mosaic-core`](/core/) package.
+To run DuckDB in the browser, use the `wasmConnector` from the [`mosaic-core`](/core/) package.
 :::
 
 ::: info
 DuckDB can also connect to and query other databases, such as PostgreSQL and MySQL. See the [multi-database support page](/api/core/multi-database-support) for examples.
 :::
 
-## Usage
+## Python installation
 
-The server package is available on [PyPi](https://pypi.org/project/duckdb-server/).
+The Python server package is available on [PyPI](https://pypi.org/project/duckdb-server/) and requires Python 3.11 or newer.
 
-We recommend running the server in an isolated environment with [pipx](https://github.com/pypa/pipx). For example, to directly run the server, use:
+Run it in an isolated environment with [uvx](https://docs.astral.sh/uv/):
 
 ```bash
-pipx run duckdb-server
+uvx duckdb-server
 ```
 
 Alternatively, you can install the server with `pip install duckdb-server`. Then you can start the server with `duckdb-server`.
 
 ## Developer Setup
 
+From the repository root, the following aliases run the native Bazel targets:
+
+| Server | Command |
+| --- | --- |
+| Python, with source reload | `pnpm server` |
+| Node.js | `pnpm server:node` |
+| Go | `pnpm server:go` |
+| Rust | `pnpm server:rust` |
+
+Run `bazelisk test //packages/server:protocol` to exercise the same HTTP tests against all four implementations. See the [build workflow](/development/build) for package checks, server benchmarks, and artifact paths. Installed packages do not require Bazel or CUE.
+
 For shared localhost HTTPS/HTTP/2 setup for Node, Rust, and Go, install [native mkcert](https://github.com/FiloSottile/mkcert#installation) on `PATH`, then run `pnpm mkcert` from the repository root. See the [server guide](https://github.com/uwdata/mosaic/blob/main/packages/server/README.md) for certificate discovery and renewal.
 
-To run the server from the Mosaic repository and to run the server in development mode, follow the [instructions for the duckdb-server package](https://github.com/uwdata/mosaic/blob/main/packages/server/duckdb-server/README.md).
+The package guides describe implementation-specific options: [Python](https://github.com/uwdata/mosaic/tree/main/packages/server/duckdb-server), [Node.js](https://github.com/uwdata/mosaic/tree/main/packages/server/duckdb), [Go](https://github.com/uwdata/mosaic/tree/main/packages/server/duckdb-server-go), and [Rust](https://github.com/uwdata/mosaic/tree/main/packages/server/duckdb-server-rust).

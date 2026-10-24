@@ -3,7 +3,6 @@ use clap::Parser;
 use listenfd::ListenFd;
 use std::net::TcpListener;
 use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr};
-use tokio::net;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::app::DEFAULT_CONNECTION_POOL_SIZE;
@@ -60,14 +59,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = SocketAddr::new(args.address, args.port);
     let mut listenfd = ListenFd::from_env();
     let listener = match listenfd.take_tcp_listener(0)? {
-        // if we are given a tcp listener on listen fd 0, we use that one
-        Some(listener) => {
-            listener.set_nonblocking(true)?;
-            listener
-        }
-        // otherwise fall back to local listening
+        Some(listener) => listener,
         None => TcpListener::bind(addr)?,
     };
+    listener.set_nonblocking(true)?;
 
     // Run the server
     match config {
@@ -78,8 +73,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 listener.local_addr()?
             );
 
-            let listener = net::TcpListener::from_std(listener)?;
-            axum::serve(listener, app).await?;
+            let mut server = axum_server::from_tcp(listener)?;
+            server.http_builder().http1().max_buf_size(2 * 1024 * 1024);
+            server.serve(app.into_make_service()).await?;
         }
         Some(config) => {
             tracing::info!(
@@ -87,9 +83,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 listener.local_addr()?
             );
 
-            axum_server_dual_protocol::from_tcp_dual_protocol(listener, config)
-                .serve(app.into_make_service())
-                .await?;
+            let mut server = axum_server_dual_protocol::from_tcp_dual_protocol(listener, config);
+            server.http_builder().http1().max_buf_size(2 * 1024 * 1024);
+            server.serve(app.into_make_service()).await?;
         }
     }
 

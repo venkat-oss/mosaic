@@ -1,27 +1,43 @@
 use anyhow::Result;
 
-use crate::interfaces::{AppError, AppState, Command, QueryParams, QueryResponse};
+use crate::interfaces::{AppError, AppState, Command, ProtocolError, QueryParams, QueryResponse};
 
 pub async fn handle(state: &AppState, params: QueryParams) -> Result<QueryResponse, AppError> {
-    let command = &params.query_type;
-    tracing::info!("Command: '{:?}', Params: '{:?}'", command, params);
+    handle_request(state, params, false).await
+}
+
+pub(crate) async fn handle_request(
+    state: &AppState,
+    params: QueryParams,
+    get: bool,
+) -> Result<QueryResponse, AppError> {
+    let command = params.query_type.ok_or_else(|| {
+        ProtocolError::field("Missing required field: type", "missing_field", "type")
+    })?;
+    let sql = params
+        .sql
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| {
+            ProtocolError::field("Missing or invalid field: sql", "missing_field", "sql")
+        })?;
     match command {
-        Some(Command::Arrow) => {
-            if let Some(sql) = params.sql.as_deref() {
-                let buffer = state.db.get_arrow(sql).await?;
-                Ok(QueryResponse::Arrow(buffer))
+        Command::Arrow => {
+            state.db.validate(sql, get).await?;
+            let buffer = if get {
+                state.db.get_arrow_readonly(sql).await?
             } else {
-                Err(AppError::BadRequest("missing required 'sql' parameter"))
-            }
+                state.db.get_arrow(sql).await?
+            };
+            Ok(QueryResponse::Arrow(buffer))
         }
-        Some(Command::Exec) => {
-            if let Some(sql) = params.sql.as_deref() {
-                state.db.execute(sql).await?;
-                Ok(QueryResponse::Empty)
-            } else {
-                Err(AppError::BadRequest("missing required 'sql' parameter"))
-            }
+        Command::Exec => {
+            state.db.execute(sql).await?;
+            Ok(QueryResponse::Empty)
         }
-        None => Err(AppError::BadRequest("missing required 'type' parameter")),
+        Command::Preagg => {
+            state.db.validate(sql, true).await?;
+            Ok(QueryResponse::Preagg(state.db.preaggregate(sql).await?))
+        }
     }
 }
