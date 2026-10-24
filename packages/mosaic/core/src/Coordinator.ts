@@ -247,17 +247,24 @@ export class Coordinator {
     priority: number = Priority.Normal
   ): Promise<unknown> {
     client.queryPending();
-    return client._pending = this.query(query, { priority })
+    const request = this.query(query, { priority });
+    client._queryRequest = request;
+    const current = () => client._queryRequest === request;
+    return client._pending = request
       .then(
-        data => client.queryResult(data).update(),
+        data => current() ? client.queryResult(data).update() : undefined,
         err => {
+          if (!current()) return;
           const e = err instanceof QueryError ? err : new QueryError(err, query);
           this._logger?.error(e);
           client.queryError(e);
           return e;
         }
       )
-      .catch(err => this._logger?.error(err));
+      .catch(err => { if (current()) this._logger?.error(err); })
+      .finally(() => {
+        if (client._queryRequest === request) client._queryRequest = null;
+      });
   }
 
   /**

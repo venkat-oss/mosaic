@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+  <div id="histogram"></div>
+  <div id="brush"></div>
+  <button id="left">Left bin</button>
+  <button id="right">Right bin</button>
+  <button id="reset">Reset</button>
+  <output id="bins"></output>
+  <script type="module">
+    import { Coordinator, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
+    import { count, float64 } from '@uwdata/mosaic-sql/native';
+    import { createAPIContext } from '@uwdata/vgplot';
+
+    window.nativeHistogramReady = (async () => {
+      const native = new NativeSqlContext();
+      const connector = new RestConnector({ uri: window.__MOSAIC_DATABASE_URI });
+      const calls = [];
+      const coordinator = new Coordinator({
+        query(request, options) {
+          calls.push(request.sql);
+          return connector.query(request, options);
+        }
+      }, { native, logger: null, cache: false, consolidate: false });
+      await coordinator.exec('CREATE OR REPLACE TEMP TABLE native_browser_histogram(x DOUBLE); INSERT INTO native_browser_histogram VALUES (0.25),(0.75),(1.25),(1.75)');
+      const api = createAPIContext({ coordinator });
+      const selection = native.selection();
+      const element = api.plot(
+        api.rectY(api.from('native_browser_histogram', { filterBy: selection }), {
+          x: api.bin('x', { step: 1 }), y: float64(count())
+        }),
+        api.width(320), api.height(180), api.xDomain([0, 2])
+      );
+      document.querySelector('#histogram').append(element);
+      const input = api.plot(
+        api.rectY(api.from('native_browser_histogram'), {
+          x: api.bin('x', { step: 1 }), y: float64(count())
+        }),
+        api.intervalX({ as: selection, peers: false }),
+        api.width(320), api.height(180), api.xDomain([0, 2])
+      );
+      document.querySelector('#brush').append(input);
+      const plot = element.value;
+      const mark = plot.marks[0];
+      const brush = input.value.interactors[0];
+      const update = () => {
+        const { numRows, columns } = mark.data;
+        document.querySelector('#bins').textContent = JSON.stringify(Array.from({ length: numRows }, (_, i) =>
+          [Number(columns.x1[i]), Number(columns.x2[i]), Number(columns.y[i])]).sort((a, b) => a[0] - b[0]));
+      };
+      const select = value => {
+        selection.update(value ? brush.clause(value) : native.clear(brush));
+      };
+      selection.addEventListener('value', async () => {
+        await mark.pending;
+        update();
+      });
+      document.querySelector('#left').onclick = () => select([0, 1]);
+      document.querySelector('#right').onclick = () => select([1, 2]);
+      document.querySelector('#reset').onclick = () => select();
+      await Promise.all([mark.pending, brush.mark.pending]);
+      update();
+      return { coordinator, selection, plot, mark, brush, calls };
+    })();
+  </script>
+</body>
+</html>

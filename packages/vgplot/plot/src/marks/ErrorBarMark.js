@@ -4,10 +4,10 @@ import { Mark, markPlotSpec, markQuery } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class ErrorBarMark extends Mark {
-  constructor(type, source, options) {
+  constructor(type, source, options, sqlContext = null) {
     const dim = type.endsWith('X') ? 'y' : 'x';
     const { ci = 0.95, ...channels } = options;
-    super(type, source, channels);
+    super(type, source, channels, undefined, sqlContext);
     this.dim = dim;
     this.field = this.channelField(dim).field;
     this.channels = this.channels.filter(c => c.channel !== dim);

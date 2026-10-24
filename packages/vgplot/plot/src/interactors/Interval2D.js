@@ -59,12 +59,13 @@ export class Interval2D {
 
   clause(value) {
     const { mark, pixelSize, xfield, yfield, xscale, yscale } = this;
-    return clauseIntervals([xfield, yfield], value, {
+    const options = {
       source: this,
       clients: this.peers ? mark.plot.markSet : new Set().add(mark),
       scales: [xscale, yscale],
       pixelSize
-    });
+    };
+    return mark.sqlContext ? mark.sqlContext.intervals([xfield, yfield], value, options) : clauseIntervals([xfield, yfield], value, options);
   }
 
   init(svg) {

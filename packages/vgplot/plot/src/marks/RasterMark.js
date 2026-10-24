@@ -19,8 +19,8 @@ import { Fixed, Transient } from '../symbols.js';
  * the bandwidth option.
  */
 export class RasterMark extends Grid2DMark {
-  constructor(source, options) {
-    super('image', source, options);
+  constructor(source, options, sqlContext = null) {
+    super('image', source, options, sqlContext);
     this.image = null;
   }
 
@@ -89,13 +89,13 @@ export class RasterMark extends Grid2DMark {
  * accurate binning and smoothing for density estimation.
  */
 export class HeatmapMark extends RasterMark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     super(source, {
       bandwidth: 20,
       interpolate: 'linear',
       pixelSize: 2,
       ...options
-    });
+    }, sqlContext);
   }
 }
 

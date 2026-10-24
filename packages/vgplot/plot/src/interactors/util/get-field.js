@@ -1,6 +1,12 @@
 import { isNode } from '@uwdata/mosaic-sql';
+import { inspectAggregate, isExpression, isExpressionHandle, rootExpression } from '@uwdata/mosaic-sql/native';
+import { binInfo } from '../../transforms/bin.js';
 
 function extractField(field) {
+  if (isExpression(field) || isExpressionHandle(field)) {
+    const expression = rootExpression(field);
+    return binInfo(expression)?.source ?? inspectAggregate(expression)?.args[0] ?? expression;
+  }
   if (isNode(field)) {
     if (field.type === 'COLUMN_REF') {
       // @ts-ignore

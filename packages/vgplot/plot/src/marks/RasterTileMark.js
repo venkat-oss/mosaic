@@ -5,9 +5,9 @@ import { extentX, extentY } from './util/extent.js';
 import { RasterMark } from './RasterMark.js';
 
 export class RasterTileMark extends RasterMark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     const { origin = [0, 0], dim = 'xy', ...markOptions } = options;
-    super(source, markOptions);
+    super(source, markOptions, sqlContext);
 
     // TODO: make part of data source instead of options?
     this.origin = origin;

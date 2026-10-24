@@ -47,6 +47,30 @@ clause mutation, custom code generators and `toString(visitor)` are scheduled fo
 removal. Native factories and external live-binding registries replace those
 extensions; see the [architecture and compatibility decisions](../development/polyglot/#representation-and-compatibility-decisions).
 
+### Native transforms
+
+Native numeric, string, interval and date helpers construct Polyglot expressions.
+String search patterns and flags remain literal arguments, including live scalar
+Params. Non-finite JavaScript literals retain the ordinary Mosaic conversion to
+SQL NULL; finite/NaN/infinity checks also work on native database values.
+
+The native entry provides `bin1d`, `bin2d`, `binHistogram`, `binDate`,
+`binLinear1d`, `binLinear2d`, `m4` and `lineDensity` query transforms. For example:
+
+```js
+import { Query, binHistogram, count } from '@uwdata/mosaic-sql/native';
+
+const histogram = Query.from('sales').select({
+  bucket: binHistogram('amount', [0, 100], { step: 10 }),
+  rows: count()
+}).groupby('bucket').orderby('bucket');
+```
+
+Linear binning distributes weights over adjacent bins; an explicit zero weight
+contributes no density. M4 retains endpoints and extrema per pixel group. Line
+density uses a native exclusive range and UNNEST for rasterization. These helpers
+follow DuckDB semantics; unsupported cross-dialect conversions reject explicitly.
+
 ## Query
 
 Use the `Query` class to build complete SQL queries.

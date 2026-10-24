@@ -1,5 +1,7 @@
 import { bin1d } from '@uwdata/mosaic-sql';
-import { channelScale } from './channel-scale.js';
+import { asNode, bin1d as nativeBin1d } from '@uwdata/mosaic-sql/native';
+import { resolveBins } from '../../transforms/bin.js';
+import { channelScale, nativeChannelScale } from './channel-scale.js';
 
 /**
  * Generates a SQL expression for 1D pixel-level binning.
@@ -15,11 +17,24 @@ export function binExpr(mark, channel, n, extent, pad = 1, expr) {
 
   // extract scale information
   const { type, apply, sqlApply } = channelScale(mark, channel);
-  const reverse = !!mark.plot.getAttribute(`${channel}Reverse`);
+  const { lo, hi, bins, reverse } = binOptions(mark, channel, n, extent, pad, apply);
 
   // return expressions for (unrounded) bin index and field
-  const [lo, hi] = extent.map(v => apply(v));
   const v = sqlApply(expr);
   const f = type === 'time' || type === 'utc' ? v : expr;
-  return [bin1d(v, lo, hi, n - pad, reverse), f];
+  return [bin1d(v, lo, hi, bins, reverse), f];
+}
+
+/** @returns {[import('@uwdata/mosaic-sql/native').SqlExpression, import('@uwdata/mosaic-sql/native').SqlExpression]} */
+export function nativeBinExpr(mark, channel, n, extent, pad = 1, expr) {
+  const field = resolveBins(asNode(expr ?? mark.channelField(channel).field));
+  const { type, apply, sqlApply } = nativeChannelScale(mark, channel);
+  const { lo, hi, bins, reverse } = binOptions(mark, channel, n, extent, pad, apply);
+  const value = sqlApply(field);
+  return [nativeBin1d(value, lo, hi, bins, reverse), type === 'time' || type === 'utc' ? value : field];
+}
+
+function binOptions(mark, channel, n, extent, pad, apply) {
+  const [lo, hi] = extent.map(value => apply(value));
+  return { lo, hi, bins: n - pad, reverse: !!mark.plot.getAttribute(`${channel}Reverse`) };
 }

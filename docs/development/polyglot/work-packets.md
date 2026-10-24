@@ -2,14 +2,16 @@
 
 These packets implement the [target architecture](./index.md). P00 is complete
 on the isolated private Polyglot branch `mosaic-native-ast` at
-`d8eedaa743419c95175e59be884b9e498b486c94`. Its built SDK is distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d8eedaa743419c95175e59be884b9e498b486c94); Polyglot source remains private.
+`bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc`. Its built SDK is distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc); Polyglot source remains private.
 P01–P04 implement compiler loading, the reactive Slider slice, relational queries,
 consolidation, aggregates, windows and native DuckDB preaggregation. Installed
 SQL/core consumers execute these paths against DuckDB and Arrow. Startup
 measurements are recorded in the architecture. Mosaic's default SQL runtime still
-uses its existing implementation. P05–P10 remain, including plot consumers, the
-default switch, final compiler retirement and the PostgreSQL connector.
+uses its existing implementation. P05's common Mark boundary now executes native
+histograms through metadata, binning, brush selection, preaggregation, Arrow and
+SVG. Remaining P05 specialized marks and P06–P10 still include the default switch,
+final compiler retirement and the PostgreSQL connector.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and
 deletion work. Use normal source changes and reviewable commits. Do not create a
@@ -388,10 +390,11 @@ and `interactors/Highlight.js`.
 histogram/connected/density/statistical browser cases. Keep generated starter
 execution and Python roundtrips covered by the owning existing tests.
 
-**Remove:** `BinTransformNode`, its custom `toString(visitor)` implementation and
-explicit plot imports of `duckDBCodeGenerator` once all bin consumers use the new
-binding. Remove direct private-clause/tag/class checks in this slice's consumers.
-Retain the separate visualization transform classes in the spec parser.
+**Remove:** native plot dependencies on `BinTransformNode`, its custom renderer
+and `duckDBCodeGenerator`. Its legacy branch still serves the default runtime
+until P09 and is explicitly deleted there with the legacy Mark/channel workers.
+Remove native private-clause/tag/class checks in this slice's consumers. Retain
+the separate visualization transform classes in the spec parser.
 
 ## P06 — Collections and nested query consumers
 
@@ -466,6 +469,11 @@ relevant CUE family producers and authoring guides.
    general SQL parser/validator in Mosaic. Bring forward the upstream 0.13.4
    input-precedence, lambda/exponent and DuckDB relation-alias fixes while retaining
    the fork's CUE-owned carriers and guards.
+   Apply the same source-aware normalization and strict checks to manually built
+   generic Function nodes. DuckDB `isfinite`, `time_bucket` and `range` calls must
+   not bypass the restrictions of their canonical native variants on PostgreSQL.
+   Preserve qualified/quoted user functions and PostgreSQL's set-valued regex
+   semantics rather than treating names alone as portable operations.
 2. Substitute structured interpolation and live bindings using reserved holes;
    distinguish `$param` values and `$$param` identifiers in the spec parser.
    Detect collisions with user identifiers. Unparseable portable input fails
@@ -514,7 +522,8 @@ This is a breaking compiler-extension release with high-level authoring preserve
    Keep a native-backed Query facade and accurately named type aliases. Keep
    unrelated semantic constants and public helpers that still have real users.
 4. Delete `native/legacy-input.ts`, all temporary conversions, legacy optimizer
-   branches, duplicate fixtures and comparison-only tests. Replace representation
+   branches, legacy Mark/channel/bin workers including `BinTransformNode`,
+   duplicate fixtures and comparison-only tests. Replace representation
    snapshots with meaningful API/result tests where needed; retain SQL-string
    assertions for escaping, aliases, raw-input semantics and required syntax.
 5. Check the complete public SQL entry point against `docs/api/sql/`, vgplot's

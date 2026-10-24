@@ -2,6 +2,9 @@
 /** @import { DataColumns } from '@uwdata/mosaic-core' */
 import { isParam, MosaicClient, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
 import { Query, collectParams, column, isAggregateExpression, isColumnParam, isColumnRef, isNode, isParamLike, unnest } from '@uwdata/mosaic-sql';
+import * as legacySQL from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import { binInfo, resolveBins } from '../transforms/bin.js';
 import { isColor } from './util/is-color.js';
 import { isConstantOption } from './util/is-constant-option.js';
 import { isSymbol } from './util/is-symbol.js';
@@ -12,18 +15,24 @@ const isOpacityChannel = channel => /opacity$/i.test(channel);
 const isSymbolChannel = channel => channel === 'symbol';
 
 // column name for a plain column reference or name string, else null
-const unnestableColumn = field =>
-  isColumnRef(field) ? field.column
-    : typeof field === 'string' ? field
-    : null;
+const unnestableColumn = (field, native = false) => {
+  if (field == null) return null;
+  return native
+    ? typeof field === 'string' ? field : nativeSQL.columnParts(nativeSQL.rootExpression(field))?.at(-1)
+    : isColumnRef(field) ? field.column : typeof field === 'string' ? field : null;
+};
 const isFieldObject = (channel, field) => {
   return channel !== 'sort' && channel !== 'tip'
     && field != null && !Array.isArray(field);
 };
-const fieldEntry = (channel, field) => ({
+const isNativeField = (channel, field) => nativeSQL.isExpressionHandle(field)
+  || isFieldObject(channel, field) && nativeSQL.isExpression(field);
+const fieldEntry = (channel, field, native = false) => ({
   channel,
   field,
-  as: isColumnRef(field) && !isColumnParam(field) ? field.column : channel
+  as: native
+    ? nativeSQL.columnParts(field)?.at(-1) ?? channel
+    : isColumnRef(field) && !isColumnParam(field) ? field.column : channel
 });
 const valueEntry = (channel, value) => ({ channel, value });
 
@@ -46,17 +55,20 @@ export const isDataArray = source => Array.isArray(source);
  *   Materialized column data, when available.
  * @property {number} [index]
  *   The mark's index within the plot.
+ * @property {import('@uwdata/mosaic-core').NativeSqlContext | null} [sqlContext]
  */
 
 /**
  * @implements {InteractorMark}
  */
 export class Mark extends MosaicClient {
-  constructor(type, source, encodings, reqs = {}) {
-    super(source?.options?.filterBy);
+  constructor(type, source, encodings, reqs = {}, sqlContext = null) {
+    super(source?.options?.filterBy, sqlContext);
     this.type = type;
     this.reqs = reqs;
     this.source = source;
+    this.sqlContext = sqlContext;
+    this.sql = sqlContext ? nativeSQL : legacySQL;
 
     const channels = this.channels = [];
     const detail = this.detail = new Set;
@@ -89,7 +101,7 @@ export class Mark extends MosaicClient {
           // interpret constants and color/symbol names as values, not fields
           channels.push(valueEntry(channel, entry));
         } else {
-          channels.push(fieldEntry(channel, column(entry)));
+          channels.push(fieldEntry(channel, sqlContext ? nativeSQL.column(entry) : column(entry), !!sqlContext));
         }
       } else if (isParamLike(entry)) {
         const c = valueEntry(channel, entry.value);
@@ -100,9 +112,16 @@ export class Mark extends MosaicClient {
           c.value = value;
           return this.update();
         });
+      } else if (sqlContext && isNativeField(channel, entry)) {
+        const field = nativeSQL.asNode(entry);
+        nativeSQL.params(field).forEach(p => params.add(p));
+        channels.push(fieldEntry(channel, field, true));
       } else if (isNode(entry)) {
+        if (sqlContext) throw new TypeError('Native marks require native SQL expressions.');
         collectParams(entry).forEach(p => params.add(p));
         channels.push(fieldEntry(channel, entry))
+      } else if (isNativeField(channel, entry)) {
+        throw new TypeError('Native SQL expressions require a native plot context.');
       } else if (type === 'object' && isFieldObject(channel, entry)) {
         channels.push(fieldEntry(channel, entry));
       } else if (entry !== undefined) {
@@ -123,6 +142,13 @@ export class Mark extends MosaicClient {
     this.plot = plot;
     this.index = index;
     plot.addParams(this, this.params);
+    if (this.sqlOwner && this.channels.some(c => binInfo(c.field))) {
+      for (const channel of ['x', 'y']) {
+        for (const name of ['Scale', 'Base', 'Exponent', 'Constant']) {
+          plot.addAttributeListener(channel + name, () => this.initialize());
+        }
+      }
+    }
     if (this.source?.table) this.queryPending();
   }
 
@@ -146,7 +172,7 @@ export class Mark extends MosaicClient {
    * @returns {boolean}
    */
   isUnnested(field) {
-    const name = unnestableColumn(field);
+    const name = unnestableColumn(field, !!this.sqlOwner);
     return name != null && this.unnestFields.includes(name);
   }
 
@@ -156,6 +182,11 @@ export class Mark extends MosaicClient {
 
   hasFieldInfo() {
     return !!this._fieldInfo;
+  }
+
+  initialize() {
+    if (this.sqlOwner) this._fieldInfo = false;
+    return super.initialize();
   }
 
   channel(channel) {
@@ -171,6 +202,7 @@ export class Mark extends MosaicClient {
 
   async prepare() {
     if (this.hasOwnData()) return null;
+    if (this.sqlOwner) return this.prepareNative();
 
     const { channels, reqs } = this;
     const fields = new Map;
@@ -199,6 +231,52 @@ export class Mark extends MosaicClient {
     this._fieldInfo = true;
   }
 
+  async prepareNative() {
+    const pending = this.pending;
+    const table = this.sourceTable();
+    const requests = new Map;
+    const projected = [];
+    for (const entry of this.channels) {
+      if (!entry.field) continue;
+      const info = binInfo(entry.field);
+      const field = info?.source ?? entry.field;
+      if (nativeSQL.isAggregateExpression(field) || isWindowExpression(field)) {
+        projected.push(entry);
+        continue;
+      }
+      const request = requests.get(field) ?? { table, column: field, stats: new Set, entries: [] };
+      if (info) ['min', 'max'].forEach(stat => request.stats.add(stat));
+      this.reqs[entry.channel]?.forEach(stat => request.stats.add(stat));
+      request.entries.push(entry);
+      requests.set(field, request);
+    }
+    const base = [...requests.values()];
+    const metadata = await queryFieldInfo(this.coordinator, base.map(({ stats, ...request }) => ({ ...request, stats: [...stats] })));
+    if (this.pending !== pending || !this.coordinator) return;
+    metadata.forEach((info, index) => base[index].entries.forEach(entry => Object.assign(entry, info)));
+    this._fieldInfo = true;
+    if (projected.length) {
+      const channels = this.queryChannels();
+      const query = nativeMarkQuery(channels, table);
+      const fields = projected.map(entry => {
+        const field = channels.find(channel => channel === entry || channel.channel === entry.channel)?.field;
+        return { table, column: field, stats: this.reqs[entry.channel] ?? [] };
+      });
+      const info = await queryFieldInfo(this.coordinator, fields, { query });
+      if (this.pending !== pending || !this.coordinator) return;
+      info.forEach((value, index) => Object.assign(projected[index], value));
+    }
+    this._fieldInfo = true;
+  }
+
+  queryChannels() {
+    if (!this.sqlOwner) return this.channels;
+    const memo = new Map;
+    return this.channels.map(entry => entry.field
+      ? { ...entry, field: resolveBins(entry.field, memo) }
+      : entry);
+  }
+
   /**
    * Return a query specifying the data needed by this Mark client.
    * @param {*} [filter] The filtering criteria to apply in the query.
@@ -207,16 +285,19 @@ export class Mark extends MosaicClient {
   query(filter = []) {
     if (this.hasOwnData()) return null;
     const { unnestFields } = this;
+    const prepared = this.queryChannels();
     // wrap unnested column fields in UNNEST() so arrays expand into rows
     const channels = unnestFields.length === 0
-      ? this.channels
-      : this.channels.map(c => {
-          const name = unnestableColumn(c.field);
+      ? prepared
+      : prepared.map(c => {
+          if (!c.field) return c;
+          const name = unnestableColumn(c.field, !!this.sqlOwner);
           return name != null && unnestFields.includes(name)
-            ? { ...c, field: unnest(c.field) }
+            ? { ...c, field: this.sqlOwner ? nativeSQL.unnest(c.field) : unnest(c.field) }
             : c;
         });
-    return markQuery(channels, this.sourceTable()).where(filter);
+    const query = this.sqlOwner ? nativeMarkQuery(channels, this.sourceTable()) : markQuery(channels, this.sourceTable());
+    return query.where(filter);
   }
 
   queryPending() {
@@ -275,7 +356,20 @@ export function channelOption(c, columns) {
  * @returns {SelectQuery} a Query instance
  */
 export function markQuery(channels, table, skip = []) {
-  const q = Query.from({ source: table });
+  return populateQuery(Query.from({ source: table }), channels, skip, isAggregateExpression);
+}
+
+export function nativeMarkQuery(channels, table, skip = []) {
+  return populateQuery(nativeSQL.Query.from(nativeSQL.from(table)), channels, skip, nativeSQL.isAggregateExpression, isWindowExpression);
+}
+
+/**
+ * @template {SelectQuery | import('@uwdata/mosaic-sql/native').Query} Q
+ * @param {Q} q
+ * @param {(field: *) => boolean} [window]
+ * @returns {Q}
+ */
+function populateQuery(q, channels, skip, aggregate, window = () => false) {
   const dims = new Set;
   let aggr = false;
 
@@ -286,9 +380,9 @@ export function markQuery(channels, table, skip = []) {
     if (channel === 'orderby') {
       q.orderby(c.value ?? field);
     } else if (field) {
-      if (isAggregateExpression(field)) {
+      if (aggregate(field)) {
         aggr = true;
-      } else {
+      } else if (!window(field)) {
         if (dims.has(as)) continue;
         dims.add(as);
       }
@@ -301,6 +395,15 @@ export function markQuery(channels, table, skip = []) {
   }
 
   return q;
+}
+
+function isWindowExpression(expression) {
+  let result = false;
+  nativeSQL.walk(expression, node => {
+    if ('subquery' in node) return 1;
+    if ('window_function' in node) { result = true; return -1; }
+  });
+  return result;
 }
 
 

@@ -2,6 +2,15 @@
 
 SQL date function expressions.
 
+## Native date preview
+
+The temporary `@uwdata/mosaic-sql/native` entry provides these date helpers and
+interval constructors over Polyglot expressions. `dateBin` retains DuckDB's
+`TIME_BUCKET` calendar grid, including its default week anchor; it does not
+substitute another database's `DATE_BIN` operation. Unsupported target calendar
+semantics raise a compilation error. Month/day comparisons retain the leap year
+2012, and `timezone(zone, expression)` uses native `AT TIME ZONE` semantics.
+
 ## epoch_ms
 
 `epoch_ms(expression)`

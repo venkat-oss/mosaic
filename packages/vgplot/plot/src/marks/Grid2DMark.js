@@ -13,7 +13,7 @@ import { Mark } from './Mark.js';
 export const DENSITY = 'density';
 
 export class Grid2DMark extends Mark {
-  constructor(type, source, options) {
+  constructor(type, source, options, sqlContext = null) {
     const {
       bandwidth = 0,
       interpolate = 'none',
@@ -25,7 +25,7 @@ export class Grid2DMark extends Mark {
     } = options;
 
     const densityMap = createDensityMap(channels);
-    super(type, source, channels, xyext);
+    super(type, source, channels, xyext, sqlContext);
     this.densityMap = densityMap;
 
     /** @type {number} */

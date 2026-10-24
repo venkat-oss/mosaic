@@ -1,6 +1,15 @@
 import { scaleTransform } from '@uwdata/mosaic-sql';
+import { scaleTransform as nativeScaleTransform } from '@uwdata/mosaic-sql/native';
 
 export function channelScale(mark, channel) {
+  return scaleTransform(scaleOptions(mark, channel));
+}
+
+export function nativeChannelScale(mark, channel) {
+  return nativeScaleTransform(scaleOptions(mark, channel));
+}
+
+function scaleOptions(mark, channel) {
   const { plot } = mark;
 
   let scaleType = plot.getAttribute(`${channel}Scale`);
@@ -22,5 +31,5 @@ export function channelScale(mark, channel) {
       break;
   }
 
-  return scaleTransform(options);
+  return options;
 }

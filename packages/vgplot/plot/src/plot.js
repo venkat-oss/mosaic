@@ -14,7 +14,8 @@ export class Plot {
   /**
    * @param {HTMLElement} [element]
    */
-  constructor(element) {
+  constructor(element, sqlContext = null) {
+    this.sqlContext = sqlContext;
     /** @type {Record<string, any>} */
     this.attributes = { ...DEFAULT_ATTRIBUTES };
     this.listeners = null;
@@ -30,11 +31,10 @@ export class Plot {
     /** @type {Synchronizer} */
     this.synch = new Synchronizer();
 
-    /** @type {HTMLElement} */
-    this.element = element || document.createElement('div');
+    /** @type {HTMLElement & {value: Plot}} */
+    this.element = Object.assign(element || document.createElement('div'), { value: this });
     this.element.setAttribute('class', 'plot');
     this.element.style.display = 'flex';
-    Object.assign(this.element, { value: this });
   }
 
   margins() {

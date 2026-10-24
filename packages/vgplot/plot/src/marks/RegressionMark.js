@@ -10,9 +10,9 @@ import { Mark, channelOption } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class RegressionMark extends Mark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     const { ci = 0.95, precision = 4, ...channels } = options;
-    super('line', source, channels);
+    super('line', source, channels, undefined, sqlContext);
 
     const update = () => this.modelFit ? this.confidenceBand().update() : null;
 

@@ -4,10 +4,10 @@ import { filteredExtent } from './util/extent.js';
 import { Mark } from './Mark.js';
 
 export class ConnectedMark extends Mark {
-  constructor(type, source, encodings) {
+  constructor(type, source, encodings, sqlContext = null) {
     const dim = type.endsWith('X') ? 'y' : type.endsWith('Y') ? 'x' : null;
     const req = dim ? { [dim]: ['count', 'min', 'max'] } : undefined;
-    super(type, source, encodings, req);
+    super(type, source, encodings, req, sqlContext);
     this.dim = dim;
   }
 

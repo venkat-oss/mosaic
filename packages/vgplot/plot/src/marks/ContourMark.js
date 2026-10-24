@@ -5,14 +5,14 @@ import { Grid2DMark } from './Grid2DMark.js';
 import { channelOption } from './Mark.js';
 
 export class ContourMark extends Grid2DMark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     const { thresholds = 10, ...channels } = options;
     super('geo', source, {
       bandwidth: 20,
       interpolate: 'linear',
       pixelSize: 2,
       ...channels
-    });
+    }, sqlContext);
 
     /** @type {number|number[]} */
     this.thresholds = handleParam(thresholds, value => {

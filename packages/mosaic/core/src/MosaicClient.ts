@@ -41,6 +41,7 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
    */
   _initialized: -1 | 0 | 1;
   _request: QueryType | boolean | null;
+  _queryRequest: Promise<unknown> | null;
 
   /**
    * Create a new client instance.
@@ -57,6 +58,7 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
     this._enabled = true;
     this._initialized = 0;
     this._request = null;
+    this._queryRequest = null;
   }
 
   /**
@@ -70,6 +72,11 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
    * Set this client's connected coordinator.
    */
   set coordinator(coordinator: Coordinator | null) {
+    if (this._coordinator !== coordinator) {
+      this._cancelQuery();
+      this._pending = Promise.resolve();
+      this._initialized = 0;
+    }
     this._coordinator = coordinator;
   }
 
@@ -220,17 +227,32 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
    * method has no effect if the client is not registered with a coordinator.
    */
   initialize(): void {
+    this._cancelQuery();
+    this._pending = Promise.resolve();
     if (!this._enabled) {
       // clear flag so we initialize when enabled again
       this._initialized = 0;
     } else if (this._coordinator) {
       // if connected, let's initialize
       this._initialized = -1;
-      this._pending = this.prepare().then(() => {
+      const coordinator = this._coordinator;
+      const pending = Promise.resolve().then(() => {
+        if (this._pending === pending && this._coordinator === coordinator) return this.prepare();
+      }).then(() => {
+        if (this._pending !== pending || this._coordinator !== coordinator) return;
         this._initialized = 1;
         return this.requestQuery();
+      }, error => {
+        if (this._pending === pending && this._coordinator === coordinator) throw error;
       });
+      this._pending = pending;
     }
+  }
+
+  _cancelQuery(): void {
+    const request = this._queryRequest;
+    this._queryRequest = null;
+    if (request) this._coordinator?.cancel([request]);
   }
 
   /**

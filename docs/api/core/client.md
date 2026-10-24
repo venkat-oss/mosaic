@@ -9,9 +9,11 @@ If you are creating clients for web frameworks such as React, Svelte, or Vue, se
 
 ## constructor
 
-`new MosaicClient(filterSelection)`
+`new MosaicClient(filterSelection, sqlOwner = null)`
 
 Create a new client instance. If provided, the [Selection](./selection)-valued _filterSelection_ argument will be exposed as the client's [`filterBy`](#filterby) property.
+For a native client, pass the coordinator's `NativeSqlContext` as _sqlOwner_ and
+use selections from that same context.
 
 ## filterBy
 
@@ -30,26 +32,35 @@ This property should return true if changes to the `filterBy` selection do not c
 The `MosaicClient` base class will always return `true`.
 Subclasses should override the property getter to provide more nuanced results as needed.
 
-## fields
+## prepare
 
-`client.fields()`
+`client.prepare()`
 
-Return an array of field requests, called by the [coordinator](./coordinator) when the client is first connected.
-Each field request should be an object with `table` and `column` properties.
-The coordinator will then return column metadata via the client [`fieldInfo()`](#fieldinfo) method.
+Prepare the client before its first data query. Override this asynchronous method
+to load field metadata or other prerequisites. The base method does nothing.
+Call `queryFieldInfo(coordinator, requests)` to request SQL/JavaScript types,
+nullability and optional `count`, `nulls`, `distinct`, `min` or `max` statistics.
 
-The `MosaicClient` base class will always return `null`, indicating no field metadata is needed.
-Subclasses should override this method to provide more nuanced results as needed.
+Asynchronous preparation can be superseded by reinitialization. Capture
+`this.pending` before awaiting metadata and check that it is still current before
+assigning prepared state:
 
-## fieldInfo
+```js
+async prepare() {
+  const pending = this.pending;
+  const info = await queryFieldInfo(this.coordinator, this.requests);
+  if (this.pending !== pending) return;
+  this.info = info;
+}
+```
 
-`client.fieldInfo(info)`
-
-Called by the [coordinator](./coordinator) to set the field information for this client.
-The _info_ argument will be an array of objects with the table name, column name, and type information.
-
-The `MosaicClient` base class does nothing here.
-Subclasses should override this method to process and retain field information as needed.
+For a native DuckDB coordinator, requests accept a native relation and expression
+as `table` and `column`. Results retain those original references in request order.
+An optional third argument, `{ query }`, supplies the actual projection/grouping
+scope for aggregate or window expressions; request expressions must refer to its
+authored projections. Aggregate statistics then summarize that query's output.
+Metadata for an empty relation still reports its schema. A sole `column: '*'`
+request returns the relation's columns by backend name.
 
 ## query
 
@@ -66,7 +77,6 @@ Subclasses should override this method to provide a query, typically constructed
 `client.queryPending()`
 
 Called by the [coordinator](./coordinator) to inform the client that a query is pending.
-The _info_ argument will be an array of objects with the table name, column name, and type information.
 This method should return the current client instance.
 
 The `MosaicClient` base class does nothing here.
@@ -87,7 +97,8 @@ Subclasses should override this method as needed.
 
 Called by the [coordinator](./coordinator) to report that an _error_ occurred during query processing. This method should return the current client instance.
 
-The `MosaicClient` base class reports the error to `console.error`.
+The coordinator reports the error through its configured logger; the base client
+method does nothing.
 Subclasses should override this method as needed.
 
 ## update
@@ -106,6 +117,29 @@ Subclasses should override this method as needed.
 
 Requests that the [coordinator](./coordinator) execute a query for this client, and returns a Promise that resolves upon query completion or error.
 If an explicit query is not provided, the client [`query`](#query) method will be called, filtered by the current [`filterBy`](#filterby) selection.
+Results and errors from superseded reads do not overwrite the current client.
+
+## initialize
+
+`client.initialize()`
+
+Re-run preparation and request data for a connected, enabled client. Queued reads
+from its previous preparation are canceled. A newer initialization supersedes an
+older preparation's continuation.
+
+## pending
+
+`client.pending`
+
+Promise for the current preparation or data update, including asynchronous
+`update()` work. Current preparation errors reject this promise.
+
+## destroy
+
+`client.destroy()`
+
+Disable and disconnect the client, canceling its queued reads and ignoring late
+responses.
 
 ## requestUpdate
 

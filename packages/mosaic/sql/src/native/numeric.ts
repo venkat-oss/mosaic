@@ -11,6 +11,12 @@ export const ceil = (value: ExprValue): SqlExpression => native.ceil(asNode(valu
 export const floor = (value: ExprValue): SqlExpression => native.floor(asNode(value));
 export const log = (value: ExprValue): SqlExpression => native.log(asNode(value));
 export const epoch_ms = (value: ExprValue): SqlExpression => native.scalar('epoch_ms', asNode(value));
+export const isNaN = (value: ExprValue): SqlExpression => native.scalar('is_nan', asNode(value));
+export const isInfinite = (value: ExprValue): SqlExpression => native.scalar('is_inf', asNode(value));
+export const isFinite = (value: ExprValue): SqlExpression => native.scalar('is_finite', asNode(value));
+export const trunc = (value: ExprValue): SqlExpression => native.truncate(asNode(value));
+export const greatest = (...values: ExprValue[]): SqlExpression => native.scalarMany('greatest', values.map(asNode));
+export const least = (...values: ExprValue[]): SqlExpression => native.scalarMany('least', values.map(asNode));
 
 export function round(value: ExprValue, places?: ExprValue): SqlExpression {
   return native.round(asNode(value), places === undefined ? undefined : asNode(places));

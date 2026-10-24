@@ -5,9 +5,9 @@ import { handleParam } from './util/handle-param.js';
 import { RasterMark } from './RasterMark.js';
 
 export class DenseLineMark extends RasterMark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     const { normalize = true, ...rest } = options;
-    super(source, rest);
+    super(source, rest, sqlContext);
 
     /** @type {boolean} */
     this.normalize = handleParam(normalize, value => {

@@ -5,9 +5,9 @@ import { Mark } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class HexbinMark extends Mark {
-  constructor(source, options) {
+  constructor(source, options, sqlContext = null) {
     const { type = 'hexagon', binWidth = 20, ...channels } = options;
-    super(type, source, { r: binWidth / 2, clip: true, ...channels }, xyext);
+    super(type, source, { r: binWidth / 2, clip: true, ...channels }, xyext, sqlContext);
 
     /** @type {number} */
     this.binWidth = handleParam(binWidth, value => {

@@ -12,7 +12,7 @@ import { Mark, channelOption, markQuery } from './Mark.js';
 const GROUPBY = { fill: 1, stroke: 1, z: 1 };
 
 export class Density1DMark extends Mark {
-  constructor(type, source, options) {
+  constructor(type, source, options, sqlContext = null) {
     const {
       bins = 1024,
       bandwidth = 20,
@@ -22,7 +22,7 @@ export class Density1DMark extends Mark {
     } = options;
     const dim = type.endsWith('X') ? 'y' : 'x';
 
-    super(type, source, channels, dim === 'x' ? xext : yext);
+    super(type, source, channels, dim === 'x' ? xext : yext, sqlContext);
     this.dim = dim;
 
     /** @type {number} */

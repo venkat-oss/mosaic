@@ -1,4 +1,6 @@
 import * as Plot from '@observablehq/plot';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import { binInfo } from './transforms/bin.js';
 import { setAttributes } from './plot-attributes.js';
 import { Fixed } from './symbols.js';
 
@@ -125,7 +127,7 @@ function inferLabel(key, spec, marks) {
   // check for consistent label
   let candidate;
   for (let i = 0; i < fields.length; ++i) {
-    const label = fieldLabel(fields[i]);
+    const label = fieldLabel(fields[i], marks[i]);
     if (label === undefined) {
       continue;
     } else if (candidate === undefined) {
@@ -140,8 +142,23 @@ function inferLabel(key, spec, marks) {
   spec[key] = { ...scale, label: candidate };
 }
 
-function fieldLabel(field) {
+function fieldLabel(field, mark) {
   if (!field) return undefined;
+  if (nativeSQL.isExpression(field) || nativeSQL.isExpressionHandle(field)) {
+    const expression = nativeSQL.rootExpression(field);
+    const bin = binInfo(expression);
+    if (bin) return fieldLabel(bin.source, mark);
+    const path = nativeSQL.columnParts(expression);
+    if (path) return path.at(-1);
+    if ('parameter' in expression) return nativeSQL.fields(expression)[0]?.column;
+    if ('cast' in expression) return fieldLabel(expression.cast.this, mark);
+    if ('make_date' in expression) return 'date';
+    const aggregate = nativeSQL.inspectAggregate(expression);
+    if (aggregate) return aggregate.args.length
+      ? aggregate.name + '(' + aggregate.args.map(arg => fieldLabel(arg, mark)).join(', ') + ')'
+      : aggregate.name;
+    return nativeSQL.compile([expression], mark.sqlContext.execution).join(';\n').replaceAll('"', '');
+  }
   switch (field.type) {
     case 'COLUMN_REF':
     case 'CUSTOM':

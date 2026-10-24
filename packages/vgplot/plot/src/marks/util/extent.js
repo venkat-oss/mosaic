@@ -1,6 +1,7 @@
 import { scaleLinear } from 'd3';
 import { Fixed, Transient } from '../../symbols.js';
 import { BetweenOpNode, walk } from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
 
 export const xext = { x: ['min', 'max'] };
 export const yext = { y: ['min', 'max'] };
@@ -34,6 +35,7 @@ export function extentY(mark, filter) {
 
 export function filteredExtent(filter, column) {
   if (!filter) return;
+  if (nativeSQL.isExpression(column) || nativeSQL.isExpressionHandle(column)) return nativeFilteredExtent(filter, column);
 
   let lo;
   let hi;
@@ -49,4 +51,46 @@ export function filteredExtent(filter, column) {
   }));
 
   return lo != null && hi != null && lo !== hi ? [lo, hi] : undefined;
+}
+
+function nativeFilteredExtent(filter, field) {
+  const keys = new nativeSQL.StructuralKeyScope;
+  const key = keys.key(field);
+  let lo;
+  let hi;
+  const lower = value => { if (value != null && (lo == null || value < lo)) lo = value; };
+  const upper = value => { if (value != null && (hi == null || value > hi)) hi = value; };
+  for (const predicate of [filter].flat()) {
+    if (!nativeSQL.isExpression(predicate) && !nativeSQL.isExpressionHandle(predicate)) continue;
+    nativeSQL.walk(predicate, node => {
+      if ('subquery' in node || 'not' in node) return 1;
+      if ('between' in node) {
+        const value = node.between;
+        if (!value.not && !value.symmetric && keys.key(value.this) === key) {
+          lower(boundValue(value.low));
+          upper(boundValue(value.high));
+        }
+      } else {
+        const low = 'gte' in node ? node.gte : 'gt' in node ? node.gt : null;
+        const high = 'lte' in node ? node.lte : 'lt' in node ? node.lt : null;
+        const value = low ?? high;
+        if (value) {
+          if (keys.key(value.left) === key) (low ? lower : upper)(boundValue(value.right));
+          else if (keys.key(value.right) === key) (low ? upper : lower)(boundValue(value.left));
+        }
+      }
+    });
+  }
+  return lo != null && hi != null && +lo !== +hi ? [lo, hi] : undefined;
+}
+
+function boundValue(expression) {
+  if (!('literal' in expression)) return;
+  const { literal_type: type, value } = expression.literal;
+  if (type === 'number') {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
+  }
+  if (type === 'date' && /^\d{4}-\d\d-\d\d$/.test(value)) return new Date(value + 'T00:00:00Z');
+  if (type === 'timestamp' && /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)?$/.test(value)) return new Date(value.replace(' ', 'T') + 'Z');
 }

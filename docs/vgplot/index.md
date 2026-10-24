@@ -36,6 +36,38 @@ Skip to the [examples](/examples/) to dive right in.
 
 </div>
 
+## Native histogram preview
+
+A JavaScript API context can connect histogram marks and brushes to the native
+SQL path. Use its coordinator's selections and import SQL expressions from the
+temporary native entry:
+
+```js
+import { createAPIContext } from '@uwdata/vgplot';
+import { Coordinator, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
+import { count, float64 } from '@uwdata/mosaic-sql/native';
+
+const native = new NativeSqlContext();
+const coordinator = new Coordinator(new RestConnector(), { native });
+const api = createAPIContext({ coordinator });
+const selection = native.selection();
+
+document.body.append(api.plot(
+  api.rectY(api.from('sales', { filterBy: selection }), {
+    x: api.bin('amount', { step: 10 }),
+    y: float64(count())
+  }),
+  api.intervalX({ as: selection, peers: false })
+));
+```
+
+Binning uses prepared source statistics. Changing the source or identifier
+parameters prepares new metadata and cancels obsolete queued data reads. Bin
+expressions reject compilation while their metadata is stale. Compatible brush
+updates use native DuckDB preaggregation and return Arrow results to SVG marks.
+The remaining mark families and specification/Python integration follow the
+[migration packets](/development/polyglot/work-packets).
+
 ## Plots
 
 A `plot` produces a single visualization as a Web element.

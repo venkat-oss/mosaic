@@ -128,8 +128,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`d8eedaa743419c95175e59be884b9e498b486c94`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d8eedaa743419c95175e59be884b9e498b486c94)
+`bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -164,6 +164,10 @@ Mosaic remains P10 work.
   invalidate or recompute identifier-dependent plans when it changes, including
   while queued. Scalar values retain submission-time resolution. Resolve deferred
   bin metadata before analyzing a plan that depends on its fields or statistics.
+- Mark-owned queries follow preparation, rebuild and cancellation when metadata
+  changes. Retained channel bin bindings in ordinary native queries resolve at
+  submission and reject while source statistics are stale. Aggregate metadata
+  uses the actual prepared grouping rather than a substitute source-field group.
 - Preserve shared node references between selection fields and predicates while
   performing Mosaic rewrites. Clone with a memo and remap binding entries.
   Resolve a submission snapshot before crossing the WASM boundary; returned Rust

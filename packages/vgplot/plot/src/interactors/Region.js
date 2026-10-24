@@ -50,10 +50,11 @@ export class Region {
 
   clause(value) {
     const { fields, mark } = this;
-    return clausePoints(fields, value, {
+    const options = {
       source: this,
       clients: this.peers ? mark.plot.markSet : new Set().add(mark)
-    });
+    };
+    return mark.sqlContext ? mark.sqlContext.points(fields, value, options) : clausePoints(fields, value, options);
   }
 
   publish(extent) {

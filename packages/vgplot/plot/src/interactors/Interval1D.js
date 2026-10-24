@@ -60,12 +60,13 @@ export class Interval1D {
 
   clause(value) {
     const { mark, pixelSize, field, scale } = this;
-    return clauseInterval(field, value, {
+    const options = {
       source: this,
       clients: this.peers ? mark.plot.markSet : new Set().add(mark),
       scale,
       pixelSize
-    });
+    };
+    return mark.sqlContext ? mark.sqlContext.interval(field, value, options) : clauseInterval(field, value, options);
   }
 
   init(svg, root) {

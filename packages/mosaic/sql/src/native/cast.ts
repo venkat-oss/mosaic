@@ -21,6 +21,10 @@ export function cast(value: ExprValue, type: string | ast.DataType) {
   return native.cast(asNode(value), resolveType(type));
 }
 
+export function tryCast(value: ExprValue, type: string | ast.DataType): ast.Expression {
+  return { try_cast: cast(value, type).cast };
+}
+
 export function int32(value: ExprValue) {
   return native.cast(asNode(value), native.dataType('int'));
 }

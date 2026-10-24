@@ -1,5 +1,5 @@
 import type { CreateQuery, CreateSchemaQuery, DescribeQuery, ExprNode, MaybeArray, Query } from '@uwdata/mosaic-sql';
-import type { Query as NativeQuery, SqlExpression } from '@uwdata/mosaic-sql/native';
+import type { Query as NativeQuery, SqlExpression, SqlRoot, TableArg } from '@uwdata/mosaic-sql/native';
 import type { QueryResult } from './util/query-result.js';
 
 /** Arrow IPC bytes as returned by a connector. */
@@ -60,6 +60,16 @@ export interface FieldInfoRequest {
   stats?: Stat[];
 }
 
+export interface NativeFieldInfoRequest {
+  table: TableArg;
+  column: string | SqlRoot;
+  stats?: Stat[];
+}
+
+export interface NativeFieldInfoOptions {
+  query?: SqlRoot;
+}
+
 /**
  * A response with metadata information about a database column.
  */
@@ -69,6 +79,13 @@ export interface FieldInfo extends Partial<Record<Stat, number>> {
   sqlType: string,
   type: JSType,
   nullable: boolean
+}
+
+export interface NativeFieldInfo extends Omit<FieldInfo, 'table' | 'column' | 'min' | 'max'> {
+  table: TableArg;
+  column: string | SqlRoot;
+  min?: unknown;
+  max?: unknown;
 }
 
 /** A result row from a DESCRIBE query. */
