@@ -44,8 +44,7 @@ type Unary<T> = T | [T];
  * A two argument transform signature; both arguments are required.
  */
 type Binary<T> = [T, T];
-
-type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null]
+type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null];
 /**
  * Binning interval names.
  */
@@ -341,105 +340,102 @@ export interface VarPop extends AggregateOptions, WindowOptions {
    */
   varPop: Unary<TransformField>;
 }
-
-/** A row_number window transform. */
+/**
+ * A row_number window transform.
+ */
 export interface RowNumber extends WindowOptions {
   /**
    * Compute the 1-based row number over an ordered window partition.
    */
   row_number: Nullary;
 }
-
-/** A rank window transform. */
+/**
+ * A rank window transform.
+ */
 export interface Rank extends WindowOptions {
   /**
-   * Compute the row rank over an ordered window partition.
-   * Sorting ties result in gaps in the rank numbers ([1, 1, 3, ...]).
+   * Compute the row rank over an ordered window partition. Sorting ties result in gaps in the rank numbers ([1, 1, 3, ...]).
    */
   rank: Nullary;
 }
-
-/** A dense_rank window transform. */
+/**
+ * A dense_rank window transform.
+ */
 export interface DenseRank extends WindowOptions {
   /**
-   * Compute the dense row rank (no gaps) over an ordered window partition.
-   * Sorting ties do not result in gaps in the rank numbers ([1, 1, 2, ...]).
+   * Compute the dense row rank (no gaps) over an ordered window partition. Sorting ties do not result in gaps in the rank numbers ([1, 1, 2, ...]).
    */
   dense_rank: Nullary;
 }
-
-/** A percent_rank window transform. */
+/**
+ * A percent_rank window transform.
+ */
 export interface PercentRank extends WindowOptions {
   /**
    * Compute the percentage rank over an ordered window partition.
    */
   percent_rank: Nullary;
 }
-
-/** A cume_dist window transform. */
+/**
+ * A cume_dist window transform.
+ */
 export interface CumeDist extends WindowOptions {
   /**
-   * Compute the cumulative distribution value over an ordered window
-   * partition. Equals the number of partition rows preceding or peer with
-   * the current row, divided by the total number of partition rows.
+   * Compute the cumulative distribution value over an ordered window partition. Equals the number of partition rows preceding or peer with the current row, divided by the total number of partition rows.
    */
   cume_dist: Nullary;
 }
-
-/** An ntile window transform. */
+/**
+ * An ntile window transform.
+ */
 export interface NTile extends WindowOptions {
   /**
-   * Compute an n-tile integer ranging from 1 to the provided argument
-   * (num_buckets), dividing the partition as equally as possible.
+   * Compute an n-tile integer ranging from 1 to the provided argument (num_buckets), dividing the partition as equally as possible.
    */
   ntile: Unary<TransformField>;
 }
-
-/** A lag window transform. */
+/**
+ * A lag window transform.
+ */
 export interface Lag extends WindowOptions {
   /**
-   * Compute lagging values in a column. Returns the value at the row that is
-   * `offset` (second argument, default `1`) rows before the current row within
-   * the window frame. If there is no such row, instead return `default` (third
-   * argument, default `null`). Both offset and default are evaluated with
-   * respect to the current row.
+   * Compute lagging values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows before the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
    */
   lag: ArgLagLead;
 }
-
-/** A lead window transform. */
+/**
+ * A lead window transform.
+ */
 export interface Lead extends WindowOptions {
   /**
-   * Compute leading values in a column. Returns the value at the row that is
-   * `offset` (second argument, default `1`) rows after the current row within
-   * the window frame. If there is no such row, instead return `default` (third
-   * argument, default `null`). Both offset and default are evaluated with
-   * respect to the current row.
+   * Compute leading values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows after the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
    */
-  lead: ArgLagLead
+  lead: ArgLagLead;
 }
-
-/** A first_value window transform. */
+/**
+ * A first_value window transform.
+ */
 export interface FirstValue extends WindowOptions {
   /**
    * Get the first value of the given column in the current window frame.
    */
   first_value: Unary<TransformField>;
 }
-
-/** A last_value window transform. */
+/**
+ * A last_value window transform.
+ */
 export interface LastValue extends WindowOptions {
   /**
    * Get the last value of the given column in the current window frame.
    */
   last_value: Unary<TransformField>;
 }
-
-/** An nth_value window transform. */
+/**
+ * An nth_value window transform.
+ */
 export interface NthValue extends WindowOptions {
   /**
-   * Get the nth value of the given column in the current window frame,
-   * counting from one. The second argument is the offset for the nth row.
+   * Get the nth value of the given column in the current window frame, counting from one. The second argument is the offset for the nth row.
    */
   nth_value: [expr: TransformField, nth: TransformField | number];
 }

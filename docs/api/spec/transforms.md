@@ -768,3 +768,437 @@ JavaScript: `skewness(expr)`, from `@uwdata/mosaic-sql`.
 Compute a string aggregation.
 
 JavaScript: `stringAgg(expr)`, from `@uwdata/mosaic-sql`.
+
+## Window Transforms
+
+Window transforms calculate values over ordered partitions. JavaScript calls
+the SQL expression functions; Python helpers build dictionaries consumed by
+the specification parser. Use `orderby`, `partitionby`, `rows`, `range`,
+`groups` and `exclude` to configure a window, or the corresponding JavaScript
+expression methods. The SQL engines execute the calculations.
+See [SQL window functions](/api/sql/window-functions) for query methods.
+
+The five nullary functions accept null or an empty tuple in a wire specification.
+Python helpers return a null argument; JavaScript calls omit the argument.
+The parser normalizes both wire forms to an empty string in `toJSON()`, which
+remains outside the nullary wire signature. Python code generation emits the
+no-argument helper, restoring its null dictionary representation.
+
+TypeScript permits omitted lag/lead tuple offset and default members, while the
+existing wire schema requires all three tuple positions. A scalar field is
+accepted by both. The default value may be a date-time string in wire data or
+a native Date in TypeScript. Python signatures use `UNSET` for optional
+arguments and retain their historical omission compression: `lag("x",
+default=None)` emits `{"lag": ["x", None]}`. An explicit null offset is kept.
+
+`ntile` retains a field/expression argument in the declaration and wire schema.
+A bare numeric bucket count is rejected there; use a SQL constant
+expression such as `{"sql": "2"}`.
+
+### row_number
+
+Compute the 1-based row number over an ordered window partition.
+
+JavaScript: `row_number()`, from `@uwdata/mosaic-sql`.
+Python: `row_number(**options: Any)`.
+
+```ts
+/**
+ * A row_number window transform.
+ */
+export interface RowNumber extends WindowOptions {
+  /**
+   * Compute the 1-based row number over an ordered window partition.
+   */
+  row_number: Nullary;
+}
+```
+
+
+### rank
+
+Compute the row rank over an ordered window partition. Sorting ties result in gaps in the rank numbers ([1, 1, 3, ...]).
+
+JavaScript: `rank()`, from `@uwdata/mosaic-sql`.
+Python: `rank(**options: Any)`.
+
+```ts
+/**
+ * A rank window transform.
+ */
+export interface Rank extends WindowOptions {
+  /**
+   * Compute the row rank over an ordered window partition. Sorting ties result in gaps in the rank numbers ([1, 1, 3, ...]).
+   */
+  rank: Nullary;
+}
+```
+
+
+### dense_rank
+
+Compute the dense row rank (no gaps) over an ordered window partition. Sorting ties do not result in gaps in the rank numbers ([1, 1, 2, ...]).
+
+JavaScript: `dense_rank()`, from `@uwdata/mosaic-sql`.
+Python: `dense_rank(**options: Any)`.
+
+```ts
+/**
+ * A dense_rank window transform.
+ */
+export interface DenseRank extends WindowOptions {
+  /**
+   * Compute the dense row rank (no gaps) over an ordered window partition. Sorting ties do not result in gaps in the rank numbers ([1, 1, 2, ...]).
+   */
+  dense_rank: Nullary;
+}
+```
+
+
+### percent_rank
+
+Compute the percentage rank over an ordered window partition.
+
+JavaScript: `percent_rank()`, from `@uwdata/mosaic-sql`.
+Python: `percent_rank(**options: Any)`.
+
+```ts
+/**
+ * A percent_rank window transform.
+ */
+export interface PercentRank extends WindowOptions {
+  /**
+   * Compute the percentage rank over an ordered window partition.
+   */
+  percent_rank: Nullary;
+}
+```
+
+
+### cume_dist
+
+Compute the cumulative distribution value over an ordered window partition. Equals the number of partition rows preceding or peer with the current row, divided by the total number of partition rows.
+
+JavaScript: `cume_dist()`, from `@uwdata/mosaic-sql`.
+Python: `cume_dist(**options: Any)`.
+
+```ts
+/**
+ * A cume_dist window transform.
+ */
+export interface CumeDist extends WindowOptions {
+  /**
+   * Compute the cumulative distribution value over an ordered window partition. Equals the number of partition rows preceding or peer with the current row, divided by the total number of partition rows.
+   */
+  cume_dist: Nullary;
+}
+```
+
+
+### ntile
+
+Compute an n-tile integer ranging from 1 to the provided argument (num_buckets), dividing the partition as equally as possible.
+
+JavaScript: `ntile(buckets)`, from `@uwdata/mosaic-sql`.
+Python: `ntile(buckets, **options: Any)`.
+
+```ts
+/**
+ * An ntile window transform.
+ */
+export interface NTile extends WindowOptions {
+  /**
+   * Compute an n-tile integer ranging from 1 to the provided argument (num_buckets), dividing the partition as equally as possible.
+   */
+  ntile: Unary<TransformField>;
+}
+```
+
+
+### lag
+
+Compute lagging values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows before the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
+
+JavaScript: `lag(col, offset?, default?)`, from `@uwdata/mosaic-sql`.
+Python: `lag(col, offset = UNSET, default = UNSET, **options: Any)`.
+
+```ts
+/**
+ * A lag window transform.
+ */
+export interface Lag extends WindowOptions {
+  /**
+   * Compute lagging values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows before the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
+   */
+  lag: ArgLagLead;
+}
+```
+
+
+### lead
+
+Compute leading values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows after the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
+
+JavaScript: `lead(col, offset?, default?)`, from `@uwdata/mosaic-sql`.
+Python: `lead(col, offset = UNSET, default = UNSET, **options: Any)`.
+
+```ts
+/**
+ * A lead window transform.
+ */
+export interface Lead extends WindowOptions {
+  /**
+   * Compute leading values in a column. Returns the value at the row that is `offset` (second argument, default `1`) rows after the current row within the window frame. If there is no such row, instead return `default` (third argument, default `null`). Both offset and default are evaluated with respect to the current row.
+   */
+  lead: ArgLagLead;
+}
+```
+
+
+### first_value
+
+Get the first value of the given column in the current window frame.
+
+JavaScript: `first_value(col)`, from `@uwdata/mosaic-sql`.
+Python: `first_value(col, **options: Any)`.
+
+```ts
+/**
+ * A first_value window transform.
+ */
+export interface FirstValue extends WindowOptions {
+  /**
+   * Get the first value of the given column in the current window frame.
+   */
+  first_value: Unary<TransformField>;
+}
+```
+
+
+### last_value
+
+Get the last value of the given column in the current window frame.
+
+JavaScript: `last_value(col)`, from `@uwdata/mosaic-sql`.
+Python: `last_value(col, **options: Any)`.
+
+```ts
+/**
+ * A last_value window transform.
+ */
+export interface LastValue extends WindowOptions {
+  /**
+   * Get the last value of the given column in the current window frame.
+   */
+  last_value: Unary<TransformField>;
+}
+```
+
+
+### nth_value
+
+Get the nth value of the given column in the current window frame, counting from one. The second argument is the offset for the nth row.
+
+JavaScript: `nth_value(col, offset)`, from `@uwdata/mosaic-sql`.
+Python: `nth_value(col, offset, **options: Any)`.
+
+```ts
+/**
+ * An nth_value window transform.
+ */
+export interface NthValue extends WindowOptions {
+  /**
+   * Get the nth value of the given column in the current window frame, counting from one. The second argument is the offset for the nth row.
+   */
+  nth_value: [expr: TransformField, nth: TransformField | number];
+}
+```
+
+
+### Lag and Lead Argument Contract
+
+```ts
+type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null];
+```
+
+### Window Frames
+
+Frame bounds contain exactly two values: a number, a date/time interval, or
+null. A null bound means unbounded. JavaScript frame helpers retain the SQL
+engine's offset interpretation, including zero as the current row. Frame
+exclusion accepts all-uppercase or all-lowercase modes; the parser normalizes
+exclusion to uppercase.
+
+The parser chooses the first truthy frame key in the order shown below. A
+parameter reference may provide a whole frame; individual string bounds stay
+literals rather than becoming parameter references. Custom WindowFrameNode
+types retain the existing computed helper-name fallback.
+
+| Frame key | SQL type | JavaScript utility |
+| --- | --- | --- |
+| `rows` | `ROWS` | `frameRows(extent, exclude?)` |
+| `range` | `RANGE` | `frameRange(extent, exclude?)` |
+| `groups` | `GROUPS` | `frameGroups(extent, exclude?)` |
+
+### Window examples
+
+- `frame-parameter`: [YAML](/templates/transforms/window/frame-parameter.yaml) · [JSON](/templates/transforms/window/frame-parameter.json) · [JavaScript](/templates/transforms/window/frame-parameter.js) · <a :href="withBase('/templates/transforms/window/frame-parameter.py')" download>Python</a>.
+- [JavaScript interval utility](/templates/transforms/window/generic-interval.js).
+
+## Date/Time Intervals
+
+Date/time interval transforms use a numeric value and remain JavaScript
+utilities. Python has no interval or frame factory: use their dictionaries
+in specification options. Python code generation preserves those interval
+dictionaries instead of inventing Python utility calls.
+
+```ts
+/**
+ * Date/time interval.
+ */
+export type IntervalTransform = Years | Months | Days | Hours | Minutes | Seconds | Milliseconds | Microseconds;
+```
+
+### years
+
+A date/time interval in units of years.
+
+JavaScript: `years(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of years.
+ */
+export interface Years {
+  /**
+   * A date/time interval in units of years.
+   */
+  years: number;
+}
+```
+
+### months
+
+A date/time interval in units of months.
+
+JavaScript: `months(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of months.
+ */
+export interface Months {
+  /**
+   * A date/time interval in units of months.
+   */
+  months: number;
+}
+```
+
+### days
+
+A date/time interval in units of days.
+
+JavaScript: `days(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of days.
+ */
+export interface Days {
+  /**
+   * A date/time interval in units of days.
+   */
+  days: number;
+}
+```
+
+### hours
+
+A date/time interval in units of hours.
+
+JavaScript: `hours(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of hours.
+ */
+export interface Hours {
+  /**
+   * A date/time interval in units of hours.
+   */
+  hours: number;
+}
+```
+
+### minutes
+
+A date/time interval in units of minutes.
+
+JavaScript: `minutes(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of minutes.
+ */
+export interface Minutes {
+  /**
+   * A date/time interval in units of minutes.
+   */
+  minutes: number;
+}
+```
+
+### seconds
+
+A date/time interval in units of seconds.
+
+JavaScript: `seconds(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of seconds.
+ */
+export interface Seconds {
+  /**
+   * A date/time interval in units of seconds.
+   */
+  seconds: number;
+}
+```
+
+### milliseconds
+
+A date/time interval in units of milliseconds.
+
+JavaScript: `milliseconds(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of milliseconds.
+ */
+export interface Milliseconds {
+  /**
+   * A date/time interval in units of milliseconds.
+   */
+  milliseconds: number;
+}
+```
+
+### microseconds
+
+A date/time interval in units of microseconds.
+
+JavaScript: `microseconds(value)`, from `@uwdata/mosaic-sql`.
+
+```ts
+/**
+ * A date/time interval in units of microseconds.
+ */
+export interface Microseconds {
+  /**
+   * A date/time interval in units of microseconds.
+   */
+  microseconds: number;
+}
+```
