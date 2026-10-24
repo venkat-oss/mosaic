@@ -13,6 +13,7 @@ from . import (
     _table_api,
 )
 from ._generated import layouts as _layouts
+from ._generated import legends as _legends
 from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -317,62 +318,6 @@ def pan_zoom_y(y: Any = None, yfield: Any = None) -> dict[str, Any]:
     return _interactor("panZoomY", y=y, yfield=yfield)
 
 
-def _legend(
-    kind: str,
-    plot: Any = None,
-    bind: Any = None,
-    label: Any = None,
-    columns: Any = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    return omit_none(
-        {
-            "legend": kind,
-            "for": plot,
-            "as": bind,
-            "label": label,
-            "columns": columns,
-            **{camelize(k): v for k, v in kwargs.items()},
-        }
-    )
-
-
-def color_legend(
-    plot: Any = None,
-    bind: Any = None,
-    label: Any = None,
-    columns: Any = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    return _legend(
-        "color", plot=plot, bind=bind, label=label, columns=columns, **kwargs
-    )
-
-
-def opacity_legend(
-    plot: Any = None,
-    bind: Any = None,
-    label: Any = None,
-    columns: Any = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    return _legend(
-        "opacity", plot=plot, bind=bind, label=label, columns=columns, **kwargs
-    )
-
-
-def symbol_legend(
-    plot: Any = None,
-    bind: Any = None,
-    label: Any = None,
-    columns: Any = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    return _legend(
-        "symbol", plot=plot, bind=bind, label=label, columns=columns, **kwargs
-    )
-
-
 _INPUT_ALIASES = {"bind": "as", "source": "from"}
 
 
@@ -400,3 +345,7 @@ mark = _mark_api.mark
 
 
 _mark_runtime.bind_annotations(globals(), vars(_mark_api), _mark_api._RETURN_TYPES)
+
+color_legend = _legends.color_legend
+opacity_legend = _legends.opacity_legend
+symbol_legend = _legends.symbol_legend
