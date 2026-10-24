@@ -151,6 +151,7 @@ export class RasterTileMark extends Grid2DMark {
         prefetchCoords.push([i, j0 - 1]);
       }
     }
+    /** @type {import('@uwdata/mosaic-core').QueryResult<import('@uwdata/flechette').Table>[]} */
     this.prefetch = prefetchCoords.map(
       ([i, j]) => mc.prefetch(this.tileQuery(tileExtent(i, j)))
     );
