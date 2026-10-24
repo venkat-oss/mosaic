@@ -109,3 +109,16 @@ def test_data_multiple_tables_requires_table_argument(
 
     pytest.importorskip("pandas")
     assert widget.data("b").df()["v"].tolist() == [3, 4]
+
+
+def test_sql_and_data_quote_source_table_identifiers() -> None:
+    with duckdb.connect() as con:
+        con.execute('CREATE TABLE "weather""station" AS SELECT 42 AS x')
+        widget = MosaicWidget(
+            spec={"data": {'weather"station': {"type": "table"}}}, con=con
+        )
+        widget.params = {"range": {"predicate": "x > 0"}}
+
+        assert widget.sql == 'SELECT * FROM "weather""station" WHERE (x > 0)'
+        assert widget.data().fetchall() == [(42,)]
+        assert widget.data('weather"station', filter_by=[]).fetchall() == [(42,)]

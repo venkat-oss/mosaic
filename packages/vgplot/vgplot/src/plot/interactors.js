@@ -7,90 +7,100 @@ import {
   Region,
   Toggle
 } from '@uwdata/mosaic-plot';
+import { interactor } from './interactor-runtime.js';
 
-function interactor(InteractorClass, options) {
-  return plot => {
-    const mark = plot.marks[plot.marks.length - 1];
-    plot.addInteractor(new InteractorClass(mark, options));
-  };
+
+export function pan(options = {}) {
+  return interactor(PanZoom, { ...options, zoom: false });
 }
 
-export function highlight({ by, ...channels }) {
-  return interactor(Highlight, { selection: by, channels });
+
+export function panX(options = {}) {
+  return interactor(PanZoom, { ...options, zoom: false, pany: false });
 }
 
-export function intervalX({ as, ...rest }) {
-  return interactor(Interval1D, { ...rest, selection: as, channel: 'x' });
+
+export function panY(options = {}) {
+  return interactor(PanZoom, { ...options, zoom: false, panx: false });
 }
 
-export function intervalY({ as, ...rest }) {
-  return interactor(Interval1D, { ...rest, selection: as, channel: 'y' });
+
+export function panZoom(options = {}) {
+  return interactor(PanZoom, options);
 }
 
-export function intervalXY({ as, ...rest }) {
-  return interactor(Interval2D, { ...rest, selection: as });
+
+export function panZoomX(options = {}) {
+  return interactor(PanZoom, { ...options, pany: false });
 }
 
-export function nearest({ as, ...rest }) {
-  return interactor(Nearest, { ...rest, selection: as, pointer: 'xy' });
+
+export function panZoomY(options = {}) {
+  return interactor(PanZoom, { ...options, panx: false });
 }
 
-export function nearestX({ as, ...rest }) {
-  return interactor(Nearest, { ...rest, selection: as, pointer: 'x' });
-}
 
-export function nearestY({ as, ...rest }) {
-  return interactor(Nearest, { ...rest, selection: as, pointer: 'y' });
-}
-
-export function region({ as, ...rest }) {
-  return interactor(Region, { ...rest, selection: as });
-}
 
 export function toggle({ as, ...rest }) {
   return interactor(Toggle, { ...rest, selection: as });
 }
 
+
 export function toggleX(options) {
   return toggle({ ...options, channels: ['x'] });
 }
+
 
 export function toggleY(options) {
   return toggle({ ...options, channels: ['y'] });
 }
 
+
 export function toggleZ(options) {
   return toggle({ ...options, channels: ['z'] });
 }
+
 
 export function toggleColor(options) {
   return toggle({ ...options, channels: ['color'] });
 }
 
-function zoom(options) {
-  return interactor(PanZoom, options);
+
+export function nearest({ as, ...rest }) {
+  return interactor(Nearest, { ...rest, selection: as, pointer: 'xy' });
 }
 
-export function pan(options = {}) {
-  return zoom({ ...options, zoom: false });
+
+export function nearestX({ as, ...rest }) {
+  return interactor(Nearest, { ...rest, selection: as, pointer: 'x' });
 }
 
-export function panX(options = {}) {
-  return zoom({ ...options, zoom: false, pany: false });
+
+export function nearestY({ as, ...rest }) {
+  return interactor(Nearest, { ...rest, selection: as, pointer: 'y' });
 }
 
-export function panY(options = {}) {
-  return zoom({ ...options, zoom: false, panx: false });
+
+export function highlight({ by, ...channels }) {
+  return interactor(Highlight, { selection: by, channels });
 }
 
-export function panZoom(options = {}) {
-  return zoom(options);
+
+export function intervalX({ as, ...rest }) {
+  return interactor(Interval1D, { ...rest, selection: as, channel: 'x' });
 }
 
-export function panZoomX(options = {}) {
-  return zoom({ ...options, pany: false });
+
+export function intervalY({ as, ...rest }) {
+  return interactor(Interval1D, { ...rest, selection: as, channel: 'y' });
 }
 
-export function panZoomY(options = {}) {
-  return zoom({ ...options, panx: false });
+
+export function intervalXY({ as, ...rest }) {
+  return interactor(Interval2D, { ...rest, selection: as });
+}
+
+
+export function region({ as, ...rest }) {
+  return interactor(Region, { ...rest, selection: as });
 }

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 from typing import TYPE_CHECKING, Any
 from typing import Literal as L  # ruff: ignore[camelcase-imported-as-acronym]
 
@@ -10,23 +9,17 @@ import pyarrow as pa
 from httpx2 import RequestError
 
 if TYPE_CHECKING:
+    from typing import LiteralString
+
     from starlette.testclient import TestClient
-    from typing_extensions import LiteralString, TypedDict
+    from typing_extensions import TypedDict
 
     class QueryParams(TypedDict, closed=True):
         query: LiteralString
 
 
-LB, RB = "{}"
-
-
-@functools.lru_cache(128)
-def _query_string(sql: LiteralString, type: L["arrow", "exec"], /) -> LiteralString:
-    return f'{LB}"sql":"{sql}","type":"{type}"{RB}'
-
-
-def q(sql: LiteralString, /, type: L["arrow", "exec"] = "arrow") -> QueryParams:
-    return {"query": _query_string(sql, type)}
+def q(sql: LiteralString, /, type: L["arrow", "exec"] = "arrow") -> dict[str, str]:
+    return {"type": type, "sql": sql}
 
 
 def raise_for_status(response: httpx2.Response) -> httpx2.Response:
@@ -48,3 +41,34 @@ def test_query_arrow(client_session: TestClient) -> None:
         table = reader.read_all()
     expected = pa.table({"a": [1]}, schema=pa.schema({"a": pa.int32()}))
     assert table.equals(expected)
+
+
+def test_query_flat_parameters(client_session: TestClient) -> None:
+    response = client_session.get(
+        "/", params={"type": "arrow", "sql": "SELECT 'a & b \"c\"' AS a"}
+    )
+    raise_for_status(response)
+    with pa.ipc.open_stream(response.content) as reader:
+        assert reader.read_all().to_pylist() == [{"a": 'a & b "c"'}]
+
+
+def test_large_application_number(client_session: TestClient) -> None:
+    response = client_session.post(
+        "/",
+        content=b'{"type":"arrow","sql":"SELECT 1 AS x","application":{"number":1e400}}',
+        headers={"Content-Type": "application/json"},
+    )
+    raise_for_status(response)
+    with pa.ipc.open_stream(response.content) as reader:
+        assert reader.read_all().to_pylist() == [{"x": 1}]
+
+
+def test_large_protocol_number_is_invalid(client_session: TestClient) -> None:
+    response = client_session.post(
+        "/",
+        content=b'{"type":"arrow","sql":1e400}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 400
+    assert response.json()["reason"] == "invalid_field"
+    assert response.json()["field"] == "sql"

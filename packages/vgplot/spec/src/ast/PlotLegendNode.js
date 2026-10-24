@@ -1,10 +1,11 @@
 import { ASTNode } from './ASTNode.js';
 import { LEGEND } from '../constants.js';
 import { parseOptions } from './OptionsNode.js';
+import { LEGEND_APIS } from '../generated/legends.js';
 
 export function parseLegend(spec, ctx) {
   const { [LEGEND]: name, ...options } = spec;
-  const key = `${name}Legend`;
+  const key = LEGEND_APIS[name]?.js ?? `${name}Legend`;
   if (!ctx.plot?.legends?.has(key)) {
     ctx.error(`Unrecognized legend type: ${name}`, spec);
   }

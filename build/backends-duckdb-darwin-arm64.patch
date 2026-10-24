@@ -1,0 +1,48 @@
+--- /dev/null
++++ b/BUILD.bazel
+@@ -0,0 +1,45 @@
++load("@io_bazel_rules_go//go:def.bzl", "go_library")
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
++package(default_visibility = ["//visibility:public"])
++
++cc_library(
++    name = "duckdb_archives",
++    # Do not sort: DuckDB's upstream cgo archive order resolves static symbols.
++    srcs = [
++        "libduckdb_httplib.a",
++        "libduckdb_loadable_extensions.a",
++        "libautocomplete_extension.a",
++        "libcore_functions_extension.a",
++        "libicu_extension.a",
++        "libjson_extension.a",
++        "libparquet_extension.a",
++        "libtpcds_extension.a",
++        "libtpch_extension.a",
++        "libduckdb_static.a",
++    ],
++    hdrs = glob(["*.h"]),
++    includes = ["."],
++    linkopts = [
++        "-lc++",
++    ],
++)
++
++go_library(
++    name = "darwin-arm64",
++    srcs = ["prebuilt.go", "static_extension_loader.c"],
++    cdeps = [":duckdb_archives"],
++    cgo = True,
++    cppopts = ["-DDUCKDB_STATIC_BUILD"],
++    importpath = "go.duckdb.org/libduckdb/darwin-arm64",
++)
++
++alias(
++    name = "go_default_library",
++    actual = ":darwin-arm64",
++)
++
++filegroup(
++    name = "lint_inputs",
++    srcs = glob(["*.a", "*.h", "*.c"]),
++)

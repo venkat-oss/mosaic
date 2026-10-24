@@ -1,0 +1,19 @@
+{
+  "data": {
+    "value_data": {
+      "type": "table",
+      "query": "SELECT * FROM (VALUES (1,2),(2,1),(3,3)) AS t(x,y)"
+    }
+  },
+  "plot": [
+    {
+      "mark": "dot",
+      "data": {
+        "from": "value_data"
+      },
+      "x": "x",
+      "y": "y"
+    }
+  ],
+  "xDomain": "Fixed"
+}

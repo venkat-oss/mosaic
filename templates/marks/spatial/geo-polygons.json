@@ -1,0 +1,78 @@
+{
+  "plot": [
+    {
+      "data": [
+        {
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -25,
+                  -10
+                ],
+                [
+                  -25,
+                  10
+                ],
+                [
+                  -5,
+                  10
+                ],
+                [
+                  -5,
+                  -10
+                ],
+                [
+                  -25,
+                  -10
+                ]
+              ]
+            ]
+          },
+          "name": "West"
+        },
+        {
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  5,
+                  -10
+                ],
+                [
+                  5,
+                  10
+                ],
+                [
+                  25,
+                  10
+                ],
+                [
+                  25,
+                  -10
+                ],
+                [
+                  5,
+                  -10
+                ]
+              ]
+            ]
+          },
+          "name": "East"
+        }
+      ],
+      "mark": "geo",
+      "stroke": "steelblue",
+      "geometry": "geometry",
+      "r": 4
+    }
+  ],
+  "width": 420,
+  "height": 260,
+  "projectionType": "equirectangular",
+  "projectionDomain": {
+    "type": "Sphere"
+  }
+}

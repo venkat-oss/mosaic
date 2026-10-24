@@ -1,0 +1,15 @@
+load("//build:javascript.bzl", "mosaic_javascript")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+
+mosaic_javascript(tests = True, emit_declaration_only = True, consumer_tests = ["//build:npm_consumer"], deps = [
+    ":node_modules/@duckdb/node-api",
+    ":node_modules/@uwdata/flechette",
+    ":node_modules/@types/node",
+])
+
+js_binary(
+    name = "server",
+    entry_point = "bin/run-server.js",
+    data = [":sources"],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,15 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "interactorrender",
+    deps = [
+        "//api/languages/python:package",
+        "//api/model:package",
+        "//api/params:package",
+        "//api/render:package",
+    ],
+    visibility = ["//visibility:public"],
+)

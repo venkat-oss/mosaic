@@ -1,0 +1,10 @@
+load("//build:javascript.bzl", "mosaic_javascript")
+
+mosaic_javascript(tests = True, consumer_tests = ["//build:npm_core_consumer"], test_deps = ["//packages/mosaic/sql:sources"], deps = [
+    ":node_modules/@duckdb/duckdb-wasm",
+    ":node_modules/@types/emscripten",
+    ":node_modules/@uwdata/flechette",
+    ":node_modules/@uwdata/mosaic-duckdb",
+    ":node_modules/@uwdata/mosaic-sql",
+    "//packages/server/duckdb:node_modules/@types/node",
+])

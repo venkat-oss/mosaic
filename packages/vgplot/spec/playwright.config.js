@@ -2,24 +2,12 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   workers: 1,
+  updateSnapshots: 'none',
+  use: {baseURL: process.env.MOSAIC_TEST_BASE_URL},
 
-  // Retry on CI only.
   retries: process.env.CI ? 2 : 0,
 
   testMatch: '**/visual*.test.js',
-
-  webServer: [
-    {
-      command: 'node_modules/.bin/vite --port 5173 --host --config vite.config.docker.js',
-      port: 5173,
-      reuseExistingServer: true,
-      cwd: '../../../',
-    },
-    {
-      command: 'node packages/server/duckdb/bin/run-server.js',
-      port: 3000,
-      reuseExistingServer: true,
-      cwd: '../../../',
-    },
-  ],
+  outputDir: process.env.MOSAIC_BROWSER_OUTPUT,
+  snapshotPathTemplate: process.env.MOSAIC_SNAPSHOT_ROOT + '/packages/vgplot/spec/test/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}',
 });

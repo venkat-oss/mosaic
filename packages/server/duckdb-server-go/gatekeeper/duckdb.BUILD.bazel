@@ -1,0 +1,22 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["CMakeLists.txt"])
+filegroup(name = "schemas", srcs = glob(["src/include/duckdb/storage/serialization/*.json"]))
+
+cc_library(
+    name = "headers",
+    srcs = ["extension/json/json_serializer.cpp"],
+    hdrs = glob([
+        "src/include/**/*.hpp", "src/include/**/*.h", "extension/json/include/**/*.hpp",
+        "third_party/yyjson/include/**", "third_party/fmt/include/**",
+        "third_party/utf8proc/include/**", "third_party/concurrentqueue/**",
+    ]),
+    includes = [
+        "src/include", "extension/json/include", "third_party/yyjson/include",
+        "third_party/fmt/include", "third_party/utf8proc/include", "third_party/concurrentqueue",
+    ],
+    defines = ["DUCKDB_STATIC_BUILD"],
+    copts = select({"@platforms//os:windows": ["/std:c++17", "/O2"], "//conditions:default": ["-std=c++17", "-O2", "-g0", "-fvisibility=hidden"]}),
+)

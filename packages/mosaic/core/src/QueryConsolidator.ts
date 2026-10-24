@@ -1,6 +1,6 @@
 import type { Table } from '@uwdata/flechette';
 import type { ExprNode, MaybeArray, Query, SelectQuery } from '@uwdata/mosaic-sql';
-import { isAggregateExpression, isColumnRef, isDescribeQuery, isSelectQuery } from '@uwdata/mosaic-sql';
+import { isAggregateExpression, isColumnRef, isDescribeQuery, isSelectQuery, walk } from '@uwdata/mosaic-sql';
 import type { Cache, QueryEntry, QueryType } from './types.js';
 import { tableByteLength } from './util/decode-ipc.js';
 import { resolvePositional } from './util/positional.js';
@@ -115,29 +115,25 @@ function entryGroups(entries: GroupEntry[], cache: Cache): QueryGroup[] {
  * Generate a key string for query consolidation.
  * Queries with matching keys are conosolidation-compatible.
  * If a query is found in the cache, it is exempted from consolidation,
- * which is indicated by returning the precise query SQL as the key.
+ * which is indicated by returning a query-specific key.
  * @param query The input query.
  * @param cache The query cache (sql -> data).
  * @returns a key string
  */
 function consolidationKey(query: MaybeArray<QueryType>, cache: Cache): string {
-  // collapse query array into a single key, preventing consolidation
-  if (Array.isArray(query)) {
-    return query.map(q => consolidationKey(q, cache)).join(';\n');
-  }
-
-  // the sql string is the default key
   const sql = `${query}`;
+  const key = `query:${sql}`;
 
   // attempt to consolidate non-cached select queries
   if (isSelectQuery(query) && !cache.get(sql)) {
     if (
       query._where.length || query._qualify.length || query._having.length ||
-      query._orderby.length || query._distinct || query._distinctOn.length
+      query._orderby.length || query._distinct || query._distinctOn.length ||
+      query._select.some(({ expr }) => hasColumnExpansion(expr))
     ) {
       // bail if query includes clauses that may refer to *derived* columns
       // that we can't resolve. also do not consolidate distinct queries
-      return sql;
+      return key;
     }
 
     // create a derived query stripped of selections
@@ -171,12 +167,23 @@ function consolidationKey(query: MaybeArray<QueryType>, cache: Cache): string {
       q.setGroupby('ALL');
     }
 
-    // the consolidation key is the transformed SQL query string
-    return `${q}`;
+    return `select:${q}`;
   } else {
-    // if we can't analyze the query, return the full SQL string
-    return sql;
+    return key;
   }
+}
+
+function hasColumnExpansion(expr: ExprNode): boolean {
+  let expands = isColumnRef(expr) && expr.column === '*';
+  walk(expr, node => {
+    if (node.type === 'SCALAR_SUBQUERY') return 1;
+    if (node.type === 'COLUMNS' ||
+        (node.type === 'VERBATIM' && /\*|\bcolumns\b/i.test(String(node)))) {
+      expands = true;
+      return -1;
+    }
+  });
+  return expands;
 }
 
 /**
@@ -294,36 +301,34 @@ async function processResults(
 
   const issued = generation();
 
-  // await consolidated query result, pass errors if needed
-  let data: Table;
   try {
-    data = await result as Table;
+    const data = await result as Table;
+    const describe = isDescribeQuery(query!);
+    const bytes = tableByteLength(data) ?? 0;
+    const extracts = group.map(({ removed }, index) => {
+      if (removed) return;
+      const map = maps[index];
+      return describe && map ? filterResult(data, map)
+        : map ? projectResult(data, map)
+        : data;
+    });
+    group.forEach(({ entry, removed }, index) => {
+      if (removed) return;
+      const { request, result } = entry;
+      const extract = extracts[index];
+      if (request.cache && issued === generation()) {
+        cache().set(String(request.query), extract, bytes);
+      }
+      result.fulfill(extract);
+    });
   } catch (err) {
     // pass error to consolidated queries
     for (const { entry, removed } of group) {
       if (!removed) entry.result.reject(err);
     }
-    return;
   } finally {
     awaiting.delete(group);
   }
-
-  // extract result for each query in the consolidation group
-  // update cache and pass extract to original issuer
-  const describe = isDescribeQuery(query!);
-  const bytes = tableByteLength(data) ?? 0;
-  group.forEach(({ entry, removed }, index) => {
-    if (removed) return;
-    const { request, result } = entry;
-    const map = maps[index];
-    const extract = describe && map ? filterResult(data, map)
-      : map ? projectResult(data, map)
-      : data;
-    if (request.cache && issued === generation()) {
-      cache().set(String(request.query), extract, bytes);
-    }
-    result.fulfill(extract);
-  });
 }
 
 /**

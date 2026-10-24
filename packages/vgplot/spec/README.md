@@ -4,6 +4,12 @@
 
 Declarative specification of Mosaic-powered applications as JSON or YAML files. This package provides a parser and code generation framework for reading specifications in a JSON format and generating live Mosaic visualizations and dashboards using the [vgplot](https://github.com/uwdata/mosaic/tree/main/packages/vgplot/vgplot) API.
 
+From the repository root, run `bazelisk test //packages/vgplot/spec:check` for the
+runtime suite, test typechecking and lint. The tests use the declared Python
+authoring library and generated schema. Build the publishable package with
+`bazelisk build //packages/vgplot/spec:tarball`; its output is
+`bazel-bin/packages/vgplot/spec/pkg.tgz`, including `dist/mosaic-schema.json`.
+
 ## Usage
 
 To parse a specification and generate round-trip JSON output (`.toJSON()`), JavaScript module code (`astToESM`), or a live web application (`astToDOM`):

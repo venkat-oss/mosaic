@@ -1,10 +1,20 @@
+import { MARK_CHANNELS } from './generated/common-marks.js';
+import { PYTHON_ATTRIBUTE_APIS } from './generated/plot-attribute-apis.js';
+import { PYTHON_BASIC_INPUT_APIS } from './generated/basic-inputs.js';
+import { PYTHON_TABLE_INPUT_APIS } from './generated/table-input.js';
+import { LAYOUT_APIS } from './generated/layouts.js';
 import { camelCaseToSnake } from './util.js';
 import { TRANSFORM_KEYS } from './generated/transform-keys.js';
+import { LEGEND_APIS, LEGEND_KEY_MAP } from './generated/legends.js';
+import { INTERACTOR_KEY_MAP } from './generated/interactors.js';
+import { PYTHON_KEYWORDS } from './python-keywords.js';
+import { SELECTION_APIS } from './generated/params.js';
+import { DATA_APIS, DATA_INFERRED_APIS } from './generated/data.js';
+import { COLUMN_TRANSFORM_APIS, SQL_KEY } from './generated/column.js';
+import { AGGREGATE_TRANSFORM_APIS } from './generated/aggregate.js';
+import { WINDOW_TRANSFORM_APIS } from './generated/window.js';
 import {
-  PYTHON_KEYWORDS,
   kwarg,
-  INTERACTOR_KEY_MAP,
-  LEGEND_KEY_MAP,
   inputArgName,
   literal,
   indentLine,
@@ -20,20 +30,18 @@ function buildArgs(opts, ctx, keyMap = null) {
 /**
  * Generate Python code for a Mosaic spec AST using the vgplot Python DSL.
  * Preamble:  import vgplot as vg
- * Final var: spec
+ * Final var: view
  */
 export function astToPython(ast) {
   const ctx = new PythonCodegenContext();
   const json = ast.toJSON();
   const { config, data = {}, params = {}, plotDefaults, ...view } = json;
   delete view.meta;
-
-  // Pre-compute data variable names - suffix with _data when a param has the same name
-  const paramNameSet = new Set(Object.keys(params));
-  for (const name of Object.keys(data)) {
-    let safe = name.replace(/[^A-Za-z0-9_]/g, '_').replace(/^([0-9])/, '_$1');
-    if (PYTHON_KEYWORDS.has(safe)) safe += '_';
-    ctx.dataVarMap.set(name, paramNameSet.has(name) ? safe + '_data' : safe);
+  const dataEntries = Object.entries(data);
+  const paramEntries = Object.entries(params);
+  for (const [name] of paramEntries) ctx.ident(name);
+  for (const [name] of dataEntries) {
+    ctx.dataVarMap.set(name, ctx.allocate(ctx.identMap.has(name) ? name + '_data' : name));
   }
 
   if (Object.values(params).some(dateParamParts)) {
@@ -44,30 +52,35 @@ export function astToPython(ast) {
   ctx.blank();
 
   // data - emit one variable per named dataset
-  const dataEntries = Object.entries(data);
   for (const [name, def] of dataEntries) {
     ctx.emit(`${ctx.dataVar(name)} = ${emitDataDef(def, ctx)}`);
   }
   if (dataEntries.length) ctx.blank();
 
   // params - emitted before view so variables are in scope
-  const paramEntries = Object.entries(params);
   for (const [name, def] of paramEntries) {
     ctx.emit(emitParamDef(ctx.ident(name), def, ctx));
   }
   if (paramEntries.length) ctx.blank();
 
-  // view / layout / plot — pass plotDefaults, renamed data, and config as kwargs on the outermost call
+  const renamedData = dataEntries.filter(([name]) => ctx.dataVar(name) !== name || name.startsWith('_'));
+  const renamedParams = paramEntries.some(([name]) => ctx.ident(name) !== name || name.startsWith('_'));
+  const acceptsHeader = view.plot || LAYOUT_APIS.some(layout => layout.kind === 'concat' && view[layout.key]);
+  const wrap = renamedParams || (!acceptsHeader && (config || plotDefaults || renamedData.length));
   const topKwargs = [];
-  // Only pass data= for entries whose Python variable was renamed to avoid a param name clash.
-  const renamedData = dataEntries.filter(([name]) => ctx.dataVar(name) !== ctx.ident(name));
-  if (renamedData.length) {
-    const dataKwargs = renamedData.map(([name]) => `${JSON.stringify(name)}: ${ctx.dataVar(name)}`);
-    topKwargs.push(`data={${dataKwargs.join(', ')}}`);
+  const dataArgs = wrap ? dataEntries : renamedData;
+  if (dataArgs.length) {
+    topKwargs.push(`data={${dataArgs.map(([name]) => `${literal(name)}: ${ctx.dataVar(name)}`).join(', ')}}`);
+  }
+  if (wrap && paramEntries.length) {
+    topKwargs.push(`params={${paramEntries.map(([name]) => `${literal(name)}: ${ctx.ident(name)}`).join(', ')}}`);
   }
   if (plotDefaults) topKwargs.push(`plot_defaults=${literal(plotDefaults)}`);
   if (config) topKwargs.push(`config=${literal(config)}`);
-  ctx.emit(`view = ${emitComponent(view, ctx, topKwargs)}`);
+  const component = emitComponent(view, ctx, wrap ? [] : topKwargs);
+  ctx.emit(wrap
+    ? `view = vg.spec(\n${indentLine(`view=${component}`, 1)},\n${topKwargs.map(arg => indentLine(arg, 1)).join(',\n')},\n)`
+    : `view = ${component}`);
 
   return ctx.toString();
 }
@@ -84,7 +97,7 @@ function dateParamParts(def) {
 
 function emitParamDef(name, def, ctx) {
   if (def === null || def === undefined) return `${name} = vg.param(None)`;
-  if (typeof def !== 'object') return `${name} = vg.param(${literal(def, 0, ctx)})`;
+  if (typeof def !== 'object') return `${name} = vg.param(${literal(def)})`;
   if (Array.isArray(def)) {
     return `${name} = vg.param([${def.map(v => literal(v, 0, ctx)).join(', ')}])`;
   }
@@ -93,9 +106,10 @@ function emitParamDef(name, def, ctx) {
   const { select, ...opts } = def;
   if (select) {
     const optArgs = buildArgs(opts, ctx);
-    return `${name} = vg.selection.${camelCaseToSnake(select)}(${optArgs.join(', ')})`;
+    const method = SELECTION_APIS[select]?.python ?? camelCaseToSnake(select);
+    return `${name} = vg.selection.${method}(${optArgs.join(', ')})`;
   }
-  return `${name} = vg.param(${literal(def, 0, ctx)})`;
+  return `${name} = vg.param(${literal(def)})`;
 }
 
 /** @param {PythonCodegenContext} ctx @param {string[]} topKwargs */
@@ -108,16 +122,16 @@ function emitComponent(node, ctx, topKwargs = []) {
   const kwargSuffix = topKwargs.length
     ? ',\n' + topKwargs.map(k => indentLine(k, 1)).join(',\n')
     : '';
-  if (node.vconcat) {
-    const body = node.vconcat.map(n => indentLine(emitComponent(n, ctx), 1)).join(',\n');
-    return `vg.vconcat(\n${body}${kwargSuffix},\n)`;
+  for (const layout of LAYOUT_APIS) {
+    const value = node[layout.key];
+    if (layout.kind === 'concat' && value) {
+      const body = value.map(n => indentLine(emitComponent(n, ctx), 1)).join(',\n');
+      return `vg.${layout.python}(\n${body}${kwargSuffix},\n)`;
+    }
+    if (layout.kind === 'space' && value !== undefined) {
+      return `vg.${layout.python}(${literal(value, 0, ctx)})`;
+    }
   }
-  if (node.hconcat) {
-    const body = node.hconcat.map(n => indentLine(emitComponent(n, ctx), 1)).join(',\n');
-    return `vg.hconcat(\n${body}${kwargSuffix},\n)`;
-  }
-  if (node.vspace !== undefined) return `vg.vspace(${literal(node.vspace, 0, ctx)})`;
-  if (node.hspace !== undefined) return `vg.hspace(${literal(node.hspace, 0, ctx)})`;
   if (node.input) return emitInput(node, ctx);
   if (node.legend) return emitLegend(node, ctx);
   if (node.plot) return emitPlotObject(node, ctx, topKwargs);
@@ -143,7 +157,8 @@ function emitInteractor(node, ctx) {
 function emitLegend(node, ctx) {
   const { legend, ...opts } = node;
   const args = buildArgs(opts, ctx, LEGEND_KEY_MAP);
-  return `vg.${camelCaseToSnake(legend)}_legend(${args.join(', ')})`;
+  const name = LEGEND_APIS[legend]?.python ?? `${camelCaseToSnake(legend)}_legend`;
+  return `vg.${name}(${args.join(', ')})`;
 }
 
 /** @param {PythonCodegenContext} ctx @param {string[]} topKwargs */
@@ -166,30 +181,28 @@ function emitPlotObject(view, ctx, topKwargs = []) {
 
 function emitDataDef(def, ctx) {
   const { type, file, query, ...rest } = def;
-  if ((type === 'parquet' || (!type && file && file.endsWith('.parquet'))) && file) {
+  const inferredType = !type && file && file.lastIndexOf('.') >= 0 ? DATA_INFERRED_APIS[file.slice(file.lastIndexOf('.') + 1)] : undefined;
+  const api = DATA_APIS[type || inferredType];
+  if (api?.kind === 'file' && file) {
     const extra = buildArgs(rest, ctx).join(', ');
-    return extra ? `vg.parquet(${literal(file, 0, ctx)}, ${extra})` : `vg.parquet(${literal(file, 0, ctx)})`;
+    return extra ? `vg.${api.python}(${literal(file)}, ${extra})` : `vg.${api.python}(${literal(file)})`;
   }
-  if ((type === 'csv' || (!type && file && file.endsWith('.csv'))) && file) {
-    const extra = buildArgs(rest, ctx).join(', ');
-    return extra ? `vg.csv(${literal(file, 0, ctx)}, ${extra})` : `vg.csv(${literal(file, 0, ctx)})`;
-  }
-  if (type === 'spatial' && file) {
-    const args = [literal(file, 0, ctx)];
+  if (api?.kind === 'spatial' && file) {
+    const args = [literal(file)];
     if (rest.layer !== undefined) args.push(`layer=${literal(rest.layer, 0, ctx)}`);
     for (const [k, v] of Object.entries(rest)) {
       if (k !== 'layer') args.push(kwarg(camelCaseToSnake(k), literal(v, 0, ctx)));
     }
-    return `vg.spatial(${args.join(', ')})`;
+    return `vg.${api.python}(${args.join(', ')})`;
   }
-  if (type === 'table' && query && !Object.keys(rest).length) return `vg.table(${literal(query, 0, ctx)})`;
-  if (type === 'json') {
+  if (api?.kind === 'table' && query && !Object.keys(rest).length) return `vg.${api.python}(${literal(query)})`;
+  if (api?.kind === 'json') {
     const { data: inlineData, ...more } = rest;
     const args = [];
-    if (inlineData !== undefined) args.push(literal(inlineData, 0, ctx));
-    if (file) args.push(`file=${literal(file, 0, ctx)}`);
+    if (inlineData !== undefined) args.push(literal(inlineData));
+    if (file) args.push(`file=${literal(file)}`);
     args.push(...buildArgs(more, ctx));
-    return `vg.json(${args.join(', ')})`;
+    return `vg.${api.python}(${args.join(', ')})`;
   }
   return literal(def, 0, ctx);
 }
@@ -206,7 +219,7 @@ function emitEncoding(v, ctx) {
   const keys = Object.keys(v);
   if (!keys.length) return literal(v, 0, ctx);
   const key = keys[0];
-  if (key === 'sql' && keys.length === 1) return `vg.sql(${literal(v.sql, 0, ctx)})`;
+  if (key === SQL_KEY && keys.length === 1) return `vg.sql(${literal(v[SQL_KEY])})`;
   if (!TRANSFORM_KEYS.has(key)) return literal(v, 0, ctx);
   const { [key]: val, ...opts } = v;
   const args = (val === '' || val == null) ? []
@@ -216,7 +229,11 @@ function emitEncoding(v, ctx) {
     .map(([k, o]) => kwarg(camelCaseToSnake(k), Array.isArray(o)
       ? `[${o.map(x => emitEncoding(x, ctx)).join(', ')}]`
       : emitEncoding(o, ctx))));
-  return `vg.${camelCaseToSnake(key)}(${args.join(', ')})`;
+  const name = COLUMN_TRANSFORM_APIS[key]?.python
+    ?? AGGREGATE_TRANSFORM_APIS[key]?.python
+    ?? WINDOW_TRANSFORM_APIS[key]?.python
+    ?? camelCaseToSnake(key);
+  return `vg.${name}(${args.join(', ')})`;
 }
 
 /** @param {PythonCodegenContext} ctx */
@@ -228,7 +245,7 @@ function emitMark(mark, ctx) {
         typeof data.from === 'string' && !data.from.startsWith('$') &&
         Object.keys(data).length === 1) {
       // Simple dataset name -> positional variable reference
-      args.push(ctx.dataVar(data.from));
+      args.push(ctx.dataVarMap.has(data.from) ? ctx.dataVar(data.from) : literal(data.from));
     } else {
       let dataRef = data;
       const dataOpts = [];
@@ -247,10 +264,10 @@ function emitMark(mark, ctx) {
     if (v === undefined) continue;
     if (k === 'sort' && v && typeof v === 'object' && !Array.isArray(v)) {
       args.push(`sort=vg.sort(${buildArgs(v, ctx).join(', ')})`);
-    } else if (k === 'channels' && v && typeof v === 'object' && !Array.isArray(v)) {
+    } else if (k === MARK_CHANNELS.option && v && typeof v === 'object' && !Array.isArray(v)) {
       const chanArgs = Object.entries(v)
-        .map(([ck, cv]) => kwarg(ck, literal(cv, 0, ctx))).join(', ');
-      args.push(`channels=vg.channels(${chanArgs})`);
+        .map(([ck, cv]) => kwarg(ck, literal(cv))).join(', ');
+      args.push(`${MARK_CHANNELS.argument}=vg.${MARK_CHANNELS.helper}(${chanArgs})`);
     } else {
       args.push(kwarg(camelCaseToSnake(k), emitEncoding(v, ctx)));
     }
@@ -262,10 +279,12 @@ function emitMark(mark, ctx) {
 
 /** @param {PythonCodegenContext} ctx */
 function emitDirective(key, value, ctx) {
-  if (key === 'margins' && value && typeof value === 'object') {
-    return `vg.margins(${buildArgs(value, ctx).join(', ')})`;
+  const api = PYTHON_ATTRIBUTE_APIS[key];
+  const name = api?.python ?? camelCaseToSnake(key);
+  if (api?.arguments === 'keywords' && value && typeof value === 'object') {
+    return `vg.${name}(${buildArgs(value, ctx).join(', ')})`;
   }
-  return `vg.${camelCaseToSnake(key)}(${literal(value, 0, ctx)})`;
+  return `vg.${name}(${literal(value, 0, ctx)})`;
 }
 
 /** @param {PythonCodegenContext} ctx */
@@ -276,11 +295,8 @@ function emitInput(node, ctx) {
   const args = Object.entries(opts)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => kwarg(inputArgName(k), emitInputValue(k, v, ctx)));
-  const rename = { table: 'table_input' };
-  const fn = rename[kind] ?? kind;
-  // Keep in sync with the Python vgplot input helpers.
-  const namedInputs = ['slider', 'select', 'checkbox', 'menu', 'search', 'table'];
-  if (namedInputs.includes(kind)) return `vg.${fn}(${args.join(', ')})`;
+  const fn = PYTHON_BASIC_INPUT_APIS[kind] ?? PYTHON_TABLE_INPUT_APIS[kind];
+  if (fn) return `vg.${fn}(${args.join(', ')})`;
   return `vg.input(${literal(kind, 0, ctx)}${args.length ? ', ' + args.join(', ') : ''})`;
 }
 
@@ -294,10 +310,10 @@ function emitInputValue(key, v, ctx) {
     const items = v.map(item => {
       if (item && typeof item === 'object' && 'label' in item && 'value' in item) {
         return item.label === item.value
-          ? literal(item.label, 0, ctx)
-          : `vg.option(${literal(item.label, 0, ctx)}, value=${literal(item.value, 0, ctx)})`;
+          ? literal(item.label)
+          : `vg.option(${literal(item.label)}, value=${literal(item.value)})`;
       }
-      return literal(item, 0, ctx);
+      return literal(item);
     });
     return '[' + items.join(', ') + ']';
   }
@@ -308,7 +324,7 @@ function emitInputValue(key, v, ctx) {
 }
 
 function emitDataRef(data, ctx) {
-  if (Array.isArray(data)) return literal(data, 0, ctx);
+  if (Array.isArray(data)) return literal(data);
   if (data && typeof data === 'object' && data.from) {
     const { from: name, ...rest } = data;
     const nameRef = ctx.dataVarMap.has(name) ? ctx.dataVar(name) : literal(name, 0, ctx);
@@ -324,6 +340,7 @@ export class PythonCodegenContext {
     this.lines = [];
     this.depth = 0;
     this.identMap = new Map();
+    this.usedNames = new Set(['vg', 'date', 'view', 'float']);
     this.dataVarMap = new Map(); // originalDataName -> pythonVarName
     this.defaultAttrsVar = ''; // variable name for shared plot default attributes
   }
@@ -339,10 +356,17 @@ export class PythonCodegenContext {
   toString() { return this.lines.join('\n') + '\n'; }
   ident(name) {
     if (this.identMap.has(name)) return this.identMap.get(name);
-    let safe = name.replace(/[^A-Za-z0-9_]/g, '_').replace(/^([0-9])/, '_$1');
-    if (PYTHON_KEYWORDS.has(safe)) safe += '_';
-    this.identMap.set(name, safe);
-    return safe;
+    const identifier = this.allocate(name);
+    this.identMap.set(name, identifier);
+    return identifier;
+  }
+  allocate(name) {
+    let base = name.replace(/[^A-Za-z0-9_]/g, '_').replace(/^([0-9])/, '_$1') || '_';
+    if (PYTHON_KEYWORDS.has(base)) base += '_';
+    let identifier = base;
+    for (let suffix = 2; this.usedNames.has(identifier); ++suffix) identifier = base + suffix;
+    this.usedNames.add(identifier);
+    return identifier;
   }
   /** Python variable name for a data source (avoids clash with same-named params). */
   dataVar(name) {

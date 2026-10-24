@@ -4,11 +4,5 @@
   "compilerOptions": {
     "emitDeclarationOnly": true,
     "outDir": "dist"
-  },
-  "references": [
-    { "path": "../../mosaic/core" },
-    { "path": "../../mosaic/sql" },
-    { "path": "../inputs" },
-    { "path": "../plot" }
-  ]
+  }
 }

@@ -6,15 +6,15 @@ import { HSpace } from './HSpace.js';
 import { VSpace } from './VSpace.js';
 import { Menu, Search, Slider, Table } from './Input.js';
 import { Plot } from './Plot.js';
-import { PlotMark } from './PlotMark.js';
 import { Legend } from './PlotLegend.js';
+import { PlotMark } from './PlotMark.js';
 import { PlotAttributes } from './PlotAttribute.js';
 
 /** Specification metadata. */
 export interface Meta extends Record<string, any> {
   /** The specification title. */
   title?: string;
-  /** A description of the specification content.  */
+  /** A description of the specification content. */
   description?: string;
   /** Credits or other acknowledgements. */
   credit?: string;
@@ -22,7 +22,7 @@ export interface Meta extends Record<string, any> {
 
 /** Configuration options. */
 export interface Config extends Record<string, any> {
-  extensions?: string | string[];
+  extensions?: string | Array<string>;
 }
 
 /** Top-level dataset definitions. */
@@ -33,12 +33,7 @@ export type Params = Record<string, ParamDefinition>;
 
 /** Top-level specification properties. */
 export interface SpecHead {
-  /**
-   * A [JSON schema](http://json-schema.org/) URL for this specification,
-   * such as https://uwdata.github.io/mosaic/schema/latest.json. This property
-   * enables validation and autocomplete in editors with JSON schema support.
-   * @format uri
-   */
+  /** A [JSON schema](http://json-schema.org/) URL for this specification, such as https://uwdata.github.io/mosaic/schema/latest.json. This property enables validation and autocomplete in editors with JSON schema support. */
   $schema?: string;
   /** Specification metadata. */
   meta?: Meta;
@@ -66,7 +61,9 @@ export type SpecComponent =
   | Legend;
 
 /** A plot component such as a plot, mark, input widget, or layout. */
-export type Component = SpecComponent | PlotMark;
+export type Component =
+  | SpecComponent
+  | PlotMark;
 
 /** A declarative Mosaic specification. */
 export type Spec = SpecHead & SpecComponent;

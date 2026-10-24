@@ -1,0 +1,35 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@mosaic_browser//:defs.bzl", "PLAYWRIGHT_IMAGE")
+
+filegroup(
+    name = "build",
+    srcs = [
+        "//packages/examples/svelte-example:build",
+        "//packages/examples/vanilla-example:build",
+        "//packages/examples/vega-example:build",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "browser_tests",
+    args = [
+        "$(rlocationpath //packages/examples/vanilla-example:build)",
+        "$(rlocationpath //packages/examples/vega-example:build)",
+        "$(rlocationpath //packages/examples/svelte-example:build)",
+    ],
+    data = [
+        "//:node_modules/@playwright/test",
+        "//packages/examples/svelte-example:build",
+        "//packages/examples/vanilla-example:build",
+        "//packages/examples/vega-example:build",
+    ],
+    entry_point = "browser-tests.mjs",
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"},
+    exec_properties = {"container-image": "docker://" + PLAYWRIGHT_IMAGE},
+    tags = [
+        "requires-browser",
+        "requires-network",
+    ],
+    visibility = ["//visibility:public"],
+)

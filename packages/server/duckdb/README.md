@@ -6,6 +6,16 @@ For shared localhost HTTPS/HTTP/2 setup, install native mkcert on `PATH`, then r
 
 A Promise-based Node.js API to DuckDB, along with a data server that supports transfer of [Apache Arrow](https://arrow.apache.org/) data over HTTP.
 
-_Warning_: Due to persistent quality issues involving the Node.js DuckDB client and Arrow extension, we recommend using the Python-based [`duckdb-server`](https://github.com/uwdata/mosaic/tree/main/packages/server/duckdb-server) package instead. However, we retain this package for both backwards compatibility and potential future use as quality issues improve.
+_Note:_ This package provides a local DuckDB server for Node.js. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/core) package.
 
-_Note:_ This package provides a local DuckDB server for Node.js. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/mosaic-core) package.
+From the repository root, run `bazelisk run //packages/server/duckdb:server --`
+to start the server. Arguments after `--` are forwarded to the application.
+Run `bazelisk test //packages/server/duckdb:check` for runtime tests, lint,
+test typechecking and installed-package tests, including the conversion CLIs.
+Extension installation tests use an isolated home directory and need network access.
+Build the publishable package with `bazelisk build //packages/server/duckdb:tarball`;
+its output is `bazel-bin/packages/server/duckdb/pkg.tgz`.
+
+## HTTP API
+
+The server implements the [shared HTTP protocol](https://uwdata.github.io/mosaic/api/duckdb/server-protocol): POST accepts `arrow`, `exec`, and `preagg` JSON commands. GET accepts read-only `arrow` commands through flat `type` and `sql` URL parameters. Arrow responses are IPC streams, including empty results; errors use the common JSON error envelope.

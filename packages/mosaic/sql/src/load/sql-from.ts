@@ -1,4 +1,5 @@
 import { asLiteral } from '../util/ast.js';
+import { quoteIdentifier } from '../util/string.js';
 
 type SQLFromOptions = {
   columns?: string[] | Record<string, string>;
@@ -21,7 +22,7 @@ export function sqlFrom(
   let keys: string[] = [];
   if (Array.isArray(columns)) {
     keys = columns;
-    columns = keys.reduce((m, k) => (m[k] = k, m), {} as Record<string, string>);
+    columns = Object.fromEntries(keys.map(key => [key, key]));
   } else if (columns) {
     keys = Object.keys(columns);
   }
@@ -30,7 +31,7 @@ export function sqlFrom(
   }
   const subq = [];
   for (const datum of data) {
-    const sel = keys.map(k => `${asLiteral(datum[k])} AS "${columns[k]}"`);
+    const sel = keys.map(k => `${asLiteral(datum[k])} AS ${quoteIdentifier(columns[k])}`);
     subq.push(`(SELECT ${sel.join(', ')})`);
   }
   return subq.join(' UNION ALL ');

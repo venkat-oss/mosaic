@@ -45,7 +45,7 @@ export function throttle<E, T>(
   }
 
   function delay(event?: E): void {
-    if (pending !== event) {
+    if (pending === NIL) {
       requestAnimationFrame(() => {
         const e = pending as E;
         pending = NIL;

@@ -1,0 +1,21 @@
+{
+  "data": {
+    "column_data": {
+      "type": "table",
+      "query": "SELECT x, y, DATE '2024-01-01' + CAST(x AS INTEGER) AS time FROM (VALUES (1,2),(2,1),(3,3)) AS t(x,y)"
+    }
+  },
+  "plot": [
+    {
+      "mark": "dot",
+      "data": {
+        "from": "column_data"
+      },
+      "x": {
+        "bin": "x",
+        "steps": 4
+      },
+      "y": "y"
+    }
+  ]
+}

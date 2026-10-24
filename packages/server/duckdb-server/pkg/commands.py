@@ -1,20 +1,14 @@
 from __future__ import annotations
 
-import sys
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, Any, final
 
 import pyarrow as pa
 
 from pkg import protocols
-from pkg.responses import ArrowResponse, EmptyResponse, empty_response
+from pkg.responses import ArrowResponse, EmptyResponse, JSONResponse, empty_response
 
 if TYPE_CHECKING:
     from pkg.db import Database
-
-if sys.version_info >= (3, 12):
-    from typing import TypeAliasType as Type
-else:
-    from typing_extensions import TypeAliasType as Type
 
 
 @final
@@ -41,4 +35,13 @@ class ExecRequest(protocols.Command[None], forbid_unknown_fields=False):
         return empty_response()
 
 
-Command = Type("Command", ArrowRequest | ExecRequest)
+@final
+class PreaggRequest(protocols.Command[dict[str, Any]], forbid_unknown_fields=False):
+    def _query(self, db: Database, /) -> dict[str, Any]:
+        return db.preaggregate(self.sql)
+
+    def _into_response(self, result: dict[str, Any], /) -> JSONResponse:
+        return JSONResponse(result)
+
+
+Command = ArrowRequest | ExecRequest | PreaggRequest

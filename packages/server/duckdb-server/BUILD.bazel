@@ -1,0 +1,81 @@
+load("@python_projects//:projects.bzl", "PROJECTS")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_library.bzl", "py_library")
+load("//build/python:defs.bzl", "pytest_suite", "python_wheel", "python_checks", "python_sdist")
+
+exports_files(["pyproject.toml", "package.json"])
+
+js_library(
+    name = "manifest",
+    srcs = ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "duckdb_server",
+    srcs = glob(["pkg/**/*.py"], exclude = ["pkg/tests/**"]),
+    imports = ["."],
+    deps = [
+        "@pypi//duckdb",
+        "@pypi//msgspec",
+        "@pypi//platformdirs",
+        "@pypi//pyarrow",
+        "@pypi//starlette",
+        "@pypi//uvicorn",
+        "@pypi//zttp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "server",
+    srcs = ["pkg/__main__.py"],
+    main = "pkg/__main__.py",
+    deps = [":duckdb_server"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "dev",
+    srcs = ["//build/python:watch.py"],
+    main = "//build/python:watch.py",
+    args = ["$(rlocationpath :server)", "$(rlocationpath pkg/__main__.py)"],
+    data = [":server", "pkg/__main__.py"],
+    deps = ["@pypi//watchfiles", "@rules_python//python/runfiles"],
+    legacy_create_init = False,
+    visibility = ["//visibility:public"],
+)
+
+pytest_suite(
+    name = "tests",
+    srcs = glob(["pkg/tests/test_*.py"]),
+    support = glob(["pkg/tests/conftest.py", "pkg/tests/__init__.py"]),
+    data = ["//:pyproject.toml", "pyproject.toml"],
+    deps = [":duckdb_server", "@pypi//httpx2"],
+    args = ["-q"],
+)
+
+python_wheel(
+    name = "wheel",
+    package = "pkg",
+    deps = [":duckdb_server"],
+    metadata = PROJECTS["duckdb_server"],
+    runtime_deps = ["@pypi//duckdb", "@pypi//msgspec", "@pypi//platformdirs", "@pypi//pyarrow", "@pypi//starlette", "@pypi//uvicorn", "@pypi//zttp"],
+)
+
+python_checks(
+    srcs = glob(["pkg/**/*.py"]),
+    deps = [":duckdb_server", "@pypi//httpx2", "@pypi//pyarrow_stubs"],
+)
+
+python_sdist(
+    srcs = glob(["pkg/**"], exclude = ["**/__pycache__/**"]) + ["pyproject.toml", "package.json", "README.md"],
+    metadata = PROJECTS["duckdb_server"],
+)
+
+test_suite(
+    name = "check",
+    tests = [":tests", ":lint", ":typecheck", ":wheel_test", ":sdist_test"],
+    visibility = ["//visibility:public"],
+)

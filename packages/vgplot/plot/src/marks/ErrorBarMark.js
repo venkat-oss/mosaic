@@ -1,4 +1,3 @@
-import { toDataColumns } from '@uwdata/mosaic-core';
 import { avg, count, div, sqrt, stddev } from '@uwdata/mosaic-sql';
 import { erfinv } from './util/stats.js';
 import { Mark, markPlotSpec, markQuery } from './Mark.js';
@@ -26,11 +25,6 @@ export class ErrorBarMark extends Mark {
       { field: div(stddev(field), sqrt(count(field))), as: '__se__', }
     ]);
     return markQuery(fields, this.sourceTable()).where(filter);
-  }
-
-  queryResult(data) {
-    this.data = toDataColumns(data);
-    return this;
   }
 
   plotSpecs() {

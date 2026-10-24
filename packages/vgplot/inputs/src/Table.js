@@ -6,6 +6,7 @@ import { clausePoints, coordinator, isParam, isSelection, queryFieldInfo, toData
 import { Query, desc } from '@uwdata/mosaic-sql';
 import { formatDate, formatLocaleAuto, formatLocaleNumber } from './util/format.js';
 import { Input, input } from './input.js';
+import { TABLE_DEFAULT_COLUMNS, TABLE_DEFAULT_HEIGHT, TABLE_DEFAULT_ROW_BATCH } from './generated/table.js';
 
 let _id = -1;
 
@@ -81,13 +82,13 @@ export class Table extends Input {
     element,
     filterBy,
     from,
-    columns = ['*'],
+    columns = [...TABLE_DEFAULT_COLUMNS],
     align = {},
     format,
     width,
     maxWidth,
-    height = 500,
-    rowBatch = 100,
+    height = TABLE_DEFAULT_HEIGHT,
+    rowBatch = TABLE_DEFAULT_ROW_BATCH,
     as
   } = {}) {
     super(filterBy, element, null);
@@ -149,7 +150,7 @@ export class Table extends Input {
 
     if (this.selection) {
       this.body.addEventListener('pointerover', evt => {
-        const row = resolveRow(evt.target);
+        const row = resolveRow(evt.target, this.body);
         if (row > -1 && row !== this.currentRow) {
           this.currentRow = row;
           this.selection.update(this.clause([row]));
@@ -313,13 +314,16 @@ export class Table extends Input {
 }
 
 /**
- * Resolve a table row number from a table cell element.
+ * Resolve a table row number from an event target within its body.
  * @param {any} element An HTML element.
+ * @param {HTMLTableSectionElement} body The table body.
  * @returns {number} The resolved row, or -1 if not a row.
  */
-function resolveRow(element) {
-  const p = element.parentElement;
-  return Object.hasOwn(p, '__row__') ? +p.__row__ : -1;
+function resolveRow(element, body) {
+  for (let row = element; row && row !== body; row = row.parentElement) {
+    if (row.parentElement === body && Object.hasOwn(row, '__row__')) return +row.__row__;
+  }
+  return -1;
 }
 
 function formatof(base = {}, schema, locale) {

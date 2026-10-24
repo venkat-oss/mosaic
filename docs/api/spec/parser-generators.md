@@ -4,29 +4,26 @@ Methods to parse declarative specifications and generate applications or code as
 
 ## parseSpec
 
-`parseSpec(specification)`
+`parseSpec(spec, options)`
 
-Parse a JSON _specification_ and return the resulting abstract syntax tree (AST).
-The input _specification_ can either be a JSON-formatted string or a JavaScript object.
+Parse a JavaScript specification object into an abstract syntax tree (AST). Parse JSON text with JSON.parse, or YAML text with a YAML parser, before calling this method.
 
-To instead use a YAML specification, parse the YAML text first:
+Returns `SpecNode`.
 
-``` js
-import { parseSpec } from "@uwdata/mosaic-spec";
-import yaml from "yaml";
-const spec = yaml.parse(yamlText);
-parseSpec(spec);
-```
+The supported options are:
 
-The resulting AST node is an object with the following properties and methods:
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `components` | `Map<string, Function>` | `componentMap()` | Ordered map of component names to parser functions. The first matching component wins; a caller-supplied map replaces the built-in map. |
+| `transforms` | `Set<string>` | `transformNames()` | Names of allowed transform functions. |
+| `inputs` | `Set<string>` | `inputNames()` | Names of supported input widgets. |
+| `plot` | `PlotNames` | `plotNames()` | Sets of supported plot attributes, interactors, legends and marks. |
+| `params` | `[string, ASTNode][]` | `[]` | Named pre-parsed parameter or selection nodes to seed the parser context. |
+| `datasets` | `[string, ASTNode][]` | `[]` | Named pre-parsed dataset nodes to seed the parser context. |
 
-- _meta_: An object of specification metadata, corresponding to the input spec's top-level `meta` property.
-- _config_: An object for top-level configuration options, such as database extensions to load.
-- _root_: The root node for the rest of the AST. This might represent a `plot`, `hconcat`, `vconcat`, or other top-level specification element.
-- _data_: Dataset definitions as an array of key-value pairs. The keys are dataset names and the values are AST nodes for the dataset definition.
-- _params_: Param and Selection definitions as an array of key-value pairs. The keys are params names and the values are AST nodes for Param or Selection definitions.
-- _plotDefaults_: An array of plot attribute AST nodes, representing default attributes to apply to all plot instances.
-- _toJSON_: A method that returns the specification in JSON format. The result will be compatible with the original parsed input, but may not match it exactly. For example, implicitly defined selections will now have explicit top-level definitions.
+The AST root exposes meta, config, root, data, params and plotDefaults. Data and params are objects keyed by name. Its toJSON method produces normalized JSON; inferred selections become explicit definitions. The editor-only $schema annotation is not retained in the AST.
+
+Custom component, transform, input and plot registries belong to the parser context. They do not extend the strict built-in declarative schema automatically.
 
 ### Example
 
@@ -59,18 +56,19 @@ const json = ast.toJSON();
 
 `astToDOM(ast, options)`
 
-Given a parsed specification AST, load data, generate Params/Selections, and instantiate corresponding web Document Object Model (DOM) elements. This is an `async` method and so returns a `Promise`.
+Load data, instantiate parameters and selections, and create the running application as DOM content using the supplied vgplot API context.
 
-The supported _options_ are:
+Returns `Promise<{element: HTMLElement | SVGSVGElement, params: Map<string, Param | Selection>}>`.
 
-- _api_: A [vgplot API context](../vgplot/context) to use. By default, a new API context is created that uses the global `Coordinator` and a new, empty `namedPlots` map.
-- _params_: A `Map` from parameter names to live Param or Selection instances. The default is an empty map. A pre-populated map can be provided to reuse params across specifications.
-- _baseURL_: The base URL (default `null`) from which to load data files.
+The supported options are:
 
-The fulfilled value of the returned Promise is an object with the following properties:
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `api` | `API context` | `createAPIContext()` | API context providing the coordinator, named plots and extension methods. The default context uses the global coordinator and a fresh named-plots map. |
+| `params` | `Map<string, Param \| Selection>` | `new Map()` | Live instances to reuse across specifications. Definitions whose names are already present do not replace the supplied instances. |
+| `baseURL` | `string \| null` | `null` | Base URL used when loading data files. |
 
-- _element_: The DOM element containing the initialized application.
-- _params_: A `Map` of parameter names to Param/Selection instances.
+The fulfilled value contains the root element and the active named-parameter map. Add the element to the document to display the application. Each API context can use a separate coordinator; pass shared parameter instances explicitly when linking contexts.
 
 ### Example
 
@@ -91,19 +89,24 @@ document.body.appendChild(element);
 
 ## astToESM
 
-`astToESM(ast, options)`
+`astToESM(ast, options = {})`
 
-Given a parsed specification AST, generate corresponding JavaScript module (ESM) code that uses the `vgplot` API.
+Generate an ECMAScript module that uses the vgplot JavaScript API to load data and construct the application.
 
-The supported _options_ are:
+Returns `string`.
 
-- _baseURL_: The base URL (default `null`) from which to load data files.
-- _namespace_: The namespace to use for vgplot API methods (default `'vg'`)`.
-- _connector_: The database connector to use, one of `null` (default, for no explicit connector code), `rest`, or `wasm`.
-- _depth_: The starting text indentation depth (default `0`).
-- _imports_: A `Map` indicating external ESM packages to load. Each key is the name of the package to load, and each value is either a string or string array indicating what to import from that package. The default is `new Map([["@uwdata/vgplot", "* as vg"]])`.
+The supported options are:
 
-The return value is a string of generated ESM code.
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `baseURL` | `string \| undefined` | `undefined` | Base URL used when loading data files. |
+| `namespace` | `string` | `'vg'` | Namespace used for vgplot method calls. |
+| `connector` | `'rest' \| 'wasm' \| undefined` | `undefined` | Optional connector initialization. When omitted, generated code uses the existing coordinator connector. |
+| `depth` | `number` | `0` | Starting indentation depth. |
+| `imports` | `Map<string, string \| string[]>` | `new Map([['@uwdata/vgplot', '* as vg']])` | Module imports: each key names a package, and each value specifies a namespace import or named imports. |
+| `preamble` | `string \| string[]` | `undefined` | Code emitted after imports and before connector and data initialization. |
+
+The module's default export is the constructed application element. Metadata and the editor schema annotation are not runtime view arguments. Generated parameter identifiers avoid collisions with imports and retain references to parameters with arbitrary names. Object property names are quoted when required by JavaScript.
 
 ### Example
 
@@ -117,16 +120,17 @@ const code = astToESM(ast);
 
 ## astToPython
 
-`astToPython(ast, options)`
+`astToPython(ast)`
 
-Given a parsed specification AST, generate corresponding Python code that uses the `vgplot` API.
+Generate Python code using the vgplot authoring API. The emitted module imports vgplot as vg and assigns its outer view to view.
 
-The supported _options_ are:
+Returns `string`.
 
-- _namespace_: The namespace to use for vgplot API methods (default `'vg'`).
-- _depth_: The starting text indentation depth (default `0`).
+This method has no supported options argument; namespace and indentation are managed by its PythonCodegenContext.
 
-The return value is a string of generated Python code.
+The retained emitter omits specification metadata. Use authored vg.spec(meta=...) when metadata must be preserved. Data, parameter references, configuration, plot defaults and the view are emitted through their public Python APIs. Input, legend and spacer roots retain specification headers through vg.spec. Generated local identifiers avoid collisions with imports and other definitions while preserving original data and parameter names in the specification.
+
+Generated string literals preserve quotes, backslashes and control characters. Dollar-prefixed strings remain literals in scalar parameter values, inline data, file names and menu option values; parameter-reference positions resolve to the generated Python variables.
 
 ### Example
 
@@ -136,3 +140,144 @@ import { astToPython } from "@uwdata/mosaic-spec";
 // generate Python code
 const code = astToPython(ast);
 ```
+
+## Root specification contracts
+
+A declarative Mosaic specification. It combines the specification header with one component.
+
+Top-level specification properties.
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `$schema` | `string` | No | A [JSON schema](http://json-schema.org/) URL for this specification, such as https://uwdata.github.io/mosaic/schema/latest.json. This property enables validation and autocomplete in editors with JSON schema support. |
+| `meta` | `Meta` | No | Specification metadata. |
+| `config` | `Config` | No | Configuration options. |
+| `data` | `Data` | No | Dataset definitions. |
+| `params` | `Params` | No | Param and Selection definitions. |
+| `plotDefaults` | `PlotAttributes` | No | A default set of attributes to apply to all plot components. |
+
+A specification component such as a plot, input widget, or layout. The supported component contracts are `HConcat`, `VConcat`, `HSpace`, `VSpace`, `Menu`, `Search`, `Slider`, `Table`, `Plot`, `Legend`.
+
+### Meta
+
+Specification metadata.
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `title` | `string` | No | The specification title. |
+| `description` | `string` | No | A description of the specification content. |
+| `credit` | `string` | No | Credits or other acknowledgements. |
+
+Additional properties are admitted by this contract.
+
+
+### Config
+
+Configuration options.
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `extensions` | `string \| Array<string>` | No |  |
+
+Additional properties are admitted by this contract.
+
+
+### Data
+
+Top-level dataset definitions.
+
+Names map to `DataDefinition` definitions.
+
+
+### Params
+
+Top-level Param and Selection definitions.
+
+Names map to `ParamDefinition` definitions.
+
+
+### Plot
+
+A plot component.
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `plot` | `Array<PlotMark \| PlotInteractor \| PlotLegend>` | Yes | An array of plot marks, interactors, or legends. Marks are graphical elements that make up plot layers. Unless otherwise configured, interactors will use the nearest previous mark as a basis for which data fields to select. |
+
+Inherits `PlotAttributes`.
+
+See the [format reference](./format) for data loading, parameter and layout examples, and the [plot API](../vgplot/marks) for concrete mark contracts.
+
+## Python root authoring
+
+The Python entry points retain their direct runtime implementations. These contracts describe their public signatures and target applicability.
+
+### plot
+
+`plot(*items: Mark | Directive | Mapping[str, Any], param_names: dict[int, str] | None=None, **kwargs: Any)`
+
+Create a plot view from marks and directives.
+
+Python target; return annotation `View`.
+
+
+### spec
+
+`spec(*args: Any, data: dict[str, Any] | None=None, params: dict[str, Any] | None=None, plotDefaults: dict[str, Any] | None=None, plot_defaults: dict[str, Any] | None=None, config: dict[str, Any] | None=None, view: dict[str, Any] | View | None=None, **extra: Any)`
+
+Assemble a specification from a view, data sources, and parameters discovered in the caller scope.
+
+This entry point inspects its caller's scope. Keep its direct binding; a forwarding wrapper can change data and parameter discovery.
+
+Python target; return annotation `Spec`.
+
+
+### Spec
+
+`Spec(*, data: dict[str, Any] | None=None, data_names: dict[int, str] | None=None, params: dict[str, Any] | None=None, plotDefaults: dict[str, Any] | None=None, plot_defaults: dict[str, Any] | None=None, config: dict[str, Any] | None=None, view: dict[str, Any] | View | None=None, **extra: Any)`
+
+A serializable specification with explicit data and parameter definitions.
+
+Python target; return annotation `None`.
+
+
+### View
+
+`View(view: dict[str, Any], *, data: dict[str, Any] | None=None, plotDefaults: dict[str, Any] | None=None, plot_defaults: dict[str, Any] | None=None, config: dict[str, Any] | None=None, **extra: Any)`
+
+A composable view that discovers data and parameters from its caller when serialized or displayed.
+
+Python target; return annotation `None`.
+
+
+### View.to_dict
+
+`View.to_dict(self, _context: dict[str, Any] | None=None)`
+
+Serialize a view using the explicit context or caller scope.
+
+This entry point inspects its caller's scope. Keep its direct binding; a forwarding wrapper can change data and parameter discovery.
+
+Python target; return annotation `dict[str, Any]`.
+
+
+### View.to_json
+
+`View.to_json(self, _context: dict[str, Any] | None=None, **kwargs: Any)`
+
+Serialize a view as JSON using the explicit context or caller scope.
+
+This entry point inspects its caller's scope. Keep its direct binding; a forwarding wrapper can change data and parameter discovery.
+
+Python target; return annotation `str`.
+
+
+### View.show
+
+`View.show(self, con: Any=None, data: Any=None)`
+
+Display a view after resolving data and parameters from its caller.
+
+This entry point inspects its caller's scope. Keep its direct binding; a forwarding wrapper can change data and parameter discovery.
+
+Python target; return annotation `None`.

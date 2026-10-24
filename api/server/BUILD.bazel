@@ -1,0 +1,18 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_projection")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "serverprotocol",
+    deps = ["//api/model:package"],
+    visibility = ["//visibility:public"],
+)
+
+cue_projection(
+    name = "contribution",
+    instance = ":package",
+    expression = "contribution",
+    visibility = ["//visibility:public"],
+)

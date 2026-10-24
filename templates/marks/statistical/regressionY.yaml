@@ -1,0 +1,21 @@
+data:
+  statistical_regressionY:
+    type: table
+    query: SELECT g, CAST(x AS DOUBLE) AS x, CAST(y AS DOUBLE) AS y FROM (VALUES ('A',1,1),('A',2,3),('A',3,2),('A',4,5),('A',5,4),('A',6,6.5)) AS t(g,x,y)
+plot:
+  - data:
+      from: statistical_regressionY
+    mark: regressionY
+    x: x
+    "y": "y"
+    stroke: g
+width: 320
+height: 240
+margin: 40
+axis: null
+xDomain:
+  - 1
+  - 6
+yDomain:
+  - 0
+  - 8

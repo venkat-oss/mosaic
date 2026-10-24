@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -72,7 +73,7 @@ func newHandler(db commandExecutor, cfg config) *handler {
 }
 
 func (s *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.cacheControl != "" {
+	if s.cacheControl != "" || w.Header().Get("Cache-Control") == "" {
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	if len(s.varyHeaders) > 0 {
@@ -87,9 +88,14 @@ func (s *handler) handleHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
+		mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if mediaErr != nil || mediaType != "application/json" {
+			s.writeError(w, r, &query.ProtocolError{Message: "Content-Type must be application/json", Code: "bad_request", Reason: "unsupported_media_type", Status: 415})
+			return
+		}
 		raw, err := io.ReadAll(r.Body)
 		if err == nil {
-			err = json.Unmarshal(raw, &params)
+			params, err = decodeParams(raw)
 		}
 		if err != nil {
 			s.writeError(w, r, fmt.Errorf("%w: decode request body: %w", ErrInvalidCommand, err))
@@ -99,10 +105,15 @@ func (s *handler) handleHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		q := r.URL.Query()
-		params.Type = new(CommandType(q.Get("type")))
-		params.SQL = new(q.Get("sql"))
+		if q.Has("type") {
+			params.Type = new(CommandType(q.Get("type")))
+		}
+		if q.Has("sql") {
+			params.SQL = new(q.Get("sql"))
+		}
 
 	default:
+		w.Header().Set("Allow", "GET, POST, OPTIONS")
 		s.writeError(w, r, fmt.Errorf("%w: %s", errMethodNotAllowed, r.Method))
 		return
 	}
@@ -121,7 +132,7 @@ func (s *handler) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet && s.cacheControl != "" {
 		etag := responseETag(data, responseEncoding(r, data))
 		if value := strings.Join(r.Header.Values("If-Match"), ","); value != "" && !matchesETag(value, etag, false) {
-			http.Error(w, http.StatusText(http.StatusPreconditionFailed), http.StatusPreconditionFailed)
+			s.writeError(w, r, &query.ProtocolError{Message: "If-Match did not match", Code: "bad_request", Reason: "precondition_failed", Status: 412})
 			return
 		}
 		w.Header().Set("ETag", etag)
@@ -132,7 +143,11 @@ func (s *handler) handleHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", arrowContentType)
+	if *params.Type == CommandPreagg {
+		w.Header().Set("Content-Type", "application/json")
+	} else {
+		w.Header().Set("Content-Type", arrowContentType)
+	}
 	if _, err = w.Write(data); err != nil {
 		s.logger.Error("server: failed to write response", "error", err)
 	}
@@ -141,6 +156,9 @@ func (s *handler) handleHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *handler) execCommand(r *http.Request, params queryParams) ([]byte, error) {
 	if err := params.Validate(); err != nil {
 		return nil, err
+	}
+	if r.Method == http.MethodGet && *params.Type != CommandArrow {
+		return nil, &query.ProtocolError{Message: "GET only accepts arrow", Code: "bad_request", Reason: "invalid_field", Field: "type", Status: 400}
 	}
 	ctx := r.Context()
 	var err error
@@ -160,25 +178,75 @@ func (s *handler) execCommand(r *http.Request, params queryParams) ([]byte, erro
 		return nil, s.db.Exec(ctx, *params.SQL)
 
 	case CommandArrow:
+		if r.Method == http.MethodGet {
+			if db, ok := s.db.(interface {
+				QueryReadOnly(context.Context, string, *query.ValidationPolicy) ([]byte, error)
+			}); ok {
+				return db.QueryReadOnly(ctx, *params.SQL, policy)
+			}
+		}
 		return s.db.Query(ctx, *params.SQL, policy)
+	case CommandPreagg:
+		if db, ok := s.db.(interface {
+			Preaggregate(context.Context, string, *query.ValidationPolicy) (*query.PreaggResponse, error)
+		}); ok {
+			result, err := db.Preaggregate(ctx, *params.SQL, policy)
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(result)
+		}
+		return nil, &query.ProtocolError{Message: "Preaggregation is disabled", Code: "unsupported_command", Reason: "command_disabled", Status: 400}
 
 	default:
 		return nil, fmt.Errorf("server: no executor for command type %q", *params.Type)
 	}
 }
 
+func decodeParams(raw []byte) (queryParams, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil || fields == nil {
+		return queryParams{}, &query.ProtocolError{Message: "Expected a JSON object", Code: "bad_request", Reason: "malformed_json", Status: 400}
+	}
+	var p queryParams
+	for _, field := range []string{"type", "sql"} {
+		value, ok := fields[field]
+		if !ok {
+			continue
+		}
+		var text string
+		if err := json.Unmarshal(value, &text); err != nil || string(value) == "null" {
+			return p, &query.ProtocolError{Message: "Invalid field: " + field, Code: "bad_request", Reason: "invalid_field", Field: field, Status: 400}
+		}
+		if field == "type" {
+			p.Type = new(CommandType(text))
+		} else {
+			p.SQL = new(text)
+		}
+	}
+	return p, nil
+}
+
 func (p queryParams) Validate() error {
-	if p.Type == nil || *p.Type == "" {
-		return fmt.Errorf("%w: missing required 'type' parameter", ErrInvalidCommand)
+	for _, field := range []string{"type", "sql"} {
+		var value *string
+		if field == "type" {
+			if p.Type != nil {
+				text := string(*p.Type)
+				value = &text
+			}
+		} else {
+			value = p.SQL
+		}
+		if value == nil {
+			return &query.ProtocolError{Message: "Missing required field: " + field, Code: "bad_request", Reason: "missing_field", Field: field, Status: 400}
+		}
+		if strings.TrimSpace(*value) == "" {
+			return &query.ProtocolError{Message: "Invalid field: " + field, Code: "bad_request", Reason: "invalid_field", Field: field, Status: 400}
+		}
 	}
-
-	if *p.Type != CommandArrow && *p.Type != CommandExec {
-		return fmt.Errorf("%w: invalid 'type' parameter: %s", ErrInvalidCommand, *p.Type)
+	if *p.Type != CommandArrow && *p.Type != CommandExec && *p.Type != CommandPreagg {
+		return &query.ProtocolError{Message: "Invalid command type", Code: "bad_request", Reason: "invalid_field", Field: "type", Status: 400}
 	}
-
-	if p.SQL == nil || *p.SQL == "" {
-		return fmt.Errorf("%w: missing required 'sql' parameter", ErrInvalidCommand)
-	}
-
 	return nil
 }

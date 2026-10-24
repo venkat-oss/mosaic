@@ -1,15 +1,13 @@
 import { WindowFrameNode as WindowFrame } from '@uwdata/mosaic-sql';
 import { WINDOW_FRAME } from '../constants.js';
+import { FRAME_KINDS } from '../generated/window.js';
 import { isObject, paramRef } from '../util.js';
 import { ASTNode } from './ASTNode.js';
 import { LiteralNode } from './LiteralNode.js';
 import { parseTransform } from './TransformNode.js';
 
 export function parseWindowFrame(spec, ctx) {
-  const type = spec.rows ? 'ROWS'
-    : spec.range ? 'RANGE'
-    : spec.groups ? 'GROUPS'
-    : null;
+  const type = FRAME_KINDS.find(frame => spec[frame.key])?.type ?? null;
 
   if (!type) return null;
 
@@ -43,7 +41,8 @@ export class WindowFrameNode extends ASTNode {
 
   codegen(ctx) {
     const { type, extent, exclude } = this;
-    const fn = `frame${type[0].toUpperCase()}${type.slice(1).toLowerCase()}`;
+    const fn = FRAME_KINDS.find(frame => frame.type === type)?.javascript
+      ?? `frame${type[0].toUpperCase()}${type.slice(1).toLowerCase()}`;
     const ex = Array.isArray(extent)
       ? `[${extent.map(v => v.codegen(ctx)).join(', ')}]`
       : extent.codegen(ctx);

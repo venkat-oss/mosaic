@@ -1,3 +1,4 @@
+import './grid-templates.browser.js';
 import { test, expect } from '@playwright/test';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -24,7 +25,7 @@ test.describe('Visual regression tests for JSON specs', () => {
     test(`renders ${specName} spec correctly`, async ({ page }) => {
       const specData = JSON.parse(await readFile(join(specsDir, `${specName}.json`), 'utf8'));
 
-      await page.goto('http://localhost:5173/packages/vgplot/spec/test/visual-harness.html');
+      await page.goto('/packages/vgplot/spec/test/visual-harness.html');
       await page.waitForFunction(() => typeof window.__renderSpec === 'function');
       await page.evaluate(spec => window.__renderSpec(spec), specData);
 

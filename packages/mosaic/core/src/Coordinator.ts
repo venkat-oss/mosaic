@@ -396,6 +396,7 @@ function updateSelection(
     const filter = selection.predicate(client);
     // skip due to cross-filtering
     if (!filter) return; 
-    await mc.updateClient(client, client.query(filter)!);
+    const query = client.query(filter);
+    await (query ? mc.updateClient(client, query) : client.update());
   }));
 }

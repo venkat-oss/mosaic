@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,9 +19,26 @@ import (
 	"github.com/duckdb/duckdb-go/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/extensions"
+	fixture "github.com/uwdata/mosaic/packages/server/duckdb-server-go/internal/gatekeepertest"
 	"github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/query"
 )
+
+func commandRequest(method, target string, body io.Reader) *http.Request {
+	request := httptest.NewRequest(method, target, body)
+	if method == http.MethodPost {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	return request
+}
+
+func errorMessage(t *testing.T, body []byte) string {
+	t.Helper()
+	var envelope struct {
+		Error string `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal(body, &envelope))
+	return envelope.Error
+}
 
 func setupTestDB(t *testing.T) *query.DB {
 	t.Helper()
@@ -29,7 +48,7 @@ func setupTestDB(t *testing.T) *query.DB {
 func setupConfiguredDB(t *testing.T, configure string, opts ...query.OptionFunc) *query.DB {
 	t.Helper()
 	return setupDB(t, func(execer driver.ExecerContext) error {
-		if err := extensions.InstallAndLoad(t.Context(), execer, "gatekeeper", "community"); err != nil {
+		if err := fixture.Load(t.Context(), execer); err != nil {
 			return err
 		}
 		if configure == "" {
@@ -42,7 +61,11 @@ func setupConfiguredDB(t *testing.T, configure string, opts ...query.OptionFunc)
 
 func setupDB(t *testing.T, init func(driver.ExecerContext) error, opts ...query.OptionFunc) *query.DB {
 	t.Helper()
-	connector, err := duckdb.NewConnector(":memory:", init)
+	dsn := ":memory:"
+	if init != nil {
+		dsn = fixture.DSN(dsn)
+	}
+	connector, err := duckdb.NewConnector(dsn, init)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, connector.Close()) })
 	db, err := query.New(t.Context(), connector, opts...)
@@ -93,7 +116,7 @@ func TestArrowResponseFraming(t *testing.T) {
 	handler, err := New(db)
 	require.NoError(t, err)
 	body := `{"type":"arrow","sql":"SELECT 1 AS value"}`
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req := commandRequest(http.MethodPost, "/", strings.NewReader(body))
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	require.Equal(t, http.StatusOK, res.Code)
@@ -112,7 +135,7 @@ func TestValidationErrorResponses(t *testing.T) {
 		{"denial", query.ErrorDetails{Code: "forbidden", Message: "private-diagnostic"}, 403, "WARN"},
 		{"unsupported", query.ErrorDetails{Code: "unsupported", Message: "private-diagnostic"}, 400, "WARN"},
 		{"parser", query.ErrorDetails{Code: "parser", Message: "private-diagnostic"}, 400, "WARN"},
-		{"binding", query.ErrorDetails{Code: "binding", Message: "private-diagnostic"}, 400, "WARN"},
+		{"binding", query.ErrorDetails{Code: "binding", Message: "private-diagnostic"}, 500, "ERROR"},
 		{"invalid SQL", query.ErrorDetails{Code: "invalid_input", Message: "private-diagnostic"}, 400, "WARN"},
 		{"invalid policy", errors.Join(query.ErrInvalidPolicy, query.ErrorDetails{Code: "invalid_input", Message: "private-diagnostic"}), 500, "ERROR"},
 		{"driver failure", errors.New("private-diagnostic"), 500, "ERROR"},
@@ -128,13 +151,28 @@ func TestValidationErrorResponses(t *testing.T) {
 			handler := mustHandler(t, executor, WithLogger(slog.New(slog.NewJSONHandler(&logs, nil))))
 			body := `{"type":"arrow","sql":"SELECT 1"}`
 			res := httptest.NewRecorder()
-			handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body)))
+			handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(body)))
 			require.Equal(t, tc.status, res.Code)
-			require.Equal(t, err.Error()+"\n", res.Body.String())
+			require.Equal(t, err.Error(), errorMessage(t, res.Body.Bytes()))
 			var record map[string]any
 			require.NoError(t, json.NewDecoder(bytes.NewReader(logs.Bytes())).Decode(&record))
 			require.Equal(t, tc.level, record["level"])
 			require.Contains(t, record["error"], "private-diagnostic")
 		})
 	}
+}
+
+func TestMain(m *testing.M) {
+	home, err := os.MkdirTemp(os.Getenv("TEST_TMPDIR"), "mosaic-go-tests-")
+	if err != nil {
+		panic(err)
+	}
+	for _, name := range []string{"HOME", "USERPROFILE"} {
+		if err := os.Setenv(name, home); err != nil {
+			panic(err)
+		}
+	}
+	code := m.Run()
+	_ = os.RemoveAll(home)
+	os.Exit(code)
 }

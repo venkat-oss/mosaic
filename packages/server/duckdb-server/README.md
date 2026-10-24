@@ -4,7 +4,7 @@
 
 A Python-based server that runs a local DuckDB instance and supports queries over HTTP, returning data in [Apache Arrow](https://arrow.apache.org/) format.
 
-_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/mosaic-core) package.
+_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/core) package.
 
 ## Installation and usage
 
@@ -18,41 +18,20 @@ Alternatively, you can install the server with `pip install duckdb-server`. Then
 
 ## Developer Setup
 
-We use [uv](https://docs.astral.sh/uv/) to manage our development setup.
+From the repository root, start the server with `bazelisk run //packages/server/duckdb-server:server -- --no-http2`. Pass server flags after `--`.
 
-Start the server with `uv run duckdb-server`. The server will not restart when the code changes.
+For automatic restarts after Python edits, run `bazelisk run //packages/server/duckdb-server:dev` or `pnpm dev` from this package.
 
-Start the server in development with `pnpm dev`. The server restarts when you change the code.
-
-Run `uv run ruff check --fix` and `uv run ruff format` to lint the code.
-
-To run the tests, use `uv run pytest`.
+Run `bazelisk test //packages/server/duckdb-server:check` for tests, Ruff, formatting, typechecking and installed distribution consumers. Tests use the declared interpreter and locked dependencies; no activated environment is required. Use uv to update dependencies or create an IDE environment.
 
 ## API
 
-The server supports queries via HTTP GET and POST. The GET endpoint is useful for debugging.
+The server implements the [shared HTTP protocol](https://uwdata.github.io/mosaic/api/duckdb/server-protocol): POST accepts `arrow`, `exec`, and `preagg` JSON commands. GET accepts read-only `arrow` commands through flat `type` and `sql` URL parameters. Arrow responses are IPC streams; errors use the common JSON error envelope.
 
-For example, you can query it with [this url](<https://localhost:3000/?query={"type":"arrow","sql":"select 1"}>):
+For example: `http://localhost:3000/?type=arrow&sql=SELECT%201`.
 
-```terminal
-https://localhost:3000/?query={"type":"arrow","sql":"select 1"}
-```
-
-Each endpoint accepts a `query` parameter, which is a JSON object with two required fields [^1]:
-
-### `type`
-
-A command type, discriminates between:
-
-- `arrow`: Execute a single statement and return the result in Apache Arrow format.
-- `exec`: Execute a one or more `";"`-separated statements for their side effects.
-
-### `sql`
-
-SQL query to execute.
+Python 3.11 or newer is required. Dependencies include DuckDB 2 and PyArrow 26.
 
 ## Publishing
 
-Run the build with `uv build`. Then publish with `uvx twine upload --skip-existing ../../dist/*`. We publish using tokens so when asked, set the username to `__token__` and then use your token as the password. Alternatively, create a [`.pypirc` file](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account).
-
-[^1]: Following (#1286) it is expected that the parameters may be simplified to `?type=arrow&sql=select 1`
+Build distributions with `bazelisk build //packages/server/duckdb-server:wheel //packages/server/duckdb-server:sdist`. The artifacts are under `bazel-bin/packages/server/duckdb-server/`. Upload those files explicitly with Twine after updating the package version. Credentials and publication remain separate from the build.

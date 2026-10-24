@@ -50,19 +50,21 @@ To run Mosaic examples on a local DuckDB server or work on Mosaic development, m
 
 ### Installation
 
-For local installation you should have `pnpm` and `node` version 22 or higher.
+Install [Bazelisk](https://github.com/bazelbuild/bazelisk); it selects the repository's pinned Bazel version and downloads the declared language tools and dependencies. Server builds also need a C/C++ toolchain. Optional `pnpm install` and `uv sync` commands provide dependencies for IDEs.
 
 - Clone https://github.com/uwdata/mosaic.
-- Run `pnpm i` to install dependencies.
-- Run `pnpm test` to run the test suite.
+- Run `bazelisk build //:build` to build packages, servers, examples, and documentation.
+- Run `bazelisk test //:check` to run the test suite.
+
+See the [build workflow](/development/build) for affected-package checks, browser tests, and generated API updates.
 
 ### Run Examples
 
 After installation, you can run examples locally, using either DuckDB-WASM or a DuckDB server to load and process data.
 
-* Run `pnpm dev` to launch a local web server and view examples. By default, the examples use DuckDB-WASM in the browser. The `rest` connector will only work if a local DuckDB server is running. For greater performance, launch and connect to a local DuckDB server as described below below.
+* Run `bazelisk run //:dev` (or `pnpm dev`) to launch the gallery. By default, examples use DuckDB-WASM in the browser. Select the `rest` connector to use a local DuckDB server.
 
 To launch a local DuckDB server:
 
-* Install [hatch](https://hatch.pypa.io/latest/install/), if not already present.
-* Run `pnpm server` to launch the [`duckdb-server`](/server/). This runs the server in development mode, so the server will restart if you change its code.
+* Run `bazelisk run //packages/server/duckdb-server:dev` (or `pnpm server`) to launch the Python [`duckdb-server`](/server/) with automatic restarts after source edits.
+* The Node, Go, and Rust implementations are available through `pnpm server:node`, `pnpm server:go`, and `pnpm server:rust`. All four implement the [shared server protocol](/api/duckdb/server-protocol).

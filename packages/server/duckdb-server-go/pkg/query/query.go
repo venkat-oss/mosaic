@@ -9,17 +9,24 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/duckdb/duckdb-go/v2"
+	"github.com/duckdb/duckdb-go/v2/mapping"
 )
 
 var ErrExecWithValidation = errors.New("query: exec command is disabled when query validation is active")
 
 type DB struct {
-	db         *sql.DB
-	validation bool
-	logger     *slog.Logger
+	db               *sql.DB
+	validation       bool
+	logger           *slog.Logger
+	tablesMu         sync.Mutex
+	tables           map[string]PreaggResponse
+	parserMu         sync.Mutex
+	parserDatabase   mapping.Database
+	parserConnection mapping.Connection
 }
 
 // New opens a pooled database on connector. It does not install or load Gatekeeper; trusted initialization (the
@@ -33,7 +40,7 @@ func New(ctx context.Context, connector *duckdb.Connector, opts ...OptionFunc) (
 	}
 	db := sql.OpenDB(connector)
 	db.SetMaxOpenConns(o.MaxConnections)
-	result := &DB{db: db, validation: o.Validation, logger: cmp.Or(o.Logger, slog.Default())}
+	result := &DB{db: db, validation: o.Validation, logger: cmp.Or(o.Logger, slog.Default()), tables: make(map[string]PreaggResponse)}
 	if o.Validation {
 		if err := db.PingContext(ctx); err != nil {
 			return nil, errors.Join(fmt.Errorf("query: failed to open connection: %w", err), db.Close())
@@ -75,6 +82,10 @@ func (db *DB) Close() {
 	if err := db.db.Close(); err != nil {
 		db.logger.Error("failed to close database", "error", err)
 	}
+	db.parserMu.Lock()
+	defer db.parserMu.Unlock()
+	mapping.Disconnect(&db.parserConnection)
+	mapping.Close(&db.parserDatabase)
 }
 
 // Exec runs SQL without validation. It is refused when WithValidation is configured.
@@ -83,7 +94,7 @@ func (db *DB) Exec(ctx context.Context, query string) error {
 		return ErrExecWithValidation
 	}
 	if _, err := db.db.ExecContext(ctx, query); err != nil {
-		return fmt.Errorf("query: failed to execute query: %w", err)
+		return db.missingMaterialization(fmt.Errorf("query: failed to execute query: %w", err))
 	}
 	return nil
 }
@@ -91,6 +102,10 @@ func (db *DB) Exec(ctx context.Context, query string) error {
 // Query returns the complete Arrow IPC stream buffered in memory. When policy is non-nil or WithValidation is
 // configured, it validates before executing on the same connection.
 func (db *DB) Query(ctx context.Context, query string, policy *ValidationPolicy) ([]byte, error) {
+	return db.query(ctx, query, policy, false)
+}
+
+func (db *DB) query(ctx context.Context, query string, policy *ValidationPolicy, readOnly bool) ([]byte, error) {
 	conn, err := db.db.Conn(ctx)
 	if err != nil {
 		return nil, err
@@ -100,6 +115,9 @@ func (db *DB) Query(ctx context.Context, query string, policy *ValidationPolicy)
 			db.logger.Error("query: failed to release connection", "error", err)
 		}
 	}()
+	if err := db.checkSQL(ctx, conn, query, false); err != nil {
+		return nil, db.missingMaterialization(err)
+	}
 	if policy == nil && db.validation {
 		policy = &ValidationPolicy{}
 	}
@@ -107,6 +125,21 @@ func (db *DB) Query(ctx context.Context, query string, policy *ValidationPolicy)
 		if _, err := db.validateSQL(ctx, conn, query, *policy); err != nil {
 			return nil, err
 		}
+	}
+	if readOnly {
+		if err := checkReadOnly(ctx, conn, query); err != nil {
+			return nil, db.missingMaterialization(err)
+		}
+	}
+	if readOnly {
+		if _, err := conn.ExecContext(ctx, "BEGIN TRANSACTION READ ONLY"); err != nil {
+			return nil, err
+		}
+		defer func() {
+			if _, err := conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK"); err != nil {
+				db.logger.Error("query: failed to roll back read-only query", "error", err)
+			}
+		}()
 	}
 	var buf bytes.Buffer
 	err = conn.Raw(func(raw any) error {
@@ -128,7 +161,7 @@ func (db *DB) Query(ctx context.Context, query string, policy *ValidationPolicy)
 		return errors.Join(rdr.Err(), writer.Close())
 	})
 	if err != nil {
-		return nil, err
+		return nil, db.missingMaterialization(err)
 	}
 	return buf.Bytes(), nil
 }

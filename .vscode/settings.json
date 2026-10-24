@@ -1,6 +1,6 @@
 {
   "yaml.schemas": {
-    "packages/spec/dist/mosaic-schema.json": [
+    "packages/vgplot/spec/src/generated/mosaic-schema.json": [
       "specs/yaml/*",
       "docs/public/specs/yaml/*"
     ]
@@ -10,7 +10,7 @@
       "specs/json/*",
       "docs/public/specs/json/*"
     ],
-    "url": "./packages/vgplot/spec/dist/mosaic-schema.json"
+    "url": "./packages/vgplot/spec/src/generated/mosaic-schema.json"
   }],
   "jupyter.widgetScriptSources": [
     "jsdelivr.com",

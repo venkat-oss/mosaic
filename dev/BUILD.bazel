@@ -1,0 +1,62 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+js_library(
+    name = "sources",
+    srcs = glob(["**"], exclude = ["BUILD.bazel"]),
+    visibility = ["//visibility:public"],
+)
+
+[
+    py_test(
+        name = name,
+        srcs = ["//build/python:tool_test.py"],
+        main = "//build/python:tool_test.py",
+        args = ["$(rlocationpath //build/python:ruff)"] + options + [
+            "--no-cache",
+            "--config",
+            "$(rlocationpath //:pyproject.toml)",
+        ] + ["$(rlocationpath " + source + ")" for source in glob(["notebooks/*.py", "notebooks/*.ipynb"])],
+        data = glob(["notebooks/*.py", "notebooks/*.ipynb"]) + ["//build/python:ruff", "//:pyproject.toml"],
+        deps = ["@rules_python//python/runfiles"],
+        legacy_create_init = False,
+        visibility = ["//visibility:public"],
+    )
+    for name, options in [
+        ("ruff", ["check", "--no-fix"]),
+        ("format", ["format", "--check"]),
+    ]
+]
+
+py_test(
+    name = "typecheck",
+    srcs = ["//build/python:tool_test.py"],
+    main = "//build/python:tool_test.py",
+    args = [
+        "$(rlocationpath //build/python:ty)",
+        "check",
+        "$(rlocationpath notebooks/weather.py)",
+    ],
+    data = ["notebooks/weather.py", "//build/python:ty", "//:pyproject.toml"],
+    deps = [
+        "//packages/vgplot/vgplot-python:vgplot",
+        "//packages/vgplot/widget:mosaic_widget_sources",
+        "@pypi//marimo",
+        "@pypi//polars",
+        "@rules_python//python/runfiles",
+    ],
+    legacy_create_init = False,
+    visibility = ["//visibility:public"],
+)
+
+test_suite(
+    name = "lint",
+    tests = [":ruff", ":format"],
+    visibility = ["//visibility:public"],
+)
+
+test_suite(
+    name = "check",
+    tests = [":ruff", ":format", ":typecheck"],
+    visibility = ["//visibility:public"],
+)

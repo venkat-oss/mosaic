@@ -1,6 +1,6 @@
 # Aggregate Functions
 
-SQL aggregate function expressions.
+SQL aggregate function expressions. Aggregate detection in SQL fragments includes the DuckDB 2.0 functions `combine_aggr`, `decimal_average`, `lttb`, and `variant_group_object`. These names can be used through [`sql`](./expressions#sql) or `AggregateNode`.
 
 ## AggregateNode {#aggregate-node}
 

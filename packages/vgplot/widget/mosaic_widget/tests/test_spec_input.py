@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import duckdb
+import pyarrow as pa
 import pytest
 from duckdb import DuckDBPyConnection as Con
 from duckdb import DuckDBPyRelation as Rel
@@ -45,6 +46,26 @@ def test_dict_spec_is_used_as_is() -> None:
     spec = {"plot": [{"mark": "dot"}]}
     widget = MosaicWidget(spec)
     assert widget.spec == spec
+
+
+def test_dict_spec_can_be_reused_without_removing_data() -> None:
+    frame = pa.table({"x": [1, 2]})
+    file_def = {"type": "csv", "file": "athletes.csv"}
+    data = {"frame": frame, "athletes": file_def}
+    spec = {"data": data, "plot": [{"mark": "dot", "data": {"from": "frame"}}]}
+
+    first = MosaicWidget(spec)
+    second = MosaicWidget(spec)
+
+    assert spec["data"] is data
+    assert data["frame"] is frame
+    assert data["athletes"] is file_def
+    assert first.spec["data"] == second.spec["data"] == {"athletes": file_def}
+    assert (
+        first.data("frame").fetchall()
+        == second.data("frame").fetchall()
+        == [(1,), (2,)]
+    )
 
 
 def test_spec_object_with_context_receives_caller_locals() -> None:

@@ -1,0 +1,21 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+py_binary(
+    name = "generate",
+    legacy_create_init = False,
+    main = "scripts/generate.py",
+    srcs = ["scripts/generate.py", "scripts/inventory.py", "scripts/schema_check.py", "scripts/versions.py"],
+    imports = ["scripts"],
+    data = ["versions.cmake"] + glob(["inventories/**/*.json"]),
+)
+
+filegroup(name = "sources", srcs = glob(["src/*.cpp"]))
+
+cc_library(
+    name = "headers",
+    hdrs = glob(["src/include/**/*.hpp"]),
+    includes = ["src/include"],
+)

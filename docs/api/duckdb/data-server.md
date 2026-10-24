@@ -2,9 +2,7 @@
 
 The data server provides network access to a server-side DuckDB instance from Node.js.
 
-::: warning
-Due to persistent quality issues involving the DuckDB Node.js client and Arrow extension, we recommend using Mosaic's Python-based [`duckdb-server`](/server/) package instead. However, we retain this JavaScript-based server for both backwards compatibility and potential future use as quality issues improve.
-:::
+The Node, Python, Go and Rust servers share the [server protocol](./server-protocol), including Arrow streams, sequential execution and managed preaggregation.
 
 ## dataServer
 
@@ -20,12 +18,7 @@ The following _options_ are supported:
 
 For HTTPS/HTTP/2, install native mkcert on `PATH`, then run `pnpm mkcert` from the repository root. The server checks for a complete `localhost.pem` / `localhost-key.pem` pair in its working directory, then the shared OS user configuration directory under `mosaic/https`. A selected invalid pair fails startup; without a pair, the server uses plaintext HTTP. HTTPS also supports HTTP/1.1 clients. See the [server guide](https://github.com/uwdata/mosaic/blob/main/packages/server/README.md) for platform paths, mounts, and renewal.
 
-Once launched, the data server will accept HTTP POST requests containing JSON content that consists of a single object with the following properties:
-
-- _type_: The type of query (required). The type `"exec"` indicates that the provided query should be run with no return value. The `"arrow"` type indicates that the result table should be returned as Arrow IPC bytes.
-- _sql_: The SQL query string to issue to DuckDB.
-
-A request without a _type_ is rejected with HTTP status 400.
+POST commands contain required, case-sensitive `type` and `sql` string fields. Supported command types are `arrow`, `exec` and `preagg`. GET uses flat `type=arrow&sql=...` parameters and permits read-only queries. Errors use the shared JSON error envelope; see the [protocol reference](./server-protocol) for validation, response formats and status codes.
 
 ### Examples
 

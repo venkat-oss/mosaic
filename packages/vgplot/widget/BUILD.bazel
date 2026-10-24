@@ -1,0 +1,84 @@
+load("@aspect_rules_js//js:defs.bzl", "js_run_binary", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:eslint/package_json.bzl", eslint_bin = "bin")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//packages/vgplot/widget:esbuild/package_json.bzl", esbuild_bin = "bin")
+load("//build/python:widget.bzl", "mosaic_widget_python")
+
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "manifest",
+    srcs = ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+esbuild_bin.esbuild_binary(name = "esbuild")
+
+js_run_binary(
+    name = "bundle",
+    tool = ":esbuild",
+    chdir = "packages/vgplot/widget",
+    srcs = glob(["src/**"]) + [
+        ":node_modules/@uwdata/mosaic-core",
+        ":node_modules/@uwdata/mosaic-spec",
+        ":node_modules/uuid",
+    ],
+    args = [
+        "src/index.js",
+        "--bundle",
+        "--format=esm",
+        "--outfile=mosaic_widget/static/index.js",
+    ],
+    outs = [
+        "mosaic_widget/static/index.js",
+        "mosaic_widget/static/index.css",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+mosaic_widget_python(bundle = ":bundle")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig_base"],
+)
+
+ts_project(
+    name = "javascript_types",
+    visibility = ["//:__pkg__"],
+    srcs = ["package.json"] + glob(["src/**/*.js", "src/**/*.d.ts"]),
+    tsconfig = {"references": [], "compilerOptions": {"composite": False, "incremental": False}},
+    extends = ":tsconfig",
+    allow_js = True,
+    no_emit = True,
+    declaration = True,
+    declaration_map = True,
+    source_map = True,
+    root_dir = ".",
+    tsc = "//:tsc",
+    supports_workers = 0,
+    deps = [":node_modules/@uwdata/mosaic-core", ":node_modules/@uwdata/mosaic-spec", ":node_modules/anywidget", ":node_modules/uuid"],
+)
+
+js_library(
+    name = "lint_sources",
+    srcs = glob(["src/**"]),
+    deps = ["//:javascript_test_support"],
+    testonly = True,
+)
+
+eslint_bin.eslint_test(
+    name = "javascript_lint",
+    visibility = ["//:__pkg__"],
+    args = ["src"],
+    chdir = "packages/vgplot/widget",
+    data = [":lint_sources"],
+)
+
+test_suite(
+    name = "check",
+    tests = [":python_check", ":javascript_types_typecheck_test", ":javascript_lint"],
+    visibility = ["//visibility:public"],
+)

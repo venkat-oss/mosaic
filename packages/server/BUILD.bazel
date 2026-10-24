@@ -1,0 +1,55 @@
+load("@rules_python//python:py_test.bzl", "py_test")
+
+exports_files(["protocol.json"])
+
+_SERVERS = {
+    "node": "//packages/server/bench:node_server",
+    "python": "//packages/server/duckdb-server:server",
+    "go": "//packages/server/duckdb-server-go:duckdb-server",
+    "rust": "//packages/server/duckdb-server-rust:duckdb-server",
+}
+
+[
+    py_test(
+        name = "protocol_" + server,
+        srcs = ["protocol_test.py"],
+        main = "protocol_test.py",
+        precompile = "disabled",
+        data = ["protocol.json", executable],
+        deps = ["//packages/server/bench:benchmark", "@pypi//pyarrow"],
+        env = {
+            "MOSAIC_PROTOCOL_SERVER": server,
+            "MOSAIC_PROTOCOL_CONTRACT": "$(rlocationpath protocol.json)",
+            "MOSAIC_BENCH_" + server.upper(): "$(rlocationpath " + executable + ")",
+        },
+        legacy_create_init = False,
+        size = "medium",
+        tags = ["requires-network"] if server == "node" else [],
+        visibility = ["//visibility:public"],
+    )
+    for server, executable in _SERVERS.items()
+]
+
+test_suite(
+    name = "protocol",
+    tests = [":protocol_" + server for server in _SERVERS],
+    visibility = ["//visibility:public"],
+)
+
+[
+    py_test(
+        name = name,
+        srcs = ["//build/python:tool_test.py"],
+        main = "//build/python:tool_test.py",
+        args = ["$(rlocationpath //build/python:ruff)"] + options + [
+            "--no-cache",
+            "--config", "$(rlocationpath //:pyproject.toml)",
+            "$(rlocationpath protocol_test.py)",
+        ],
+        data = ["protocol_test.py", "//build/python:ruff", "//:pyproject.toml"],
+        deps = ["@rules_python//python/runfiles"],
+        legacy_create_init = False,
+        visibility = ["//visibility:public"],
+    )
+    for name, options in [("lint", ["check", "--no-fix"]), ("format", ["format", "--check"])]
+]

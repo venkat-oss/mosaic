@@ -1,0 +1,52 @@
+{
+  "data": {
+    "param_data": {
+      "type": "table",
+      "query": "SELECT * FROM (VALUES (1,2,'A'),(2,1,'B'),(3,3,'A')) AS t(x,y,category)"
+    }
+  },
+  "params": {
+    "upstream": {
+      "select": "single"
+    },
+    "brush": {
+      "select": "crossfilter",
+      "empty": false,
+      "include": [
+        "$upstream"
+      ]
+    }
+  },
+  "vconcat": [
+    {
+      "plot": [
+        {
+          "mark": "dot",
+          "data": {
+            "from": "param_data",
+            "filterBy": "$brush"
+          },
+          "x": "x",
+          "y": "y"
+        },
+        {
+          "select": "toggleX",
+          "as": "$brush"
+        }
+      ]
+    },
+    {
+      "plot": [
+        {
+          "mark": "dot",
+          "data": {
+            "from": "param_data",
+            "filterBy": "$brush"
+          },
+          "x": "x",
+          "y": "y"
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,9 @@
   "version": "0.34.0",
   "private": true,
   "scripts": {
-    "prerelease": "uv run ruff check && uv run ruff format --check",
-    "release": "uv build && uvx twine upload --skip-existing ../../../dist/vgplot*"
+    "build": "bazelisk build //packages/vgplot/vgplot-python:wheel //packages/vgplot/vgplot-python:sdist",
+    "test": "bazelisk test //packages/vgplot/vgplot-python:check",
+    "prerelease": "bazelisk test //packages/vgplot/vgplot-python:check",
+    "release": "uvx twine upload --skip-existing ../../../bazel-bin/packages/vgplot/vgplot-python/vgplot-*.whl ../../../bazel-bin/packages/vgplot/vgplot-python/vgplot-*.tar.gz"
   }
 }

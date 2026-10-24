@@ -1,10 +1,7 @@
-# Ensures the exported vgplot API covers every mark, attribute, interactor, and
-# input in the Mosaic JSON schema (the source of truth). Marks and attributes
-# are generated; interactors and inputs are hand-written. This guards against a
-# schema addition that was never generated or hand-added.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -24,8 +21,8 @@ if TYPE_CHECKING:
         PlotAttributes: Schema
 
 
-ROOT = Path(__file__).resolve().parents[4]
-SCHEMA = ROOT / "docs" / "public" / "schema" / "latest.json"
+ROOT = Path(os.environ["TEST_SRCDIR"]) / os.environ["TEST_WORKSPACE"]
+SCHEMA = ROOT / "packages" / "vgplot" / "spec" / "dist" / "mosaic-schema.json"
 
 # Schema names whose Python export is renamed or intentionally absent.
 RENAME = {"table": "table_input"}  # `table` input -> vg.table_input (vg.table is data)

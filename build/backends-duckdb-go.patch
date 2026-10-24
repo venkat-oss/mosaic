@@ -1,0 +1,24 @@
+--- /dev/null
++++ b/bazel_lint_inputs.bzl
+@@ -0,0 +1,21 @@
++load("@io_bazel_rules_go//go:def.bzl", "go_library")
++
++def duckdb_go_library(name, **kwargs):
++    if native.package_name() == "":
++        native.alias(
++            name = "lint_headers",
++            actual = "@com_github_duckdb_duckdb_go_bindings//include:lint_inputs",
++            visibility = ["//visibility:public"],
++        )
++        native.filegroup(
++            name = "lint_archives",
++            srcs = select({
++                "@io_bazel_rules_go//go/platform:darwin_amd64": ["@org_duckdb_go_libduckdb_darwin_amd64//:lint_inputs"],
++                "@io_bazel_rules_go//go/platform:darwin_arm64": ["@org_duckdb_go_libduckdb_darwin_arm64//:lint_inputs"],
++                "@io_bazel_rules_go//go/platform:linux_amd64": ["@org_duckdb_go_libduckdb_linux_amd64//:lint_inputs"],
++                "@io_bazel_rules_go//go/platform:linux_arm64": ["@org_duckdb_go_libduckdb_linux_arm64//:lint_inputs"],
++                "@io_bazel_rules_go//go/platform:windows_amd64": ["@org_duckdb_go_libduckdb_windows_amd64//:lint_inputs"],
++            }),
++            visibility = ["//visibility:public"],
++        )
++    go_library(name = name, **kwargs)

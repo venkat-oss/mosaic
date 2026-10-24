@@ -1,0 +1,3 @@
+package colorattributes
+
+nativeChecks: _attributeNativeChecks

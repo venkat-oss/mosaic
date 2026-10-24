@@ -1,0 +1,19 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_projection")
+
+cue_instance(
+    name = "input",
+    srcs = ["input.cue"],
+    ancestor = "//cue.mod:module",
+    package_name = "buildinput",
+    deps = ["//api/catalog:package"],
+)
+
+cue_projection(
+    name = "families",
+    instance = ":input",
+    srcs = ["//api/catalog:contributions"],
+    path = ["familyInputs:", "source"],
+    expression = "inputData",
+    visibility = ["//visibility:public"],
+)

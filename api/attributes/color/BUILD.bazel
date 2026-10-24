@@ -1,0 +1,26 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_projection")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "colorattributes",
+    deps = [
+        "//api/model:package",
+        "//api/marks/render:package",
+        "//api/attributes/render:package",
+        "//api/attributes:package",
+        "//api/params:package",
+        "//api/render:package",
+        "//api/values:package",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cue_projection(
+    name = "contribution",
+    instance = ":package",
+    expression = "contribution",
+    visibility = ["//visibility:public"],
+)

@@ -4,9 +4,9 @@
   "version": "0.34.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "bazelisk run //packages/examples/vega-example:dev --",
+    "build": "bazelisk build //packages/examples/vega-example:build",
+    "preview": "bazelisk run //packages/examples/vega-example:preview --"
   },
   "devDependencies": {
     "vite": "^8.3.1"

@@ -1,18 +1,13 @@
-# Tests that every generated Python spec (specs/python/*.py) round-trips
-# correctly: running the file produces JSON identical to the reference fixture
-# in specs/json/. Also checks that Python, JSON, and ESM example sets stay
-# in sync (same filenames).
-#
-# Run: pytest packages/vgplot/vgplot-python/tests/test_full_round_trip.py
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-SPEC_DIR = Path(__file__).resolve().parents[4] / "specs"
+SPEC_DIR = Path(os.environ["TEST_SRCDIR"]) / os.environ["TEST_WORKSPACE"] / "specs"
 JSON_DIR = SPEC_DIR / "json"
 ESM_DIR = SPEC_DIR / "esm"
 PYTHON_DIR = SPEC_DIR / "python"

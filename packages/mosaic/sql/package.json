@@ -24,11 +24,10 @@
     "url": "https://github.com/uwdata/mosaic.git"
   },
   "scripts": {
-    "clean": "rimraf dist && mkdir dist",
-    "lint": "eslint src test",
-    "typecheck": "tsc -p test/tsconfig.json",
-    "test": "vitest run",
-    "prepublishOnly": "tsc --build"
+    "build": "bazelisk build //packages/mosaic/sql:tarball",
+    "lint": "bazelisk test //packages/mosaic/sql:lint",
+    "typecheck": "bazelisk test //packages/mosaic/sql:test_types_typecheck_test",
+    "test": "bazelisk test //packages/mosaic/sql:check"
   },
   "devDependencies": {
     "@uwdata/mosaic-duckdb": "workspace:^"

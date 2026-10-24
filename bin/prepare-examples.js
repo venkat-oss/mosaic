@@ -1,123 +1,44 @@
-#!/usr/bin/env node
-// Prepares all Mosaic example specifications from YAML source files in specs/yaml/.
-// WARNING: overwrites existing test case data and docs!
-//
-// Output:
-//   - Parsed AST JSON, ESM, TypeScript, and Python written to /specs
-//   - YAML, non-parsed JSON, ESM, and Python copied to /docs/public/specs
-//   - Example Markdown pages written to /docs/examples
-//
-// Run: npm run docs:examples
-import { basename, extname, join, resolve } from 'node:path';
-import {
-  copyFile,
-  readdir,
-  readFile,
-  writeFile,
-} from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { parseSpec } from '../packages/vgplot/spec/src/parse-spec.js';
 import { astToESM } from '../packages/vgplot/spec/src/ast-to-esm.js';
 import { astToPython } from '../packages/vgplot/spec/src/ast-to-python.js';
 import { parse } from 'yaml';
+import { exampleDirectories } from './gallery-paths.mjs';
 
-const specDir = join('specs', 'yaml');
-const esmTestDir = join('specs', 'esm');
-const jsonTestDir = join('specs', 'json');
-const tsTestDir = join('specs', 'ts');
-const pythonTestDir = join('specs', 'python');
+if (process.argv.length !== 6) throw new Error('Usage: prepare-examples source output ruff config');
+const [source, output, ruff, config] = process.argv.slice(2).map(path => resolve(process.env.JS_BINARY__EXECROOT || process.cwd(), path));
+const pythonFiles = [];
+await Promise.all((await readdir(source)).filter(name => extname(name) === '.yaml').sort().map(async name => {
+  const base = basename(name, '.yaml');
+  const text = await readFile(join(source, name), 'utf8');
+  const spec = parse(text);
+  const ast = parseSpec(spec);
+  const code = astToESM(ast);
+  const python = astToPython(ast);
+  const files = {
+    [`${exampleDirectories.esm}/${base}.js`]: code,
+    [`${exampleDirectories.json}/${base}.json`]: JSON.stringify(ast.toJSON(), null, 2),
+    [`${exampleDirectories.ts}/${base}.ts`]: `import { Spec } from '@uwdata/mosaic-spec';
 
-const docsDir = 'docs';
-const yamlDocsDir = join(docsDir, 'public', 'specs', 'yaml');
-const jsonDocsDir = join(docsDir, 'public', 'specs', 'json');
-const esmDocsDir = join(docsDir, 'public', 'specs', 'esm');
-const exampleDir = join(docsDir, 'examples');
-const pythonDocsDir = join(docsDir, 'public', 'specs', 'python');
-
-let hadFailure = false;
-
-const specToTS = spec => {
-  return `import { Spec } from '@uwdata/mosaic-spec';
-
-export const spec : Spec = ${JSON.stringify(spec, 0, 2)};
-`;
-}
-
-const files = await Promise.allSettled((await readdir(specDir))
-  .filter(name => extname(name) === '.yaml')
-  .map(async name => {
-    const base = basename(name, '.yaml');
-    const file = resolve(specDir, name);
-    const text = await readFile(file, 'utf8');
-
-    // parse spec and perform code generation
-    // do this first to catch any errors
-    const spec = parse(text);
-    const ast = parseSpec(spec);
-    const code = astToESM(ast);
-    const python = astToPython(ast);
-
-    try {
-      await Promise.all([
-        // write ESM DSL spec to tests
-        writeFile(resolve(esmTestDir, `${base}.js`), code),
-        // write JSON spec to tests
-        writeFile(
-          resolve(jsonTestDir, `${base}.json`),
-          JSON.stringify(ast.toJSON(), 0, 2)
-        ),
-        // write TS JSON spec to tests
-        writeFile(
-          resolve(tsTestDir, `${base}.ts`),
-          specToTS(spec)
-        ),
-        // copy YAML file to docs
-        copyFile(file, resolve(yamlDocsDir, `${base}.yaml`)),
-        // write JSON spec to docs
-        writeFile(
-          resolve(jsonDocsDir, `${base}.json`),
-          JSON.stringify(spec, 0, 2)
-        ),
-        // write ESM DSL spec to docs
-        writeFile(resolve(esmDocsDir, `${base}.js`), code),
-        // write examples page to docs
-        writeFile(
-          resolve(exampleDir, `${base}.md`),
-          examplePage(base, spec.meta)
-        ),
-        // write Python spec to tests
-        writeFile(resolve(pythonTestDir, `${base}.py`), python),
-        // write Python spec to docs
-        writeFile(resolve(pythonDocsDir, `${base}.py`), python),
-      ]);
-    } catch (err) {
-      hadFailure = true;
-      console.error(err);
-    }
-
-    return base;
-  })
-);
-
-// output successfully written examples
-console.log(JSON.stringify(
-  files
-    .filter(x => x.status === 'fulfilled')
-    .map(x => x.value),
-  0, 2
-));
-
-// output unsuccessful example errors
-files
-  .filter(x => x.status === 'rejected')
-  .forEach(x => {
-    hadFailure = true;
-    console.error(x.reason);
-  });
-
-// exit non-zero if any spec failed to generate
-if (hadFailure) {
-  process.exit(1);
-}
+export const spec : Spec = ${JSON.stringify(spec, null, 2)};
+`,
+    [`${exampleDirectories.python}/${base}.py`]: python,
+    [`${exampleDirectories.yamlDownload}/${base}.yaml`]: text,
+    [`${exampleDirectories.jsonDownload}/${base}.json`]: JSON.stringify(spec, null, 2),
+    [`${exampleDirectories.esmDownload}/${base}.js`]: code,
+    [`${exampleDirectories.pythonDownload}/${base}.py`]: python,
+    [`${exampleDirectories.pages}/${base}.md`]: examplePage(base, spec.meta),
+  };
+  await Promise.all(Object.entries(files).map(async ([name, content]) => {
+    const path = join(output, name);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, content);
+    if (name.endsWith('.py')) pythonFiles.push(path);
+  }));
+}));
+execFileSync(ruff, ['format', '--no-cache', '--config', config, ...pythonFiles.sort()], { stdio: 'inherit' });
 
 function examplePage(spec, { title = spec, description, credit } = {}) {
   return `<script setup>

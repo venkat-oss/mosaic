@@ -1,0 +1,3 @@
+load("//build:javascript.bzl", "mosaic_javascript")
+
+mosaic_javascript(tests = True, consumer_tests = ["//build:npm_consumer"])

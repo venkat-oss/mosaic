@@ -1,0 +1,29 @@
+params:
+  range:
+    - 2
+    - 14
+plot:
+  - data:
+      - x: 1
+        "y": 1
+        radius: 1
+        magnitude: 2
+      - x: 2
+        "y": 2
+        radius: 4
+        magnitude: 5
+      - x: 3
+        "y": 1
+        radius: 9
+        magnitude: 8
+    mark: dot
+    x: x
+    "y": "y"
+    r: radius
+width: 300
+height: 180
+rScale: linear
+rDomain:
+  - 0
+  - 10
+rRange: $range

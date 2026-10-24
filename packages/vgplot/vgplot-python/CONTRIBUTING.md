@@ -1,46 +1,47 @@
 # Contributing to the vgplot Python API
 
-Most of the API — every **mark**, **plot attribute**, and **encoding
-transform** (aggregates, window functions, column transforms) — is generated
-from the Mosaic JSON schema, which is itself generated from the JavaScript
-spec ([`Spec.ts`]). The JS API is the source of truth.
+CUE owns the Python API's public contracts, type aliases, factory signatures, keyword mappings, exports, reference text and starter templates. The shared `pnpm generate:api` pipeline produces their bindings alongside JavaScript, TypeScript and JSON Schema outputs.
 
-Hand-written (not generated): the runtime core (`plot.py`, `spec.py`), data
-sources (`data.py`), params (`params.py`), the shared value types
-(`_types.py`), the `sql()` / `channels()` helpers (`encodings.py`), and the
-interactor / input / legend helpers.
+Canonical families live under `api/`: values and host adapters in `values/`; parameters and selections in `params/`; data sources and layouts in `data/` and `layouts/`; transforms in `transforms/`; attributes, marks, interactors and inputs in their matching directories. Common mark factory protocols live in `api/marks/profile/`, and Python language facts in `api/languages/python/`.
 
-[`Spec.ts`]: ../../../packages/vgplot/spec/src/spec/Spec.ts
+Each owning family package exposes its contribution in `contribution.cue`; `api/catalog/sources.cue` lists those packages. `api/catalog.cue` and `api/compose/` assemble shared modules and exports; `api/generated.json` lists generated filenames for stale-file cleanup. Edit the owning CUE contract and regenerate the public artifacts.
+
+Runtime modules retain serialization, dataframe handling, parameter/reference resolution, selection behavior and caller-scope discovery. Preserve direct caller-sensitive `spec`/`View` operations when changing public exports: an extra forwarding frame can change which local data and parameters are discovered. The SQL, plot and notebook engines consume generated metadata through their existing runtime hooks.
 
 ## Regenerating the API
 
-After any change to the vgplot spec types (or the generator), regenerate:
+Install Bazelisk as described in the [root contributing guide]. From the repository root, run:
 
 ```sh
-pnpm run generate:python-api
+pnpm generate:api
+pnpm check:api
+pnpm test:api
 ```
 
-This rebuilds the schema, runs [`bin/generate-python-api.js`], and formats the
-output into [`vgplot/_generated/`]. Commit the regenerated files.
+`pnpm generate:python-api` is a compatibility alias for `pnpm generate:api`. Bazelisk runs generation with pinned CUE and Ruff tools. Ordinary builds and installed Python packages use committed outputs without CUE.
 
-CI fails if the committed [`vgplot/_generated/`] output does not match a fresh
-regeneration, so the generated code always matches the schema.
+Check mode evaluates and formats outputs in temporary storage, then compares them without changing the workspace. CI checks committed artifacts before consumer tests. Commit source changes and regenerated outputs together. Python `_generated/` modules and public compatibility paths are generated outputs; their signatures, omission rules, sentinels and runtime class identities must remain consistent with the owning contracts.
 
-[`bin/generate-python-api.js`]: ../../../bin/generate-python-api.js
-[`vgplot/_generated/`]: ./vgplot/_generated/__init__.py
+The checked-in full schema is `packages/vgplot/spec/src/generated/mosaic-schema.json`; `//packages/vgplot/spec:schema` materializes it at the package's `dist/mosaic-schema.json` path in Bazel outputs. Admission tests use the current schema.
 
-## Adding a new mark, attribute, or transform
+## Adding or changing an API
 
-Add it on the JS side ([`Spec.ts`]), then run `pnpm run generate:python-api`.
-Nothing in the Python package needs hand-editing — there is no dynamic
-fallback, so a name that is missing from the generated API raises
-`AttributeError` (and is flagged by type checkers) rather than silently
-appearing.
+Update its canonical family and any target adapter, then regenerate its types, schema, bindings, docs and templates. Keep JavaScript and Python applicability explicit when one target supports native objects or options outside the shared declarative format. Exercise the public import and actual serialization or runtime path in normal tests.
+
+Generated Python bindings need no hand edits. A missing public name raises `AttributeError` and is visible to type checkers. When changing omission or keyword handling, cover explicit None, UNSET, false and zero values, aliases, and parameter/data reference identity as applicable.
 
 ## Tests
 
 ```sh
-cd packages/vgplot/vgplot-python
-uv run --group dev pytest      # round-trip + API + schema-coverage tests
-uv run --group dev ty check
+bazelisk test //packages/vgplot/vgplot-python:check
 ```
+
+The suite includes independently selectable Python tests, Ruff, formatting, TY and installed wheel/source-distribution consumers. Fixtures and cross-language tools come from declared runfiles. Static checking does not build the notebook widget's JavaScript bundle.
+
+Run affected JavaScript/codegen tests as well when changing a shared authoring contract, and run `pnpm docs:build` after changing generated reference or template text.
+
+## Distributions
+
+Run `bazelisk build //packages/vgplot/vgplot-python:wheel //packages/vgplot/vgplot-python:sdist`. Artifacts are under `bazel-bin/packages/vgplot/vgplot-python/`. Both distributions use the version in `package.json`; the source archive retains its Hatchling backend for installation outside the repository. Publication uploads these existing artifacts after version bumping and building them.
+
+[root contributing guide]: ../../../CONTRIBUTING.md#cue-api-generation

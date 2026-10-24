@@ -10,11 +10,10 @@
     "url": "https://github.com/uwdata/mosaic.git"
   },
   "scripts": {
-    "clean": "rimraf mosaic_widget/static",
-    "build": "esbuild --bundle --format=esm --outdir=mosaic_widget/static src/index.js",
-    "dev": "pnpm run build -- --watch",
-    "test": "tsc --build",
-    "lint": "eslint src"
+    "build": "bazelisk build //packages/vgplot/widget:bundle //packages/vgplot/widget:wheel //packages/vgplot/widget:sdist",
+    "test": "bazelisk test //packages/vgplot/widget:check",
+    "lint": "bazelisk test //packages/vgplot/widget:javascript_lint //packages/vgplot/widget:lint",
+    "notebook": "bazelisk run //packages/vgplot/widget:notebook"
   },
   "dependencies": {
     "@uwdata/mosaic-core": "workspace:^",

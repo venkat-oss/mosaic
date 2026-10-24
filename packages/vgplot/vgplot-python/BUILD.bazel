@@ -1,0 +1,83 @@
+load("@python_projects//:projects.bzl", "PROJECTS")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("//build/python:defs.bzl", "pytest_suite", "python_wheel", "python_checks", "python_sdist")
+
+exports_files(["pyproject.toml", "package.json"])
+
+js_library(
+    name = "manifest",
+    srcs = ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "api_sources",
+    srcs = glob(["vgplot/**"], exclude = ["**/__pycache__/**"]),
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "vgplot",
+    srcs = glob(["vgplot/**/*.py"]),
+    data = glob(["vgplot/**/*.pyi", "vgplot/py.typed"], allow_empty = True),
+    imports = ["."],
+    deps = ["@pypi//narwhals", "@pypi//typing_extensions"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "python",
+    srcs = ["//build/python:run_python.py"],
+    main = "//build/python:run_python.py",
+    deps = [":vgplot"],
+    legacy_create_init = False,
+    visibility = ["//visibility:public"],
+)
+
+pytest_suite(
+    name = "tests",
+    srcs = glob(["tests/test_*.py"]),
+    support = glob(["tests/conftest.py", "tests/__init__.py"], allow_empty = True),
+    data = ["//:python_test_data", "//packages/vgplot/spec:schema"],
+    deps = [":vgplot"],
+    deps_by_test = {
+        "tests/test_data.py": ["@pypi//pyarrow"],
+        "tests/test_values.py": ["@pypi//pyarrow"],
+        "tests/test_python_api.py": ["@pypi//duckdb", "@pypi//pandas", "@pypi//polars", "@pypi//pyarrow"],
+    },
+    data_by_test = {
+        name: ["//packages/vgplot/spec:ast_sources", "//build/python:node"]
+        for name in ["tests/test_guide_marks.py", "tests/test_statistical_marks.py"]
+    },
+    env_by_test = {
+        name: {"MOSAIC_NODE": "$(rlocationpath //build/python:node)"}
+        for name in ["tests/test_guide_marks.py", "tests/test_statistical_marks.py"]
+    },
+    args = ["-q"],
+)
+
+python_wheel(
+    name = "wheel",
+    package = "vgplot",
+    deps = [":vgplot"],
+    metadata = PROJECTS["vgplot"],
+    runtime_deps = ["@pypi//narwhals", "@pypi//typing_extensions"],
+)
+
+python_checks(
+    srcs = glob(["vgplot/**/*.py", "tests/**/*.py"]),
+    deps = [":vgplot", "//packages/vgplot/widget:mosaic_widget_sources", "@pypi//pandas", "@pypi//polars", "@pypi//pyarrow", "@pypi//duckdb", "@pypi//pyyaml"],
+)
+
+python_sdist(
+    srcs = glob(["vgplot/**"], exclude = ["**/__pycache__/**"]) + ["pyproject.toml", "package.json", "README.md"],
+    metadata = PROJECTS["vgplot"],
+)
+
+test_suite(
+    name = "check",
+    tests = [":tests", ":lint", ":typecheck", ":wheel_test", ":sdist_test"],
+    visibility = ["//visibility:public"],
+)

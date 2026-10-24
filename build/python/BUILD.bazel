@@ -1,0 +1,63 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
+load(":defs.bzl", "wheel_binary", "node_runtime")
+
+exports_files(["defs.bzl", "repositories.bzl", "pytest_runner.py", "tool_test.py", "wheel_test.py", "widget.bzl", "rules-python-workspace.patch", "watch.py", "run_python.py"])
+
+node_runtime(name = "node", visibility = ["//visibility:public"])
+
+py_binary(
+    name = "sdist",
+    srcs = ["sdist.py"],
+    deps = ["@pypi//hatchling"],
+    legacy_create_init = False,
+)
+
+py_binary(
+    name = "wheel_binary",
+    srcs = ["wheel_binary.py"],
+    python_version = "3.15.1",
+    legacy_create_init = False,
+)
+
+wheel_binary(
+    name = "ruff",
+    binary = "ruff",
+    wheel = "@pypi//ruff:whl",
+    visibility = ["//visibility:public"],
+)
+
+wheel_binary(
+    name = "ty",
+    binary = "ty",
+    wheel = "@pypi//ty:whl",
+    visibility = ["//visibility:public"],
+)
+
+[
+    py_test(
+        name = name,
+        srcs = ["tool_test.py"],
+        main = "tool_test.py",
+        args = ["$(rlocationpath :ruff)"] + options + [
+            "--no-cache",
+            "--config",
+            "$(rlocationpath //:pyproject.toml)",
+            "templates",
+        ] + ["$(rlocationpath " + source + ")" for source in glob(["*.py"])],
+        data = glob(["*.py"]) + [":ruff", "//:pyproject.toml", "//:templates"],
+        deps = ["@rules_python//python/runfiles"],
+        legacy_create_init = False,
+        visibility = ["//visibility:public"],
+    )
+    for name, options in [
+        ("ruff_check", ["check", "--no-fix"]),
+        ("format", ["format", "--check"]),
+    ]
+]
+
+test_suite(
+    name = "check",
+    tests = [":ruff_check", ":format"],
+    visibility = ["//visibility:public"],
+)

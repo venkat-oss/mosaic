@@ -10,6 +10,7 @@ import (
 	"github.com/duckdb/duckdb-go/v2"
 	"github.com/stretchr/testify/require"
 
+	fixture "github.com/uwdata/mosaic/packages/server/duckdb-server-go/internal/gatekeepertest"
 	"github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/query"
 )
 
@@ -41,6 +42,7 @@ func TestInitializeDatabase(t *testing.T) {
 				require.NoError(t, err)
 				require.NoError(t, db.Exec(t.Context(), "CREATE TABLE items (value INTEGER)"))
 				require.Equal(t, false, scanValue(t, connector, "SELECT EXISTS (SELECT 1 FROM duckdb_extensions() WHERE extension_name='gatekeeper' AND loaded)"))
+				require.Equal(t, false, scanValue(t, connector, "SELECT current_setting('allow_unsigned_extensions')"))
 			} else {
 				require.ErrorIs(t, err, query.ErrAccessDenied)
 				require.ErrorIs(t, db.Exec(t.Context(), "SELECT 1"), query.ErrExecWithValidation)
@@ -85,17 +87,14 @@ func TestInitializeDatabaseFailsClosed(t *testing.T) {
 	}
 }
 
-func TestInitializeDatabaseCommunityInstall(t *testing.T) {
-	if testing.Short() {
-		t.Skip("downloads the community extension into a fresh extension directory")
-	}
+func TestInitializeDatabaseArtifact(t *testing.T) {
 	connector := testConnector(t, freshDSN(t), "", defaultPolicy())
 	db, err := query.New(t.Context(), connector, query.WithValidation())
 	require.NoError(t, err)
 	t.Cleanup(db.Close)
-	require.Equal(t, "community", scanValue(t, connector, "SELECT installed_from FROM duckdb_extensions() WHERE extension_name='gatekeeper'"))
-	t.Logf("community Gatekeeper version: %v", scanValue(t, connector, "SELECT extension_version FROM duckdb_extensions() WHERE extension_name='gatekeeper'"))
-	require.Equal(t, false, scanValue(t, connector, "SELECT current_setting('allow_unsigned_extensions')"))
+	require.NotEqual(t, "community", scanValue(t, connector, "SELECT installed_from FROM duckdb_extensions() WHERE extension_name='gatekeeper'"))
+	require.Equal(t, "0.4.3", scanValue(t, connector, "SELECT extension_version FROM duckdb_extensions() WHERE extension_name='gatekeeper'"))
+	require.Equal(t, true, scanValue(t, connector, "SELECT current_setting('allow_unsigned_extensions')"))
 }
 
 // sql.OpenDB(connector).Close() would close the shared connector too.
@@ -114,6 +113,14 @@ func scanValue(t *testing.T, connector *duckdb.Connector, stmt string) driver.Va
 
 func testConnector(t *testing.T, dsn, extensionList string, policy *string) *duckdb.Connector {
 	t.Helper()
+	if policy != nil {
+		dsn = fixture.DSN(dsn)
+		if extensionList == "" {
+			var err error
+			extensionList, err = fixture.Path()
+			require.NoError(t, err)
+		}
+	}
 	connector, err := newConnector(t.Context(), dsn, extensionList, policy)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, connector.Close()) })
@@ -124,4 +131,19 @@ func defaultPolicy() *string { return new(`{"version":2,"options":{}}`) }
 func freshDSN(t *testing.T) string {
 	t.Helper()
 	return ":memory:?extension_directory=" + url.QueryEscape(t.TempDir())
+}
+
+func TestMain(m *testing.M) {
+	home, err := os.MkdirTemp(os.Getenv("TEST_TMPDIR"), "mosaic-go-tests-")
+	if err != nil {
+		panic(err)
+	}
+	for _, name := range []string{"HOME", "USERPROFILE"} {
+		if err := os.Setenv(name, home); err != nil {
+			panic(err)
+		}
+	}
+	code := m.Run()
+	_ = os.RemoveAll(home)
+	os.Exit(code)
 }

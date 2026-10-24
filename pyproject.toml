@@ -7,6 +7,7 @@ members = [
 
 # https://github.com/charliermarsh/ruff
 [tool.ruff]
+target-version = "py310"
 extend-include = ["*.ipynb"]
 fix = true
 
@@ -64,6 +65,8 @@ ignore = [
 "**/*sentinel*.py" = ["suspicious-pickle-usage"]
 "packages/vgplot/vgplot-python/vgplot/_compat.py" = ["N"]
 "**tests/**/*.py" = ["magic-value-comparison", "assert"]
+"build/python/*_test.py" = ["assert", "subprocess-without-shell-equals-true", "suspicious-url-open-usage", "suspicious-pickle-usage"]
+"build/python/wheel_binary.py" = ["bad-file-permissions"]
 "packages/server/bench/*" = ["start-process-with-partial-path", "subprocess-without-shell-equals-true"]
 
 "**/specs/python/*.py" = [
@@ -95,5 +98,7 @@ possibly-unresolved-reference = "warn"
 
 [dependency-groups]
 dev = [
+    "hatchling>=1.32.4",
+    "installer>=1.1.0",
     "marimo>=0.23.9",
 ]

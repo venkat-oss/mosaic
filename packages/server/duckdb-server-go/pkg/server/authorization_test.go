@@ -46,8 +46,8 @@ type authorizationContextKey struct{}
 func TestAuthorizerReceivesCommandAndRequestContext(t *testing.T) {
 	const sql = "SELECT 42 AS answer /* preserve exactly */"
 	for _, req := range []*http.Request{
-		httptest.NewRequest(http.MethodGet, "/?"+url.Values{"type": {string(CommandArrow)}, "sql": {sql}}.Encode(), nil),
-		httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"type":"arrow","sql":"`+sql+`"}`)),
+		commandRequest(http.MethodGet, "/?"+url.Values{"type": {string(CommandArrow)}, "sql": {sql}}.Encode(), nil),
+		commandRequest(http.MethodPost, "/", strings.NewReader(`{"type":"arrow","sql":"`+sql+`"}`)),
 	} {
 		t.Run(req.Method, func(t *testing.T) {
 			requireRequestContext := func(ctx context.Context) {
@@ -126,7 +126,7 @@ func TestAuthorizerHandlesConcurrentRequests(t *testing.T) {
 		wg.Go(func() {
 			body := fmt.Sprintf(`{"type":"arrow","sql":"SELECT %d","application":{"request":%d}}`, i, i)
 			ctx := context.WithValue(t.Context(), authorizationContextKey{}, i)
-			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body)).WithContext(ctx)
+			req := commandRequest(http.MethodPost, "/", strings.NewReader(body)).WithContext(ctx)
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, req)
 			statuses <- res.Code
@@ -187,7 +187,7 @@ func TestHTTPCommandAuthorizationStatusMapping(t *testing.T) {
 		{
 			name:       "expired deadline is not logged",
 			authErr:    context.DeadlineExceeded,
-			wantStatus: http.StatusInternalServerError,
+			wantStatus: http.StatusGatewayTimeout,
 		},
 	}
 
@@ -209,18 +209,18 @@ func TestHTTPCommandAuthorizationStatusMapping(t *testing.T) {
 				var req *http.Request
 				if method == http.MethodGet {
 					values := make(url.Values)
-					values.Set("type", string(CommandExec))
-					values.Set("sql", "CREATE TABLE must_not_exist(value INTEGER)")
-					req = httptest.NewRequest(method, "/?"+values.Encode(), nil)
+					values.Set("type", string(CommandArrow))
+					values.Set("sql", "SELECT 1")
+					req = commandRequest(method, "/?"+values.Encode(), nil)
 				} else {
-					req = httptest.NewRequest(method, "/", strings.NewReader(`{"type":"exec","sql":"CREATE TABLE must_not_exist(value INTEGER)"}`))
+					req = commandRequest(method, "/", strings.NewReader(`{"type":"exec","sql":"CREATE TABLE must_not_exist(value INTEGER)"}`))
 				}
 				res := httptest.NewRecorder()
 				handler.ServeHTTP(res, req)
 
 				require.Equal(t, tt.wantStatus, res.Code, res.Body.String())
 				require.Equal(t, int32(1), commandCalls.Load())
-				require.Equal(t, tt.authErr.Error(), strings.TrimSpace(res.Body.String()))
+				require.Equal(t, tt.authErr.Error(), errorMessage(t, res.Body.Bytes()))
 				if tt.level == "" {
 					require.Empty(t, logs.Bytes())
 					return
@@ -254,7 +254,7 @@ func TestHTTPRequestChecksPrecedeAuthorization(t *testing.T) {
 					return nil, nil
 				}),
 			)
-			req := httptest.NewRequest(tt.method, tt.target, nil)
+			req := commandRequest(tt.method, tt.target, nil)
 			maps.Copy(req.Header, tt.header)
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, req)
@@ -277,7 +277,7 @@ func TestNilAuthorizerPolicyPreservesGlobalValidation(t *testing.T) {
 		{`{"type":"exec","sql":"SELECT 1"}`, http.StatusBadRequest, query.ErrExecWithValidation.Error()},
 	} {
 		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body)))
+		handler.ServeHTTP(res, commandRequest(http.MethodPost, "/", strings.NewReader(tt.body)))
 		require.Equal(t, tt.status, res.Code, res.Body.String())
 		require.Contains(t, res.Body.String(), tt.want)
 	}
@@ -298,7 +298,7 @@ func TestAuthorizerScopesValidationPerCommand(t *testing.T) {
 		return &query.ValidationPolicy{AllowedTables: []query.TableRule{{SchemaPath: []string{command.Payload().Tenant}, Table: "*"}}}, nil
 	}))
 	post := func(body string) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+		req := commandRequest(http.MethodPost, "/", strings.NewReader(body))
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, req)
 		return res

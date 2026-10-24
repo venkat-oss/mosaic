@@ -32,14 +32,14 @@
     "url": "https://github.com/uwdata/mosaic.git"
   },
   "scripts": {
-    "clean": "rimraf dist && mkdir dist",
-    "lint": "eslint src test",
-    "typecheck": "tsc -p test/tsconfig.json",
-    "test": "vitest run",
-    "prepublishOnly": "tsc --build"
+    "build": "bazelisk build //packages/mosaic/core:tarball",
+    "lint": "bazelisk test //packages/mosaic/core:lint",
+    "typecheck": "bazelisk test //packages/mosaic/core:test_types_typecheck_test",
+    "test": "bazelisk test //packages/mosaic/core:check"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
+    "@types/emscripten": "^1.41.6",
     "@uwdata/flechette": "catalog:",
     "@uwdata/mosaic-sql": "workspace:^"
   },

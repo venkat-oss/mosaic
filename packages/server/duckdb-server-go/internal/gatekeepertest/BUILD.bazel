@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "gatekeepertest",
+    srcs = ["fixture.go"],
+    importpath = "github.com/uwdata/mosaic/packages/server/duckdb-server-go/internal/gatekeepertest",
+    testonly = True,
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+    deps = ["//packages/server/duckdb-server-go/pkg/extensions"],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = ["fixture.go"],
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "layout_data": {
+      "type": "table",
+      "query": "SELECT * FROM (VALUES (1, 2, 'A'), (2, 1, 'B'), (3, 3, 'A')) AS t(x, y, category)"
+    }
+  },
+  "params": {
+    "radius": 4
+  },
+  "plotDefaults": {
+    "width": 180,
+    "height": 140
+  },
+  "hconcat": [
+    {
+      "plot": [
+        {
+          "mark": "dot",
+          "data": {
+            "from": "layout_data"
+          },
+          "x": "x",
+          "y": "y",
+          "r": "$radius"
+        }
+      ]
+    },
+    {
+      "hspace": 12
+    },
+    {
+      "vconcat": [
+        {
+          "plot": [
+            {
+              "mark": "dot",
+              "data": {
+                "from": "layout_data"
+              },
+              "x": "x",
+              "y": "y",
+              "r": "$radius"
+            }
+          ]
+        },
+        {
+          "vspace": 8
+        },
+        {
+          "plot": [
+            {
+              "mark": "dot",
+              "data": {
+                "from": "layout_data"
+              },
+              "x": "x",
+              "y": "y",
+              "r": "$radius"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

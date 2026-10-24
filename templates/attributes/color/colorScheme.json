@@ -1,0 +1,38 @@
+{
+  "params": {
+    "setting": "YlGnBu"
+  },
+  "plot": [
+    {
+      "data": [
+        {
+          "x": 1,
+          "y": 2,
+          "value": 1,
+          "category": "A"
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "value": 2,
+          "category": "B"
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "value": 3,
+          "category": "C"
+        }
+      ],
+      "mark": "dot",
+      "x": "x",
+      "y": "y",
+      "r": 5,
+      "fill": "value"
+    }
+  ],
+  "width": 320,
+  "height": 200,
+  "colorScale": "linear",
+  "colorScheme": "$setting"
+}

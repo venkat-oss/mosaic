@@ -25,21 +25,8 @@ export function isObject(value) {
   return value !== null && typeof value === 'object' && !isArray(value);
 }
 
-export function isNumber(value) {
-  return typeof value === 'number';
-}
-
-export function isNumberOrString(value) {
-  const t = typeof value;
-  return t === 'number' || t === 'string';
-}
-
 export function isString(value) {
   return typeof value === 'string';
-}
-
-export function isFunction(value) {
-  return typeof value === 'function';
 }
 
 export function error(message, data) {

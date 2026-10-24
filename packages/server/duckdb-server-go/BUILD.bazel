@@ -1,0 +1,115 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_path")
+load("//packages/server/duckdb-server-go:tests.bzl", "duckdb_go_test")
+load("//packages/server/duckdb-server-go/lint:lint.bzl", "go_lint_test")
+
+exports_files([
+    "go.mod",
+    "go.sum",
+])
+
+go_library(
+    name = "server_lib",
+    srcs = [
+        "flags.go",
+        "https.go",
+        "main.go",
+    ],
+    importpath = "github.com/uwdata/mosaic/packages/server/duckdb-server-go",
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+    deps = [
+        "//packages/server/duckdb-server-go/pkg/extensions",
+        "//packages/server/duckdb-server-go/pkg/query",
+        "//packages/server/duckdb-server-go/pkg/server",
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+    ],
+)
+
+go_binary(
+    name = "duckdb-server",
+    embed = [":server_lib"],
+    visibility = ["//visibility:public"],
+)
+
+duckdb_go_test(
+    name = "server_test",
+    srcs = [
+        "flags_test.go",
+        "https_test.go",
+        "main_test.go",
+    ],
+    embed = [":server_lib"],
+    network = True,
+    gatekeeper = True,
+    deps = [
+        "//packages/server/duckdb-server-go/pkg/query",
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)
+
+test_suite(
+    name = "tests",
+    tests = [
+        ":server_test",
+        ":server_test_race",
+        "//packages/server/duckdb-server-go/pkg/extensions:extensions_test",
+        "//packages/server/duckdb-server-go/pkg/extensions:extensions_test_race",
+        "//packages/server/duckdb-server-go/pkg/query:query_test",
+        "//packages/server/duckdb-server-go/pkg/query:query_test_race",
+        "//packages/server/duckdb-server-go/pkg/server:server_test",
+        "//packages/server/duckdb-server-go/pkg/server:server_test_race",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+test_suite(
+    name = "check",
+    tests = [
+        ":lint",
+        ":tests",
+        "//packages/server/duckdb-server-go/format:format_test",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+go_path(
+    name = "lint_gopath",
+    testonly = True,
+    include_data = True,
+    include_pkg = False,
+    mode = "copy",
+    deps = [
+        ":server_lib",
+        "//packages/server/duckdb-server-go/internal/gatekeepertest",
+        "//packages/server/duckdb-server-go/pkg/extensions",
+        "//packages/server/duckdb-server-go/pkg/query",
+        "//packages/server/duckdb-server-go/pkg/server",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+go_lint_test(
+    name = "lint",
+    srcs = [
+        ":format_srcs",
+        "//packages/server/duckdb-server-go/internal/gatekeepertest:format_srcs",
+        "//packages/server/duckdb-server-go/format:format_srcs",
+        "//packages/server/duckdb-server-go/lint:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/extensions:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/query:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/server:format_srcs",
+    ],
+    cgo_inputs = {
+        "@com_github_duckdb_duckdb_go_v2//:lint_headers": "github.com/duckdb/duckdb-go-bindings/include",
+        "@com_github_duckdb_duckdb_go_v2//:lint_archives": "go.duckdb.org/libduckdb/{goos}-{goarch}",
+    },
+    config = ".golangci.yaml",
+    gopath = ":lint_gopath",
+    visibility = ["//visibility:public"],
+)

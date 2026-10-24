@@ -1,0 +1,28 @@
+data:
+  legend_data:
+    - x: 1
+      "y": 2
+      category: A
+      alpha: 0.3
+    - x: 2
+      "y": 1
+      category: B
+      alpha: 0.7
+    - x: 3
+      "y": 3
+      category: A
+      alpha: 1
+params:
+  brush:
+    select: crossfilter
+plot:
+  - mark: dot
+    data:
+      from: legend_data
+      filterBy: $brush
+    x: x
+    "y": "y"
+    fill: category
+  - legend: color
+    as: $brush
+    field: category

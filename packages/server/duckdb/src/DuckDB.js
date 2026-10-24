@@ -1,4 +1,8 @@
 import { DuckDBInstance } from '@duckdb/node-api';
+import { randomUUID } from 'node:crypto';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /** @import { DuckDBConnection, DuckDBPreparedStatement, DuckDBValue, Json } from '@duckdb/node-api' */
 
@@ -85,10 +89,34 @@ export class DuckDB {
    */
   async arrowBuffer(sql) {
     await this._init;
-    const reader = await this.con.runAndReadAll(
-      `SELECT * FROM to_arrow_ipc((${sql}))`
-    );
-    return /** @type {Uint8Array[]} */ (reader.getColumnsJS()[0]) ?? [];
+    const result = await this.con.run(sql);
+    const names = result.columnNames();
+    const name = '_mosaic_arrow_' + randomUUID().replaceAll('-', '');
+    const table = `temp.main."${name}"`;
+    const columns = names.map((_, i) => `"c${i}" ${result.columnType(i)}`);
+    const restoreNames = names.some(name => !name) || new Set(names.map(name => name.toLowerCase())).size !== names.length;
+    const projection = names.map((name, i) => `"c${i}" AS "${(name || 'c' + i).replaceAll('"', '""')}"`);
+    const directory = await mkdtemp(join(tmpdir(), 'mosaic-arrow-'));
+    const path = join(directory, 'result.arrows').replaceAll("'", "''");
+    try {
+      await this.con.run(`CREATE TEMP TABLE ${table} (${columns.join(', ')})`);
+      const appender = await this.con.createAppender(name, 'main', 'temp');
+      try {
+        for (let i = 0; i < result.chunkCount; ++i) appender.appendDataChunk(result.getChunk(i));
+      } finally {
+        appender.closeSync();
+      }
+      await this.con.run(`COPY (SELECT ${projection.join(', ')} FROM ${table}) TO '${path}' (FORMAT ARROWS)`);
+      const bytes = await readFile(join(directory, 'result.arrows'));
+      if (!restoreNames) return [bytes];
+      // DuckDB COPY deduplicates column aliases; restore the original result names.
+      const { tableFromIPC, tableToIPC } = await import('@uwdata/flechette');
+      const decoded = tableFromIPC(bytes);
+      return [/** @type {Uint8Array} */ (tableToIPC(decoded.selectAt(names.map((_, i) => i), names), { format: 'stream' }))];
+    } finally {
+      await this.con.run(`DROP TABLE IF EXISTS ${table}`).catch(() => {});
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 
 }

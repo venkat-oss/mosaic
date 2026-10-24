@@ -1,5 +1,5 @@
 /** @import { SpecNode } from '../ast/SpecNode.js' */
-import { SPATIAL_DATA } from '../ast/DataNode.js';
+import { DATA_EXTENSIONS } from '../generated/data.js';
 import { toArray } from '../util.js';
 
 /**
@@ -14,9 +14,8 @@ export function resolveExtensions(ast) {
   const exts = new Set(spec ? toArray(spec) : []);
 
   for (const def of Object.values(ast.data)) {
-    if (def.format === SPATIAL_DATA) {
-      exts.add('spatial');
-    }
+    const extension = DATA_EXTENSIONS[def.format];
+    if (extension) exts.add(extension);
   }
 
   return exts;

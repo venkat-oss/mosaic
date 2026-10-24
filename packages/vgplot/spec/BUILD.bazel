@@ -1,0 +1,133 @@
+load("@mosaic_browser//:defs.bzl", "PLAYWRIGHT_IMAGE")
+load("@npm//:eslint/package_json.bzl", eslint_bin = "bin")
+load("@bazel_lib//lib:copy_file.bzl", "copy_file")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("//build:javascript.bzl", "mosaic_javascript", "mosaic_package_test")
+
+mosaic_package_test(
+    package = "@uwdata/mosaic-spec",
+    packages = {
+        "@uwdata/mosaic-sql": "//packages/mosaic/sql:tarball",
+        "@uwdata/mosaic-duckdb": "//packages/server/duckdb:tarball",
+        "@uwdata/mosaic-core": "//packages/mosaic/core:tarball",
+        "@uwdata/mosaic-inputs": "//packages/vgplot/inputs:tarball",
+        "@uwdata/mosaic-plot": "//packages/vgplot/plot:tarball",
+        "@uwdata/vgplot": "//packages/vgplot/vgplot:tarball",
+        "@uwdata/mosaic-spec": "//packages/vgplot/spec:tarball",
+    },
+    links = {
+        "@duckdb/node-api": "//packages/server/duckdb:node_modules/@duckdb/node-api",
+        "@duckdb/duckdb-wasm": "//packages/mosaic/core:node_modules/@duckdb/duckdb-wasm",
+        "@uwdata/flechette": "//packages/mosaic/core:node_modules/@uwdata/flechette",
+        "@observablehq/plot": "//packages/vgplot/plot:node_modules/@observablehq/plot",
+        "d3": "//packages/vgplot/plot:node_modules/d3",
+    },
+)
+
+exports_files(["test/connected-marks.types.ts", "test/statistical-marks.types.ts"])
+
+mosaic_javascript(
+    consumer_tests = [":package_test", ":browser_lint"],
+    tests = True,
+    test_deps = [
+        "//:node_modules/ajv",
+        "//:node_modules/ajv-formats",
+        "//:node_modules/yaml",
+        "//:node_modules/jsdom",
+        "//:node_modules/d3",
+        "//:node_modules/@playwright/test",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/vgplot/vgplot:sources",
+        "//packages/vgplot/inputs:sources",
+        "//packages/vgplot/plot:sources",
+    ],
+    test_data = ["//:python_test_data", ":schema", "//packages/vgplot/vgplot-python:python"],
+    test_env = {"MOSAIC_PYTHON": "$(rlocationpath //packages/vgplot/vgplot-python:python)"},
+    deps = [
+        ":node_modules/@uwdata/mosaic-core",
+        ":node_modules/@uwdata/mosaic-sql",
+        ":node_modules/@uwdata/vgplot",
+    ],
+    extra_files = [":schema"],
+)
+
+js_library(
+    name = "ast_sources",
+    srcs = glob(["src/**"]) + ["package.json"],
+    deps = [":node_modules/@uwdata/mosaic-sql", ":node_modules/@uwdata/vgplot", "//packages/vgplot/vgplot:sources"],
+    visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "schema",
+    src = "src/generated/mosaic-schema.json",
+    out = "dist/mosaic-schema.json",
+    allow_symlink = True,
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "browser_sources",
+    testonly = True,
+    srcs = [
+        "playwright.config.js",
+        "test/grid-templates.browser.js",
+        "test/util/grid-browser.js",
+    ] + glob(["test/visual*.js", "test/visual*.html", "test/visual*.js-snapshots/**"]),
+)
+
+copy_file(
+    name = "browser_entry",
+    src = "browser.mjs",
+    out = "browser-runner.mjs",
+)
+
+eslint_bin.eslint_test(
+    name = "browser_lint",
+    args = ["browser.mjs", "playwright.config.js"],
+    chdir = "packages/vgplot/spec",
+    data = ["browser.mjs", ":browser_sources", "//:javascript_test_support"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "browser_tests",
+    size = "large",
+    timeout = "long",
+    entry_point = ":browser_entry",
+    copy_data_to_bin = False,
+    fixed_args = ["$(rlocationpath @mosaic_browser_extensions//:" + name + ".gz)" for name in ["httpfs", "spatial"]],
+    data = [
+        ":browser_sources",
+        "//:site_assets",
+        "//:node_modules/@playwright/test",
+        "//:node_modules/vite",
+        "//specs:browser_sources",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/server/duckdb:sources",
+        "//packages/vgplot/inputs:sources",
+        "//packages/vgplot/plot:sources",
+        "//packages/vgplot/plot:browser_test_support",
+        "//packages/vgplot/vgplot:sources",
+        ":sources",
+    ] + ["@mosaic_browser_extensions//:" + name + ".gz" for name in ["httpfs", "spatial"]],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"},
+    exec_properties = {"container-image": "docker://" + PLAYWRIGHT_IMAGE},
+    patch_node_fs = False,
+    tags = ["requires-browser", "requires-network"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "browser_update",
+    testonly = True,
+    entry_point = ":browser_entry",
+    copy_data_to_bin = False,
+    fixed_args = ["$(rlocationpath @mosaic_browser_extensions//:" + name + ".gz)" for name in ["httpfs", "spatial"]] + ["--update-snapshots"],
+    data = [":browser_tests"] + ["@mosaic_browser_extensions//:" + name + ".gz" for name in ["httpfs", "spatial"]],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"},
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)

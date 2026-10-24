@@ -1,0 +1,77 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
+
+js_binary(
+    name = "prepare_examples",
+    data = [
+        "gallery-paths.mjs",
+        "//:node_modules/yaml",
+        "//packages/vgplot/spec:ast_sources",
+    ],
+    entry_point = "prepare-examples.js",
+    patch_node_fs = False,
+)
+
+js_run_binary(
+    name = "examples_generated",
+    srcs = [
+        "//:pyproject.toml",
+        "//build/python:ruff",
+        "//specs:yaml",
+    ],
+    args = [
+        "specs/yaml",
+        "$(RULEDIR)/gallery-files",
+        "$(execpath //build/python:ruff)",
+        "$(execpath //:pyproject.toml)",
+    ],
+    copy_srcs_to_bin = False,
+    out_dirs = ["gallery-files"],
+    patch_node_fs = False,
+    tool = ":prepare_examples",
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "examples_sync",
+    args = ["$(rlocationpath :examples_generated)"],
+    data = [
+        "gallery-paths.mjs",
+        ":examples_generated",
+    ],
+    entry_point = "examples-sync.mjs",
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "examples_check",
+    args = [
+        "--check",
+        "$(rlocationpath :examples_generated)",
+        "$(rlocationpath //:package.json)",
+    ],
+    copy_data_to_bin = False,
+    data = [
+        "gallery-paths.mjs",
+        ":examples_generated",
+        "//:package.json",
+        "//docs:generated_examples",
+        "//specs:fixtures",
+    ],
+    entry_point = "examples-sync.mjs",
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "dev",
+    args = [
+        ".",
+        ".",
+        "dev",
+    ],
+    data = ["//:dev_sources"],
+    entry_point = "//build:example_builder_source",
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)

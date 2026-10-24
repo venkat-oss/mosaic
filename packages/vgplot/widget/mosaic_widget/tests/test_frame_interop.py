@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
     from .conftest import Backend, EagerAllowed, LazyAllowed, NativeLazyFrame
 
-ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+ROOT = Path(os.environ["TEST_SRCDIR"]) / os.environ["TEST_WORKSPACE"]
 CSV_PATH = (ROOT / "data/seattle-weather.csv").as_posix()
 
 

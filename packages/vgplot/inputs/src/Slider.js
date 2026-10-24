@@ -98,6 +98,9 @@ export class Slider extends Input {
     this.min = min;
     this.max = max;
     this.step = step;
+    this.fixedMin = min != null;
+    this.fixedMax = max != null;
+    this.fixedStep = step != null;
 
     if (label) {
       const desc = document.createElement('label');
@@ -156,7 +159,7 @@ export class Slider extends Input {
 
   query(filter = []) {
     const { from, column } = this;
-    if (!from || (this.min != null && this.max != null)) return null;
+    if (!from || (this.fixedMin && this.fixedMax)) return null;
     return Query
       .select({ min: min(column), max: max(column) })
       .from(from)
@@ -165,18 +168,20 @@ export class Slider extends Input {
 
   queryResult(data) {
     const { min, max } = Array.from(data)[0];
-    if (this.min == null) {
+    if (min == null || max == null) return this;
+    if (!this.fixedMin) {
       this.min = min;
       this.slider.setAttribute('min', `${min}`);
     }
-    if (this.max == null) {
+    if (!this.fixedMax) {
       this.max = max;
       this.slider.setAttribute('max', `${max}`);
     }
-    if (this.step == null) {
-      this.step = (max - min) / 500;
+    if (!this.fixedStep) {
+      this.step = (this.max - this.min) / 500 || 1;
       this.slider.setAttribute('step', `${this.step}`);
     }
+    this.curval.innerText = this.slider.value;
     return this;
   }
 

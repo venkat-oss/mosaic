@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("//packages/server/duckdb-server-go:tests.bzl", "duckdb_go_test")
+
+go_library(
+    name = "extensions",
+    srcs = [
+        "extensions.go",
+    ],
+    importpath = "github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/extensions",
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)
+
+duckdb_go_test(
+    name = "extensions_test",
+    srcs = [
+        "extensions_test.go",
+    ],
+    embed = [":extensions"],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

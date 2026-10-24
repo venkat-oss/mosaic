@@ -1,0 +1,120 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+_DATA = [
+    "//:data/flights-200k.parquet",
+    "//:data/athletes.parquet",
+    "//:data/penguins.parquet",
+]
+_SERVERS = {
+    "rust": "//packages/server/duckdb-server-rust:duckdb-server",
+    "go": "//packages/server/duckdb-server-go:duckdb-server",
+    "python": "//packages/server/duckdb-server:server",
+    "node": ":node_server",
+}
+_DATA_ENV = {"MOSAIC_BENCH_DATA": "$(rlocationpath //:data/flights-200k.parquet)"}
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+js_binary(
+    name = "node_server",
+    visibility = ["//visibility:public"],
+    entry_point = "node-server.mjs",
+    copy_data_to_bin = False,
+    data = ["//packages/server/duckdb:sources"] + select({
+        ":linux": ["@mosaic_browser_extensions//:httpfs.gz"],
+        "//conditions:default": [],
+    }),
+    fixed_args = select({
+        ":linux": ["$(rlocationpath @mosaic_browser_extensions//:httpfs.gz)"],
+        "//conditions:default": [],
+    }),
+)
+
+py_library(
+    name = "benchmark",
+    visibility = ["//visibility:public"],
+    srcs = ["bench.py"],
+    imports = ["."],
+    deps = ["@rules_python//python/runfiles"],
+)
+
+[
+    py_binary(
+        name = name,
+        srcs = ["bench.py"],
+        main = "bench.py",
+        data = _DATA + [_SERVERS[server] for server in servers],
+        deps = ["@rules_python//python/runfiles"],
+        env = _DATA_ENV | {"MOSAIC_BENCH_" + server.upper(): "$(rlocationpath " + _SERVERS[server] + ")" for server in servers},
+        legacy_create_init = False,
+        visibility = ["//visibility:public"],
+    )
+    for name, servers in [("bench", _SERVERS.keys())] + [("bench_" + server, [server]) for server in _SERVERS]
+]
+
+py_test(
+    name = "unit_test",
+    srcs = ["bench_test.py"],
+    main = "bench_test.py",
+    deps = [":benchmark"],
+    legacy_create_init = False,
+)
+
+[
+    py_test(
+        name = "smoke_" + server,
+        srcs = ["smoke_test.py"],
+        main = "smoke_test.py",
+        precompile = "disabled",
+        data = _DATA + [executable],
+        deps = [":benchmark", "@pypi//pyarrow"],
+        env = _DATA_ENV | {
+            "MOSAIC_BENCH_SMOKE": server,
+            "MOSAIC_BENCH_" + server.upper(): "$(rlocationpath " + executable + ")",
+        },
+        legacy_create_init = False,
+        size = "medium",
+        tags = ["requires-network"] if server == "node" else [],
+        visibility = ["//visibility:public"],
+    )
+    for server, executable in _SERVERS.items()
+]
+
+test_suite(
+    name = "smoke",
+    tests = [":smoke_" + server for server in _SERVERS],
+    visibility = ["//visibility:public"],
+)
+
+[
+    py_test(
+        name = name,
+        srcs = ["//build/python:tool_test.py"],
+        main = "//build/python:tool_test.py",
+        args = ["$(rlocationpath //build/python:ruff)"] + options + [
+            "--no-cache",
+            "--config",
+            "$(rlocationpath //:pyproject.toml)",
+        ] + ["$(rlocationpath " + path + ")" for path in ["bench.py", "bench_test.py", "smoke_test.py"]],
+        data = ["bench.py", "bench_test.py", "smoke_test.py", "//build/python:ruff", "//:pyproject.toml"],
+        deps = ["@rules_python//python/runfiles"],
+        legacy_create_init = False,
+        visibility = ["//visibility:public"],
+    )
+    for name, options in [
+        ("ruff", ["check", "--no-fix"]),
+        ("format", ["format", "--check"]),
+    ]
+]
+
+test_suite(
+    name = "check",
+    tests = [":ruff", ":format", ":unit_test"],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,54 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_sources")
+
+_FAMILIES = [
+    "//api/server",
+    "//api/attributes/cartesian",
+    "//api/attributes/color",
+    "//api/attributes/facet",
+    "//api/attributes/plot",
+    "//api/attributes/projection",
+    "//api/attributes/size",
+    "//api/data",
+    "//api/inputs/basic",
+    "//api/inputs/table",
+    "//api/interactors/brush",
+    "//api/interactors/navigation",
+    "//api/interactors/point",
+    "//api/layouts",
+    "//api/legends",
+    "//api/marks/annotation",
+    "//api/marks/basic",
+    "//api/marks/common",
+    "//api/marks/connected",
+    "//api/marks/density1d",
+    "//api/marks/grid",
+    "//api/marks/guides",
+    "//api/marks/spatial",
+    "//api/marks/statistical",
+    "//api/params",
+    "//api/transforms/aggregate",
+    "//api/transforms/column",
+    "//api/transforms/window",
+    "//api/values",
+]
+
+cue_sources(
+    name = "sources",
+    instances = [":package"] + [family + ":package" for family in _FAMILIES],
+    visibility = ["//visibility:public"],
+)
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "catalogsources",
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "contributions",
+    srcs = [family + ":contribution" for family in _FAMILIES],
+    visibility = ["//visibility:public"],
+)

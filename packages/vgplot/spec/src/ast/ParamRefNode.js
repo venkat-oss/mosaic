@@ -12,8 +12,8 @@ export class ParamRefNode extends ASTNode {
     return ctx.activeParams?.get(this.name);
   }
 
-  codegen(ctx) {  
-    return toParamRef(this.name);
+  codegen(ctx) {
+    return ctx.paramRef(this.name);
   }
 
   toJSON() {

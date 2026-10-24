@@ -2,7 +2,7 @@ use anyhow::Result;
 use arrow::{
     array::{Int32Array, RecordBatch},
     datatypes::{DataType, Field, Schema},
-    ipc::reader::FileReader,
+    ipc::reader::StreamReader,
 };
 use axum::{
     body::Body,
@@ -99,17 +99,59 @@ async fn missing_type_is_bad_request() -> Result<()> {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let body = response.into_body().collect().await?.to_bytes();
-    assert_eq!(body, "missing required 'type' parameter");
+    let body: serde_json::Value = serde_json::from_slice(&body)?;
+    assert_eq!(body["code"], "bad_request");
+    assert_eq!(body["reason"], "missing_field");
+    assert_eq!(body["field"], "type");
     Ok(())
 }
 
 fn assert_foo_batch(bytes: &[u8]) -> Result<()> {
-    let mut reader = FileReader::try_new(std::io::Cursor::new(bytes), None)?;
+    let mut reader = StreamReader::try_new(std::io::Cursor::new(bytes), None)?;
     let actual_batch = reader.next().unwrap()?;
 
     let schema = Arc::new(Schema::new(vec![Field::new("foo", DataType::Int32, true)]));
     let batch = RecordBatch::try_new(schema, vec![Arc::new(Int32Array::from(vec![1]))])?;
 
     assert_eq!(actual_batch, batch);
+    Ok(())
+}
+
+#[tokio::test]
+async fn large_application_number() -> Result<()> {
+    let app = app::app(None, None)?;
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(http::Method::POST)
+                .uri("/")
+                .header(http::header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    r#"{"type":"arrow","sql":"SELECT 1 AS foo","application":{"number":1e400}}"#,
+                ))?,
+        )
+        .await?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await?.to_bytes();
+    assert_foo_batch(&body)
+}
+
+#[tokio::test]
+async fn large_protocol_number_is_invalid() -> Result<()> {
+    let app = app::app(None, None)?;
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(http::Method::POST)
+                .uri("/")
+                .header(http::header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"type":"arrow","sql":1e400}"#))?,
+        )
+        .await?;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.into_body().collect().await?.to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&body)?;
+    assert_eq!(body["reason"], "invalid_field");
+    assert_eq!(body["field"], "sql");
     Ok(())
 }
