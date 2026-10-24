@@ -1,21 +1,29 @@
 import { SQLExpression } from './Expression.js';
 import { IntervalTransform } from './Interval.js';
 import { ParamRef } from './Param.js';
-
-/** A field argument to a data transform. */
+/**
+ * A field argument to a data transform.
+ */
 export type TransformField = string | ParamRef | SQLExpression | Transform;
-
+/**
+ * Window frame exclusion modes.
+ */
 export type FrameExclude = 'CURRENT ROW' | 'GROUP' | 'TIES' | 'NO OTHERS';
-
 export type FrameValue = number | IntervalTransform | null;
-
-/** Window transform options. */
+/**
+ * Window transform options.
+ */
 export interface WindowOptions {
-  orderby?: TransformField | TransformField[];
-  partitionby?: TransformField | TransformField[];
+  orderby?: TransformField | Array<TransformField>;
+
+  partitionby?: TransformField | Array<TransformField>;
+
   rows?: [FrameValue, FrameValue] | ParamRef;
+
   range?: [FrameValue, FrameValue] | ParamRef;
+
   groups?: [FrameValue, FrameValue] | ParamRef;
+
   exclude?: Uppercase<FrameExclude> | Lowercase<FrameExclude>;
 }
 
@@ -23,146 +31,132 @@ export interface WindowOptions {
 export interface AggregateOptions {
   distinct?: boolean;
 }
-
-/** A zero argument transform signature. */
+/**
+ * A zero argument transform signature.
+ */
 type Nullary = null | [];
-
-/** A single argument transform signature. */
+/**
+ * A single argument transform signature.
+ */
 type Unary<T> = T | [T];
-
-/** A two argument transform signature; both arguments are required. */
-type Binary<T> = [T, T]
+/**
+ * A two argument transform signature; both arguments are required.
+ */
+type Binary<T> = [T, T];
 
 type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null]
-
-/** Binning interval names. */
-export type BinInterval =
-  | 'date'
-  | 'number'
-  | 'millisecond'
-  | 'second'
-  | 'minute'
-  | 'hour'
-  | 'day'
-  | 'month'
-  | 'year';
-
-/** A bin transform. */
+/**
+ * Binning interval names.
+ */
+export type BinInterval = 'date' | 'number' | 'millisecond' | 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
+/**
+ * A bin transform.
+ */
 export interface Bin {
   /**
-   * Bin a continuous variable into discrete intervals. The bin argument
-   * specifies a data column or expression to bin. Both numerical and
-   * temporal (date/time) values are supported.
+   * Bin a continuous variable into discrete intervals. The bin argument specifies a data column or expression to bin. Both numerical and temporal (date/time) values are supported.
    */
   bin: Unary<TransformField>;
+
   /**
-   * The interval bin unit to use, typically used to indicate a date/time
-   * unit for binning temporal values, such as `hour`, `day`, or `month`.
-   * If `date`, the extent of data values is used to automatically select
-   * an interval for temporal data. The value `number` enforces normal
-   * numerical binning, even over temporal data. If unspecified, defaults
-   * to `number` for numerical data and `date` for temporal data.
+   * The interval bin unit to use, typically used to indicate a date/time unit for binning temporal values, such as `hour`, `day`, or `month`. If `date`, the extent of data values is used to automatically select an interval for temporal data. The value `number` enforces normal numerical binning, even over temporal data. If unspecified, defaults to `number` for numerical data and `date` for temporal data.
    */
   interval?: BinInterval;
+
   /**
-   * The step size to use between bins. When binning numerical values (or
-   * interval type `number`), this setting specifies the numerical step size.
-   * For data/time intervals, this indicates the number of steps of that unit,
-   * such as hours, days, or years.
+   * The step size to use between bins. When binning numerical values (or interval type `number`), this setting specifies the numerical step size. For data/time intervals, this indicates the number of steps of that unit, such as hours, days, or years.
    */
   step?: number;
+
   /**
-   * The target number of binning steps to use. To accommodate human-friendly
-   * ("nice") bin boundaries, the actual number of bins may diverge from this
-   * exact value. This option is ignored when **step** is specified.
+   * The target number of binning steps to use. To accommodate human-friendly ("nice") bin boundaries, the actual number of bins may diverge from this exact value. This option is ignored when **step** is specified.
    */
   steps?: number;
+
   /**
-   * The minimum allowed bin step size (default `0`) when performing numerical
-   * binning. For example, a setting of `1` prevents step sizes less than 1.
-   * This option is ignored when **step** is specified.
+   * The minimum allowed bin step size (default `0`) when performing numerical binning. For example, a setting of `1` prevents step sizes less than 1. This option is ignored when **step** is specified.
    */
   minstep?: number;
+
   /**
-   * A flag (default `true`) requesting "nice" human-friendly end points and
-   * step sizes when performing numerical binning. When **step** is specified,
-   * this option affects the binning end points (e.g., origin) only.
+   * A flag (default `true`) requesting "nice" human-friendly end points and step sizes when performing numerical binning. When **step** is specified, this option affects the binning end points (e.g., origin) only.
    */
   nice?: boolean;
+
   /**
-   * Offset for computed bins (default `0`). For example, a value of `1` will
-   * result in using the next consecutive bin boundary.
+   * Offset for computed bins (default `0`). For example, a value of `1` will result in using the next consecutive bin boundary.
    */
   offset?: number;
 }
-
-/** A column transform. */
+/**
+ * A column transform.
+ */
 export interface Column {
   /**
    * Interpret a string or param-value as a column reference.
    */
   column: Unary<string | ParamRef>;
 }
-
-/** A dateMonth transform. */
+/**
+ * A dateMonth transform.
+ */
 export interface DateMonth {
   /**
-   * Transform a Date value to a month boundary for cyclic comparison.
-   * Year values are collapsed to enable comparison over months only.
+   * Transform a Date value to a month boundary for cyclic comparison. Year values are collapsed to enable comparison over months only.
    */
   dateMonth: Unary<TransformField | Date>;
 }
-
-/** A dateMonthDay transform. */
+/**
+ * A dateMonthDay transform.
+ */
 export interface DateMonthDay {
   /**
-   * Transform a Date value to a month and day boundary for cyclic comparison.
-   * Year values are collapsed to enable comparison over months and days only.
+   * Transform a Date value to a month and day boundary for cyclic comparison. Year values are collapsed to enable comparison over months and days only.
    */
   dateMonthDay: Unary<TransformField | Date>;
 }
-
-/** A dateDay transform. */
+/**
+ * A dateDay transform.
+ */
 export interface DateDay {
   /**
-   * Transform a Date value to a day of the month for cyclic comparison.
-   * Year and month values are collapsed to enable comparison over days only.
+   * Transform a Date value to a day of the month for cyclic comparison. Year and month values are collapsed to enable comparison over days only.
    */
   dateDay: Unary<TransformField | Date>;
 }
-
-/** A centroid transform. */
+/**
+ * A centroid transform.
+ */
 export interface Centroid {
   /**
-   * Compute the 2D centroid of geometry-typed data.
-   * This transform requires the DuckDB `spatial` extension.
+   * Compute the 2D centroid of geometry-typed data. This transform requires the DuckDB `spatial` extension.
    */
   centroid: Unary<TransformField>;
 }
-
-/** A centroidX transform. */
+/**
+ * A centroidX transform.
+ */
 export interface CentroidX {
   /**
-   * Compute the centroid x-coordinate of geometry-typed data.
-   * This transform requires the DuckDB `spatial` extension.
+   * Compute the centroid x-coordinate of geometry-typed data. This transform requires the DuckDB `spatial` extension.
    */
   centroidX: Unary<TransformField>;
 }
-
-/** A centroidY transform. */
+/**
+ * A centroidY transform.
+ */
 export interface CentroidY {
   /**
-   * Compute the centroid y-coordinate of geometry-typed data.
-   * This transform requires the DuckDB `spatial` extension.
+   * Compute the centroid y-coordinate of geometry-typed data. This transform requires the DuckDB `spatial` extension.
    */
   centroidY: Unary<TransformField>;
 }
-
-/** A geojson transform. */
+/**
+ * A geojson transform.
+ */
 export interface GeoJSON {
   /**
-   * Compute a GeoJSON-formatted string from geometry-typed data.
-   * This transform requires the DuckDB `spatial` extension.
+   * Compute a GeoJSON-formatted string from geometry-typed data. This transform requires the DuckDB `spatial` extension.
    */
   geojson: Unary<TransformField>;
 }

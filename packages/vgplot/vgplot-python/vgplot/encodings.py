@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+import typing as _typing
 
-
-def sql(expr: str) -> dict[str, Any]:
-    return {"sql": expr}
+from . import _expression_contracts
 
 
 def channels(**kwargs: str) -> dict[str, str]:
     return dict(kwargs)
+
+
+sql = _expression_contracts.sql
+
+Any = _typing.Any

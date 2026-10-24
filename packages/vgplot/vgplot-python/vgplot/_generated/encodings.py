@@ -1,11 +1,19 @@
-# DO NOT EDIT. Generated from the Mosaic JSON schema by bin/generate-python-api.js.
-# Regenerate with: pnpm run generate:python-api
-
 from __future__ import annotations
 
 from typing import Any
 
 from .._types import UNSET, TransformArg
+from .column import (
+    bin,
+    centroid,
+    centroid_x,
+    centroid_y,
+    column,
+    date_day,
+    date_month,
+    date_month_day,
+    geojson,
+)
 
 
 def _transform(
@@ -31,31 +39,6 @@ def avg(col: TransformArg, **options: Any) -> dict[str, Any]:
     return _transform("avg", (col,), options)
 
 
-def bin(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Bin a continuous variable into discrete intervals."""
-    return _transform("bin", (col,), options)
-
-
-def centroid(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the 2D centroid of geometry-typed data."""
-    return _transform("centroid", (col,), options)
-
-
-def centroid_x(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the centroid x-coordinate of geometry-typed data."""
-    return _transform("centroidX", (col,), options)
-
-
-def centroid_y(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the centroid y-coordinate of geometry-typed data."""
-    return _transform("centroidY", (col,), options)
-
-
-def column(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Interpret a string or param-value as a column reference."""
-    return _transform("column", (col,), options)
-
-
 def count(col: TransformArg | UNSET = UNSET, **options: Any) -> dict[str, Any]:
     """Compute the count of records in an aggregation group."""
     return _transform("count", (col,), options)
@@ -64,21 +47,6 @@ def count(col: TransformArg | UNSET = UNSET, **options: Any) -> dict[str, Any]:
 def cume_dist(**options: Any) -> dict[str, Any]:
     """Compute the cumulative distribution value over an ordered window partition."""
     return {"cume_dist": None, **options}
-
-
-def date_day(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Transform a Date value to a day of the month for cyclic comparison."""
-    return _transform("dateDay", (col,), options)
-
-
-def date_month(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Transform a Date value to a month boundary for cyclic comparison."""
-    return _transform("dateMonth", (col,), options)
-
-
-def date_month_day(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Transform a Date value to a month and day boundary for cyclic comparison."""
-    return _transform("dateMonthDay", (col,), options)
 
 
 def dense_rank(**options: Any) -> dict[str, Any]:
@@ -94,11 +62,6 @@ def first(col: TransformArg, **options: Any) -> dict[str, Any]:
 def first_value(col: TransformArg, **options: Any) -> dict[str, Any]:
     """Get the first value of the given column in the current window frame."""
     return _transform("first_value", (col,), options)
-
-
-def geojson(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute a GeoJSON-formatted string from geometry-typed data."""
-    return _transform("geojson", (col,), options)
 
 
 def lag(

@@ -1,0 +1,23 @@
+{
+  "data": {
+    "column_data": {
+      "type": "table",
+      "query": "SELECT x, y, DATE '2024-01-01' + CAST(x AS INTEGER) AS time FROM (VALUES (1,2),(2,1),(3,3)) AS t(x,y)"
+    }
+  },
+  "params": {
+    "offset": 1
+  },
+  "plot": [
+    {
+      "mark": "dot",
+      "data": {
+        "from": "column_data"
+      },
+      "x": {
+        "sql": "x + $offset"
+      },
+      "y": "y"
+    }
+  ]
+}
