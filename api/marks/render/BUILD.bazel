@@ -1,0 +1,16 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "markrender",
+    deps = [
+        "//api/languages/python:package",
+        "//api/marks/common/model:package",
+        "//api/marks/profile:package",
+        "//api/model:package",
+        "//api/render:package",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -47,13 +47,68 @@ For supported options, see the [Observable Plot `axis` documentation](https://ob
 
 ## Bar
 
-The `barX` and `barY` marks draw rectangles, and should be used when one dimension is ordinal and the other is quantitative.
-For supported options, see the [Observable Plot `bar` documentation](https://observablehq.com/plot/marks/bar).
+### barX
+
+`barX(data, options)`
+
+A horizontal bar mark. The required *x* values should be quantitative or temporal, and the optional *y* values should be ordinal.
+
+If neither **x1** nor **x2** nor **interval** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise if an **interval** is specified, then **x1** and **x2** are derived from **x**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+The optional **y** ordinal channel specifies the vertical position; it is typically bound to the *y* scale, which must be a *band* scale. If the
+**y** channel is not specified, the bar will span the vertical extent of the plot’s frame.
+
+If *y* is quantitative, use the rectX mark instead. If *x* is ordinal, use the cell mark instead.
+
+[Options](#barx-options).
+
+### barY
+
+`barY(data, options)`
+
+A vertical bar mark. The required *y* values should be quantitative or temporal, and the optional *x* values should be ordinal.
+
+If neither **y1** nor **y2** nor **interval** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise if an **interval** is specified, then **y1** and **y2** are derived from **y**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+The optional **x** ordinal channel specifies the horizontal position; it is typically bound to the *x* scale, which must be a *band* scale. If the
+**x** channel is not specified, the bar will span the horizontal extent of the plot’s frame.
+
+If *x* is quantitative, use the rectY mark instead. If *y* is ordinal, use the cell mark instead.
+
+[Options](#bary-options).
 
 ## Cell
 
-The `cell` mark, with `cellX` and `cellY` variants, draws rectangles positioned in two ordinal dimensions.
-For supported options, see the [Observable Plot `cell` documentation](https://observablehq.com/plot/marks/cell).
+### cell
+
+`cell(data, options)`
+
+A rectangular cell mark. Along with **x** and/or **y**, a **fill** channel is typically specified to encode value as color.
+
+If neither **x** nor **y** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*,
+*x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+Both **x** and **y** should be ordinal; if only **x** is quantitative (or temporal), use a barX mark; if only **y** is quantitative, use a barY mark; if both are quantitative, use a rect mark.
+
+[Options](#cell-options).
+
+### cellX
+
+`cellX(data, options)`
+
+Like cell, but **x** defaults to the zero-based index [0, 1, 2, …], and if
+**stroke** is not a channel, **fill** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …].
+
+[Options](#cellx-options).
+
+### cellY
+
+`cellY(data, options)`
+
+Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
+**stroke** is not a channel, **fill** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#celly-options).
 
 ## Contour
 
@@ -135,9 +190,57 @@ The supported _options_ are:
 
 ## Dot
 
-The `dot` mark, with `dotX` and `dotY` variants, draws circles or other symbols positioned in _x_ and _y_ as in a scatterplot.
-The `circle` and `hexagon` marks are convenient shorthands for specific shapes.
-For supported options, see the [Observable Plot `dot` documentation](https://observablehq.com/plot/marks/dot).
+### dot
+
+`dot(data, options)`
+
+A dot mark that draws circles, or other symbols, as in a scatterplot.
+
+If either **x** or **y** is not specified, the default is determined by the
+**frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*,
+*y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+Dots are sorted by descending radius **r** by default to mitigate overplotting; set the **sort** option to null to draw them in input order.
+
+[Options](#dot-options).
+
+### dotX
+
+`dotX(data, options)`
+
+Like dot, except that **x** defaults to the identity function, assuming that
+*data* = [*x₀*, *x₁*, *x₂*, …].
+
+If an **interval** is specified, such as *day*, **y** is transformed to the middle of the interval.
+
+[Options](#dotx-options).
+
+### dotY
+
+`dotY(data, options)`
+
+Like dot, except that **y** defaults to the identity function, assuming that
+*data* = [*y₀*, *y₁*, *y₂*, …].
+
+If an **interval** is specified, such as *day*, **x** is transformed to the middle of the interval.
+
+[Options](#doty-options).
+
+### circle
+
+`circle(data, options)`
+
+Like dot, except that the **symbol** option is set to *circle*.
+
+[Options](#circle-options).
+
+### hexagon
+
+`hexagon(data, options)`
+
+Like dot, except that the **symbol** option is set to *hexagon*.
+
+[Options](#hexagon-options).
 
 ## Frame
 
@@ -247,13 +350,60 @@ The supported _options_ are:
 
 ## Rect
 
-The `rect` mark, with `rectX` and `rectY` variants, draws axis-aligned rectangles defined by _x1_, _y1_, _x2_, and _y2_.
-For supported options, see the [Observable Plot `rect` documentation](https://observablehq.com/plot/marks/rect).
+### rect
+
+`rect(data, options)`
+
+A rect mark. The rectangle extends horizontally from **x1** to **x2**, and vertically from **y1** to **y2**. The position channels are often derived with a transform.
+
+When **y** extends from zero, for example for a histogram where the height of each rect reflects a count of values, use the rectY mark for an implicit stackY transform; similarly, if **x** extends from zero, use the rectX mark for an implicit stackX transform.
+
+If an **interval** is specified, then **x1** and **x2** are derived from
+**x**, and **y1** and **y2** are derived from **y**, each representing the lower and upper bound of the containing interval, respectively.
+
+Both *x* and *y* should be quantitative or temporal; otherwise, use a bar or cell mark.
+
+[Options](#rect-options).
+
+### rectX
+
+`rectX(data, options)`
+
+Like rect, but if neither **x1** nor **x2** is specified, an implicit stackX transform is applied to **x**, and if **x** is not specified, it defaults to the identity function, assuming that *data* is an array of numbers [*x₀*, *x₁*, *x₂*, …].
+
+[Options](#rectx-options).
+
+### rectY
+
+`rectY(data, options)`
+
+Like rect, but if neither **y1** nor **y2** is specified, apply an implicit stackY transform is applied to **y**, and if **y** is not specified, it defaults to the identity function, assuming that *data* is an array of numbers [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#recty-options).
 
 ## Rule
 
-The `ruleX` mark draws a vertical line with a given _x_ value, while the `ruleY` mark draws a horizontal line with a given _y_ value.
-For supported options, see the [Observable Plot `rule` documentation](https://observablehq.com/plot/marks/rule).
+### ruleX
+
+`ruleX(data, options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |). The **x** channel specifies the rule’s horizontal position and defaults to identity, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]; the optional **y1** and
+**y2** channels specify its vertical extent.
+
+The ruleX mark is often used to highlight specific *x* values. If *y* represents ordinal values, use a tickX mark instead.
+
+[Options](#rulex-options).
+
+### ruleY
+
+`ruleY(data, options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —). The **y** channel specifies the rule's vertical position and defaults to identity, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]; the optional **x1** and
+**x2** channels specify its horizontal extent.
+
+The ruleY mark is often used to highlight specific *y* values. If *x* represents ordinal values, use a tickY mark instead.
+
+[Options](#ruley-options).
 
 ## Text
 
@@ -262,9 +412,25 @@ For supported options, see the [Observable Plot `text` documentation](https://ob
 
 ## Tick
 
-The `tickX` draws a vertical line with a given _x_ value, while the `tickY` mark draws a horizontal line with a given _y_ value.
-Ticks have an optional secondary position dimension (_y_ for `tickX` and _x_ for `tickY`); this second dimension is ordinal, unlike a [`rule`](#rule), and requires a corresponding band scale.
-For supported options, see the [Observable Plot `tick` documentation](https://observablehq.com/plot/marks/tick).
+### tickX
+
+`tickX(data, options)`
+
+A horizontally-positioned tickX mark (a vertical line, |). The **x** channel specifies the tick’s horizontal position and defaults to identity, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]; the optional **y** ordinal channel specifies its vertical position.
+
+If *y* represents quantitative or temporal values, use a ruleX mark instead.
+
+[Options](#tickx-options).
+
+### tickY
+
+`tickY(data, options)`
+
+A vertically-positioned tickY mark (a horizontal line, —). The **y** channel specifies the tick's vertical position and defaults to identity, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]; the optional **x** ordinal channel specifies its horizontal position.
+
+If *x* represents quantitative or temporal values, use a ruleY mark instead.
+
+[Options](#ticky-options).
 
 ## Vector
 
@@ -315,13 +481,68 @@ For supported options, see the [Observable Plot `axis` documentation](https://ob
 
 ## Bar
 
-The `bar_x` and `bar_y` marks draw rectangles, and should be used when one dimension is ordinal and the other is quantitative.
-For supported options, see the [Observable Plot `bar` documentation](https://observablehq.com/plot/marks/bar).
+### bar_x
+
+`bar_x(data=None, **options)`
+
+A horizontal bar mark. The required *x* values should be quantitative or temporal, and the optional *y* values should be ordinal.
+
+If neither **x1** nor **x2** nor **interval** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise if an **interval** is specified, then **x1** and **x2** are derived from **x**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+The optional **y** ordinal channel specifies the vertical position; it is typically bound to the *y* scale, which must be a *band* scale. If the
+**y** channel is not specified, the bar will span the vertical extent of the plot’s frame.
+
+If *y* is quantitative, use the rectX mark instead. If *x* is ordinal, use the cell mark instead.
+
+[Options](#barx-options).
+
+### bar_y
+
+`bar_y(data=None, **options)`
+
+A vertical bar mark. The required *y* values should be quantitative or temporal, and the optional *x* values should be ordinal.
+
+If neither **y1** nor **y2** nor **interval** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise if an **interval** is specified, then **y1** and **y2** are derived from **y**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+The optional **x** ordinal channel specifies the horizontal position; it is typically bound to the *x* scale, which must be a *band* scale. If the
+**x** channel is not specified, the bar will span the horizontal extent of the plot’s frame.
+
+If *x* is quantitative, use the rectY mark instead. If *y* is ordinal, use the cell mark instead.
+
+[Options](#bary-options).
 
 ## Cell
 
-The `cell` mark, with `cell_x` and `cell_y` variants, draws rectangles positioned in two ordinal dimensions.
-For supported options, see the [Observable Plot `cell` documentation](https://observablehq.com/plot/marks/cell).
+### cell
+
+`cell(data=None, **options)`
+
+A rectangular cell mark. Along with **x** and/or **y**, a **fill** channel is typically specified to encode value as color.
+
+If neither **x** nor **y** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*,
+*x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+Both **x** and **y** should be ordinal; if only **x** is quantitative (or temporal), use a barX mark; if only **y** is quantitative, use a barY mark; if both are quantitative, use a rect mark.
+
+[Options](#cell-options).
+
+### cell_x
+
+`cell_x(data=None, **options)`
+
+Like cell, but **x** defaults to the zero-based index [0, 1, 2, …], and if
+**stroke** is not a channel, **fill** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …].
+
+[Options](#cellx-options).
+
+### cell_y
+
+`cell_y(data=None, **options)`
+
+Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
+**stroke** is not a channel, **fill** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#celly-options).
 
 ## Contour
 
@@ -403,9 +624,57 @@ The supported _options_ are:
 
 ## Dot
 
-The `dot` mark, with `dot_x` and `dot_y` variants, draws circles or other symbols positioned in _x_ and _y_ as in a scatterplot.
-The `circle` and `hexagon` marks are convenient shorthands for specific shapes.
-For supported options, see the [Observable Plot `dot` documentation](https://observablehq.com/plot/marks/dot).
+### dot
+
+`dot(data=None, **options)`
+
+A dot mark that draws circles, or other symbols, as in a scatterplot.
+
+If either **x** or **y** is not specified, the default is determined by the
+**frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*,
+*y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+Dots are sorted by descending radius **r** by default to mitigate overplotting; set the **sort** option to null to draw them in input order.
+
+[Options](#dot-options).
+
+### dot_x
+
+`dot_x(data=None, **options)`
+
+Like dot, except that **x** defaults to the identity function, assuming that
+*data* = [*x₀*, *x₁*, *x₂*, …].
+
+If an **interval** is specified, such as *day*, **y** is transformed to the middle of the interval.
+
+[Options](#dotx-options).
+
+### dot_y
+
+`dot_y(data=None, **options)`
+
+Like dot, except that **y** defaults to the identity function, assuming that
+*data* = [*y₀*, *y₁*, *y₂*, …].
+
+If an **interval** is specified, such as *day*, **x** is transformed to the middle of the interval.
+
+[Options](#doty-options).
+
+### circle
+
+`circle(data=None, **options)`
+
+Like dot, except that the **symbol** option is set to *circle*.
+
+[Options](#circle-options).
+
+### hexagon
+
+`hexagon(data=None, **options)`
+
+Like dot, except that the **symbol** option is set to *hexagon*.
+
+[Options](#hexagon-options).
 
 ## Frame
 
@@ -515,13 +784,60 @@ The supported _options_ are:
 
 ## Rect
 
-The `rect` mark, with `rect_x` and `rect_y` variants, draws axis-aligned rectangles defined by _x1_, _y1_, _x2_, and _y2_.
-For supported options, see the [Observable Plot `rect` documentation](https://observablehq.com/plot/marks/rect).
+### rect
+
+`rect(data=None, **options)`
+
+A rect mark. The rectangle extends horizontally from **x1** to **x2**, and vertically from **y1** to **y2**. The position channels are often derived with a transform.
+
+When **y** extends from zero, for example for a histogram where the height of each rect reflects a count of values, use the rectY mark for an implicit stackY transform; similarly, if **x** extends from zero, use the rectX mark for an implicit stackX transform.
+
+If an **interval** is specified, then **x1** and **x2** are derived from
+**x**, and **y1** and **y2** are derived from **y**, each representing the lower and upper bound of the containing interval, respectively.
+
+Both *x* and *y* should be quantitative or temporal; otherwise, use a bar or cell mark.
+
+[Options](#rect-options).
+
+### rect_x
+
+`rect_x(data=None, **options)`
+
+Like rect, but if neither **x1** nor **x2** is specified, an implicit stackX transform is applied to **x**, and if **x** is not specified, it defaults to the identity function, assuming that *data* is an array of numbers [*x₀*, *x₁*, *x₂*, …].
+
+[Options](#rectx-options).
+
+### rect_y
+
+`rect_y(data=None, **options)`
+
+Like rect, but if neither **y1** nor **y2** is specified, apply an implicit stackY transform is applied to **y**, and if **y** is not specified, it defaults to the identity function, assuming that *data* is an array of numbers [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#recty-options).
 
 ## Rule
 
-The `rule_x` mark draws a vertical line with a given _x_ value, while the `rule_y` mark draws a horizontal line with a given _y_ value.
-For supported options, see the [Observable Plot `rule` documentation](https://observablehq.com/plot/marks/rule).
+### rule_x
+
+`rule_x(data=None, **options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |). The **x** channel specifies the rule’s horizontal position and defaults to identity, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]; the optional **y1** and
+**y2** channels specify its vertical extent.
+
+The ruleX mark is often used to highlight specific *x* values. If *y* represents ordinal values, use a tickX mark instead.
+
+[Options](#rulex-options).
+
+### rule_y
+
+`rule_y(data=None, **options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —). The **y** channel specifies the rule's vertical position and defaults to identity, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]; the optional **x1** and
+**x2** channels specify its horizontal extent.
+
+The ruleY mark is often used to highlight specific *y* values. If *x* represents ordinal values, use a tickY mark instead.
+
+[Options](#ruley-options).
 
 ## Text
 
@@ -530,9 +846,25 @@ For supported options, see the [Observable Plot `text` documentation](https://ob
 
 ## Tick
 
-The `tick_x` mark draws a vertical line with a given _x_ value, while the `tick_y` mark draws a horizontal line with a given _y_ value.
-Ticks have an optional secondary position dimension (_y_ for `tick_x` and _x_ for `tick_y`); this second dimension is ordinal, unlike a [`rule`](#rule), and requires a corresponding band scale.
-For supported options, see the [Observable Plot `tick` documentation](https://observablehq.com/plot/marks/tick).
+### tick_x
+
+`tick_x(data=None, **options)`
+
+A horizontally-positioned tickX mark (a vertical line, |). The **x** channel specifies the tick’s horizontal position and defaults to identity, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]; the optional **y** ordinal channel specifies its vertical position.
+
+If *y* represents quantitative or temporal values, use a ruleX mark instead.
+
+[Options](#tickx-options).
+
+### tick_y
+
+`tick_y(data=None, **options)`
+
+A vertically-positioned tickY mark (a horizontal line, —). The **y** channel specifies the tick's vertical position and defaults to identity, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]; the optional **x** ordinal channel specifies its horizontal position.
+
+If *x* represents quantitative or temporal values, use a ruleY mark instead.
+
+[Options](#ticky-options).
 
 ## Vector
 
@@ -546,3 +878,374 @@ For supported options, see the [Observable Plot `vector` documentation](https://
 </template>
 
 <LangError v-else :language="language" />
+
+## basic mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### BarOptions options
+
+Options for the barX and barY marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`InsetOptions`](../spec/common-marks#insetoptions), [`RectCornerOptions`](#rectcorneroptions-options), [`StackOptions`](../spec/common-marks#stackoptions).
+
+**interval** (`Interval | ParamRef`) — How to convert a continuous value (**x** for barX, or **y** for barY) into an interval (**x1** and **x2** for barX, or **y1** and **y2** for barY); one of:
+
+- a named time interval such as *day* (for date intervals)
+- a number (for number intervals), defining intervals at integer multiples of *n*
+
+Setting this option disables the implicit stack transform (stackX for barX, or stackY for barY).
+
+### BarXOptions options
+
+Options for the barX mark.
+
+Extends [`BarOptions`](#baroptions-options).
+
+**x** (`ChannelValueIntervalSpec`) — The horizontal position (or length/width) channel, typically bound to the
+*x* scale.
+
+If neither **x1** nor **x2** nor **interval** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise if an **interval** is specified, then **x1** and **x2** are derived from **x**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+**x1** (`ChannelValueSpec`) — The required primary (starting, often left) horizontal position channel, typically bound to the *x* scale. Setting this option disables the implicit stackX transform.
+
+If *x* represents ordinal values, use a cell mark instead.
+
+**x2** (`ChannelValueSpec`) — The required secondary (ending, often right) horizontal position channel, typically bound to the *x* scale. Setting this option disables the implicit stackX transform.
+
+If *x* represents ordinal values, use a cell mark instead.
+
+**y** (`ChannelValueSpec`) — The optional vertical position of the bar; a ordinal channel typically bound to the *y* scale. If not specified, the bar spans the vertical extent of the frame; otherwise the *y* scale must be a *band* scale.
+
+If *y* represents quantitative or temporal values, use a rectX mark instead.
+
+### BarYOptions options
+
+Options for the barY mark.
+
+Extends [`BarOptions`](#baroptions-options).
+
+**y** (`ChannelValueIntervalSpec`) — The vertical position (or length/height) channel, typically bound to the
+*y* scale.
+
+If neither **y1** nor **y2** nor **interval** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise if an **interval** is specified, then **y1** and **y2** are derived from **y**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+**y1** (`ChannelValueSpec`) — The required primary (starting, often bottom) vertical position channel, typically bound to the *y* scale. Setting this option disables the implicit stackY transform.
+
+If *y* represents ordinal values, use a cell mark instead.
+
+**y2** (`ChannelValueSpec`) — The required secondary (ending, often top) horizontal position channel, typically bound to the *y* scale. Setting this option disables the implicit stackY transform.
+
+If *y* represents ordinal values, use a cell mark instead.
+
+**x** (`ChannelValueSpec`) — The optional horizontal position of the bar; a ordinal channel typically bound to the *x* scale. If not specified, the bar spans the horizontal extent of the frame; otherwise the *x* scale must be a *band* scale.
+
+If *x* represents quantitative or temporal values, use a rectY mark instead.
+
+### BarX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarXOptions`](#barxoptions-options).
+
+
+### BarY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarYOptions`](#baryoptions-options).
+
+
+### CellOptions options
+
+Options for the cell mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`InsetOptions`](../spec/common-marks#insetoptions), [`RectCornerOptions`](#rectcorneroptions-options).
+
+**x** (`ChannelValueSpec`) — The horizontal position of the cell; an optional ordinal channel typically bound to the *x* scale. If not specified, the cell spans the horizontal extent of the frame; otherwise the *x* scale must be a *band* scale.
+
+If *x* represents quantitative or temporal values, use a barX mark instead; if *y* is also quantitative or temporal, use a rect mark.
+
+**y** (`ChannelValueSpec`) — The vertical position of the cell; an optional ordinal channel typically bound to the *y* scale. If not specified, the cell spans the vertical extent of the frame; otherwise the *y* scale must be a *band* scale.
+
+If *y* represents quantitative or temporal values, use a barY mark instead; if *x* is also quantitative or temporal, use a rect mark.
+
+### Cell options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`CellOptions`](#celloptions-options).
+
+
+### CellX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`CellOptions`](#celloptions-options).
+
+
+### CellY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`CellOptions`](#celloptions-options).
+
+
+### DotOptions options
+
+Options for the dot mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel specifying the dot’s center, typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel specifying the dot’s center, typically bound to the *y* scale.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into series.
+
+**r** (`ChannelValueSpec | number | ParamRef`) — The radius of dots; either a channel or constant. When a number, it is interpreted as a constant radius in pixels. Otherwise it is interpreted as a channel, typically bound to the *r* channel, which defaults to the *sqrt* type for proportional symbols. The radius defaults to 4.5 pixels when using the **symbol** channel, and otherwise 3 pixels. Dots with a nonpositive radius are not drawn.
+
+**rotate** (`ChannelValue | number | ParamRef`) — The rotation angle of dots in degrees clockwise; either a channel or a constant. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel. Defaults to 0°, pointing up.
+
+**symbol** (`ChannelValueSpec | SymbolType | ParamRef`) — The categorical symbol; either a channel or a constant. A constant symbol can be specified by a valid symbol name such as *star*, or a symbol object (implementing the draw method); otherwise it is interpreted as a channel. Defaults to *circle* for the **dot** mark, and *hexagon* for the
+**hexagon** mark.
+
+If the **symbol** channel’s values are all symbols, symbol names, or nullish, the channel is unscaled (values are interpreted literally); otherwise, the channel is bound to the *symbol* scale.
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y** based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*,
+*bottom-left*), or the *middle* of the frame. For example, for dots distributed horizontally at the top of the frame:
+
+```js Plot.dot(data, {x: "date", frameAnchor: "top"}) ```
+
+### DotXOptions options
+
+Options for the dotX mark.
+
+Extends [`Omit<DotOptions, 'y'>`](#dotoptions-options).
+
+**y** (`ChannelValueIntervalSpec`) — The vertical position of the dot’s center, typically bound to the *y* scale.
+
+**interval** (`Interval | ParamRef`) — An interval (such as *day* or a number), to transform **y** values to the middle of the interval.
+
+### DotYOptions options
+
+Options for the dotY mark.
+
+Extends [`Omit<DotOptions, 'x'>`](#dotoptions-options).
+
+**x** (`ChannelValueIntervalSpec`) — The horizontal position of the dot’s center, typically bound to the *x* scale.
+
+**interval** (`Interval | ParamRef`) — An interval (such as *day* or a number), to transform **x** values to the middle of the interval.
+
+### Dot options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DotOptions`](#dotoptions-options).
+
+
+### DotX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DotXOptions`](#dotxoptions-options).
+
+
+### DotY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DotYOptions`](#dotyoptions-options).
+
+
+### Circle options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Exclude<DotOptions, 'symbol'>`](#dotoptions-options).
+
+
+### Hexagon options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Exclude<DotOptions, 'symbol'>`](#dotoptions-options).
+
+
+### RectCornerOptions options
+
+Options for marks that render rectangles, including bar, cell, and rect.
+
+**rx** (`number | string | ParamRef`) — The rounded corner [*x*-radius](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/rx), either in pixels or as a percentage of the rect width. If **rx** is not specified, it defaults to **ry** if present, and otherwise draws square corners.
+
+**ry** (`number | string | ParamRef`) — The rounded corner [*y*-radius](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/ry), either in pixels or as a percentage of the rect height. If **ry** is not specified, it defaults to **rx** if present, and otherwise draws square corners.
+
+### RectOptions options
+
+Options for the rect mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`InsetOptions`](../spec/common-marks#insetoptions), [`RectCornerOptions`](#rectcorneroptions-options), [`StackOptions`](../spec/common-marks#stackoptions).
+
+**x** (`ChannelValueIntervalSpec`) — The horizontal position (or length/width) channel, typically bound to the
+*x* scale.
+
+If an **interval** is specified, then **x1** and **x2** are derived from
+**x**, representing the lower and upper bound of the containing interval, respectively. For example, for a vertical bar chart of items sold by day:
+
+```js Plot.rectY(sales, {x: "date", interval: "day", y2: "items"}) ```
+
+If *x* represents ordinal values, use a bar or cell mark instead.
+
+**x1** (`ChannelValueSpec`) — The required primary (starting, often left) horizontal position channel, typically bound to the *x* scale. Setting this option disables the rectX mark’s implicit stackX transform.
+
+If *x* represents ordinal values, use a bar or cell mark instead.
+
+**x2** (`ChannelValueSpec`) — The required secondary (ending, often right) horizontal position channel, typically bound to the *x* scale. Setting this option disables the rectX mark’s implicit stackX transform.
+
+If *x* represents ordinal values, use a bar or cell mark instead.
+
+**y** (`ChannelValueIntervalSpec`) — The vertical position (or length/height) channel, typically bound to the
+*y* scale.
+
+If an **interval** is specified, then **y1** and **y2** are derived from
+**y**, representing the lower and upper bound of the containing interval, respectively. For example, for a horizontal bar chart of items sold by day:
+
+```js Plot.rectX(sales, {y: "date", interval: "day", x2: "items"}) ```
+
+If *y* represents ordinal values, use a bar or cell mark instead.
+
+**y1** (`ChannelValueSpec`) — The required primary (starting, often bottom) vertical position channel, typically bound to the *y* scale. Setting this option disables the rectY mark’s implicit stackY transform.
+
+If *y* represents ordinal values, use a bar or cell mark instead.
+
+**y2** (`ChannelValueSpec`) — The required secondary (ending, often top) vertical position channel, typically bound to the *y* scale. Setting this option disables the rectY mark’s implicit stackY transform.
+
+If *y* represents ordinal values, use a bar or cell mark instead.
+
+**interval** (`Interval | ParamRef`) — How to convert a continuous value (**x** for rectY, **y** for rectX, or both for rect) into an interval (**x1** and **x2** for rectY, or **y1** and
+**y2** for rectX, or both for rect); one of:
+
+- a named time interval such as *day* (for date intervals)
+- a number (for number intervals), defining intervals at integer multiples of *n*
+
+Setting this option disables the implicit stack transform (stackX for rectX, or stackY for rectY).
+
+### RectXOptions options
+
+Options for the rectX mark.
+
+Extends [`RectOptions`](#rectoptions-options).
+
+**x** (`ChannelValueSpec`) — The horizontal position (or length/width) channel, typically bound to the
+*x* scale.
+
+If neither **x1** nor **x2** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+### RectYOptions options
+
+Options for the rectY mark.
+
+Extends [`RectOptions`](#rectoptions-options).
+
+**y** (`ChannelValueSpec`) — The vertical position (or length/height) channel, typically bound to the
+*y* scale.
+
+If neither **y1** nor **y2** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+### Rect options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RectOptions`](#rectoptions-options).
+
+
+### RectX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RectXOptions`](#rectxoptions-options).
+
+
+### RectY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RectYOptions`](#rectyoptions-options).
+
+
+### RuleOptions options
+
+Options for the ruleX and ruleY marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions).
+
+**interval** (`Interval | ParamRef`) — How to convert a continuous value (**y** for ruleX, or **x** for ruleY) into an interval (**y1** and **y2** for ruleX, or **x1** and **x2** for ruleY); one of:
+
+- a named time interval such as *day* (for date intervals)
+- a number (for number intervals), defining intervals at integer multiples of *n*
+
+### RuleXOptions options
+
+Options for the ruleX mark.
+
+Extends [`RuleOptions`](#ruleoptions-options), [`Omit<InsetOptions, 'insetLeft' | 'insetRight'>`](../spec/common-marks#insetoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position of the tick; an optional channel bound to the *x* scale. If not specified, the rule will be horizontally centered in the plot’s frame.
+
+**y** (`ChannelValueIntervalSpec`) — Shorthand for specifying both the primary and secondary vertical position of the tick as the bounds of the containing interval; can only be used in conjunction with the **interval** option.
+
+**y1** (`ChannelValueSpec`) — The primary (starting, often bottom) vertical position of the tick; a channel bound to the *y* scale.
+
+If *y* represents ordinal values, use a tickX mark instead.
+
+**y2** (`ChannelValueSpec`) — The secondary (ending, often top) vertical position of the tick; a channel bound to the *y* scale.
+
+If *y* represents ordinal values, use a tickX mark instead.
+
+### RuleYOptions options
+
+Options for the ruleY mark.
+
+Extends [`RuleOptions`](#ruleoptions-options), [`Omit<InsetOptions, 'insetTop' | 'insetBottom'>`](../spec/common-marks#insetoptions).
+
+**x** (`ChannelValueIntervalSpec`) — Shorthand for specifying both the primary and secondary horizontal position of the tick as the bounds of the containing interval; can only be used in conjunction with the **interval** option.
+
+**x1** (`ChannelValueSpec`) — The primary (starting, often left) horizontal position of the tick; a channel bound to the *x* scale.
+
+If *x* represents ordinal values, use a tickY mark instead.
+
+**x2** (`ChannelValueSpec`) — The secondary (ending, often right) horizontal position of the tick; a channel bound to the *x* scale.
+
+If *x* represents ordinal values, use a tickY mark instead.
+
+**y** (`ChannelValueSpec`) — The vertical position of the tick; an optional channel bound to the *y* scale. If not specified, the rule will be vertically centered in the plot’s frame.
+
+### RuleX options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`RuleXOptions`](#rulexoptions-options).
+
+
+### RuleY options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`RuleXOptions`](#rulexoptions-options).
+
+
+### TickXOptions options
+
+Options for the tickX mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`Omit<InsetOptions, 'insetLeft' | 'insetRight'>`](../spec/common-marks#insetoptions).
+
+**x** (`ChannelValueSpec`) — The required horizontal position of the tick; a channel typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The optional vertical position of the tick; an ordinal channel typically bound to the *y* scale. If not specified, the tick spans the vertical extent of the frame; otherwise the *y* scale must be a *band* scale.
+
+If *y* represents quantitative or temporal values, use a ruleX mark instead.
+
+### TickYOptions options
+
+Options for the tickY mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`Omit<InsetOptions, 'insetTop' | 'insetBottom'>`](../spec/common-marks#insetoptions).
+
+**y** (`ChannelValueSpec`) — The required vertical position of the tick; a channel typically bound to the *y* scale.
+
+**x** (`ChannelValueSpec`) — The optional horizontal position of the tick; an ordinal channel typically bound to the *x* scale. If not specified, the tick spans the horizontal extent of the frame; otherwise the *x* scale must be a *band* scale.
+
+If *x* represents quantitative or temporal values, use a ruleY mark instead.
+
+### TickX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`TickXOptions`](#tickxoptions-options).
+
+
+### TickY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`TickYOptions`](#tickyoptions-options).
+
+
+**`ruleY`:** **RuleY limitation:** its wire contract inherits RuleXOptions, admitting y1/y2 and top/bottom insets instead of horizontal endpoints. Native JavaScript supports x1/x2.
+
+**`circle`, `hexagon`:** Circle and hexagon force their named geometry, even when a symbol option is supplied.
+
+**`barX`, `barY`, `dotX`, `dotY`, `rect`, `rectX`, `rectY`, `ruleX`, `ruleY`:** Numeric intervals work in TypeScript and native JavaScript. For declarative intervals, bind a named parameter containing a time interval string; a literal string such as `day` is interpreted as a SQL field by the mark runtime.
+
+**`barX`, `barY`, `cell`, `cellX`, `cellY`, `rect`, `rectX`, `rectY`, `dot`, `dotX`, `dotY`, `circle`, `hexagon`, `tickX`, `tickY`:** The wire format requires data for these marks. Python defaults data to None; the JavaScript options-only overload supplies one empty row.
+
+### basic examples
+
+`dot`: [json](/templates/marks/basic/dot.json) · [yaml](/templates/marks/basic/dot.yaml) · [js](/templates/marks/basic/dot.js) · <a :href="withBase('/templates/marks/basic/dot.py')" download>Python</a>.

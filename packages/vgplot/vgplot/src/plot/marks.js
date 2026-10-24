@@ -21,18 +21,14 @@ export const areaY = (...args) => mark('areaY', ...args);
 export const line = (...args) => mark('line', ...args);
 export const lineX = (...args) => mark('lineX', ...args);
 export const lineY = (...args) => mark('lineY', ...args);
-
 export const barX = (...args) => mark('barX', ...args);
 export const barY = (...args) => mark('barY', ...args);
-
 export const cell = (...args) => mark('cell', ...args);
 export const cellX = (...args) => mark('cellX', ...args);
 export const cellY = (...args) => mark('cellY', ...args);
-
 export const rect = (...args) => mark('rect', ...args);
 export const rectX = (...args) => mark('rectX', ...args);
 export const rectY = (...args) => mark('rectY', ...args);
-
 export const dot = (...args) => mark('dot', ...args);
 export const dotX = (...args) => mark('dotX', ...args);
 export const dotY = (...args) => mark('dotY', ...args);
@@ -42,10 +38,8 @@ export const hexagon = (...args) => mark('hexagon', ...args);
 export const text = (...args) => mark('text', ...args);
 export const textX = (...args) => mark('textX', ...args);
 export const textY = (...args) => mark('textY', ...args);
-
 export const ruleX = (...args) => mark('ruleX', ...args);
 export const ruleY = (...args) => mark('ruleY', ...args);
-
 export const tickX = (...args) => mark('tickX', ...args);
 export const tickY = (...args) => mark('tickY', ...args);
 
