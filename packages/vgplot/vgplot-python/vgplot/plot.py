@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from . import _source_api, _source_runtime
 from ._generated import layouts as _layouts
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -12,19 +13,6 @@ from .util import camelize, omit_none
 if TYPE_CHECKING:
     from vgplot._types import MarkData
     from vgplot.spec import View
-
-
-class FromRef:
-    def __init__(self, name: str, **opts: Any) -> None:
-        self.name = name
-        self.opts = {camelize(k): v for k, v in opts.items() if v is not None}
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"from": self.name, **self.opts}
-
-
-def source(name: str, **opts: Any) -> FromRef:
-    return FromRef(name, **opts)
 
 
 @dataclass
@@ -531,3 +519,7 @@ hconcat = _layouts.hconcat
 hspace = _layouts.hspace
 vconcat = _layouts.vconcat
 vspace = _layouts.vspace
+
+source = _source_api.source
+
+FromRef = _source_runtime.FromRef

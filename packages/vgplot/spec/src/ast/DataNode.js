@@ -1,24 +1,14 @@
 import { createTable } from '@uwdata/mosaic-sql';
+import { TABLE_DATA, PARQUET_DATA, CSV_DATA, JSON_DATA, SPATIAL_DATA, DATA_FORMATS, DATA_LOADERS, DEFAULT_DATA_FORMAT } from '../generated/data.js';
 import { DATA } from '../constants.js';
 import { isArray, isString } from '../util.js';
 import { ASTNode } from './ASTNode.js';
 import { parseOptions } from './OptionsNode.js';
 
-export const TABLE_DATA = 'table';
-export const PARQUET_DATA = 'parquet';
-export const CSV_DATA = 'csv';
-export const JSON_DATA = 'json';
-export const SPATIAL_DATA = 'spatial';
+export { TABLE_DATA, PARQUET_DATA, CSV_DATA, JSON_DATA, SPATIAL_DATA } from '../generated/data.js';
 
-const dataFormats = new Map(
-  /** @type {[string, (name: string, spec: any, ctx: import('../parse-spec.js').ParseContext) => DataNode][]} */ ([
-    [TABLE_DATA, parseTableData],
-    [PARQUET_DATA, parseParquetData],
-    [CSV_DATA, parseCSVData],
-    [JSON_DATA, parseJSONData],
-    [SPATIAL_DATA, parseSpatialData]
-  ])
-);
+const dataParsers = { parseTableData, parseParquetData, parseCSVData, parseJSONData, parseSpatialData };
+const dataFormats = new Map(DATA_FORMATS.map(({ type, parser }) => [type, dataParsers[parser]]));
 
 /**
  * Parse a data definition spec.
@@ -46,7 +36,7 @@ function resolveDataSpec(spec) {
 function inferType(spec) {
   return spec.type
     || fileExtension(spec.file)
-    || 'table';
+    || DEFAULT_DATA_FORMAT;
 }
 
 function fileExtension(file) {
@@ -175,7 +165,7 @@ export class TableDataNode extends QueryDataNode {
   codegenQuery(ctx) {
     const { name, query, options } = this;
     if (query) {
-      return `\`${createTable(name, query, options.instantiate(ctx))}\``;
+      return `\`${String(createTable(name, query, options.instantiate(ctx))).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${')}\``;
     }
   }
 
@@ -214,7 +204,7 @@ export class FileDataNode extends QueryDataNode {
     const { name, method, file, options } = this;
     const url = resolveFileURL(file, ctx.baseURL);
     const opt = codegenOptions(options, ctx);
-    return `${ctx.ns()}${method}("${name}", "${url}"${opt})`;
+    return `${ctx.ns()}${method}(${JSON.stringify(name)}, ${JSON.stringify(url)}${opt})`;
   }
 
   toJSON() {
@@ -225,25 +215,25 @@ export class FileDataNode extends QueryDataNode {
 
 export class SpatialDataNode extends FileDataNode {
   constructor(name, file, options) {
-    super(name, SPATIAL_DATA, 'loadSpatial', file, options);
+    super(name, SPATIAL_DATA, DATA_LOADERS[SPATIAL_DATA], file, options);
   }
 }
 
 export class ParquetDataNode extends FileDataNode {
   constructor(name, file, options) {
-    super(name, PARQUET_DATA, 'loadParquet', file, options);
+    super(name, PARQUET_DATA, DATA_LOADERS[PARQUET_DATA], file, options);
   }
 }
 
 export class CSVDataNode extends FileDataNode {
   constructor(name, file, options) {
-    super(name, CSV_DATA, 'loadCSV', file, options);
+    super(name, CSV_DATA, DATA_LOADERS[CSV_DATA], file, options);
   }
 }
 
 export class JSONDataNode extends FileDataNode {
   constructor(name, file, options) {
-    super(name, JSON_DATA, 'loadJSON', file, options);
+    super(name, JSON_DATA, DATA_LOADERS[JSON_DATA], file, options);
   }
 }
 
@@ -275,7 +265,7 @@ export class LiteralJSONDataNode extends QueryDataNode {
     const d = '[\n    '
       + data.map(d => JSON.stringify(d)).join(',\n    ')
       + '\n  ]';
-    return `${ctx.ns()}loadObjects("${name}", ${d}${opt})`;
+    return `${ctx.ns()}loadObjects(${JSON.stringify(name)}, ${d}${opt})`;
   }
 
   toJSON() {
