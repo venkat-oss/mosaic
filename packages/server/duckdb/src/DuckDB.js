@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-/** @import { DuckDBConnection, DuckDBPreparedStatement, DuckDBValue, Json } from '@duckdb/node-api' */
+/** @import { DuckDBConnection, DuckDBPreparedStatement, DuckDBResultReader, DuckDBValue, Json } from '@duckdb/node-api' */
 
 const TEMP_DIR = '.duckdb';
 
@@ -80,7 +80,7 @@ export class DuckDB {
   async query(sql) {
     await this._init;
     const reader = await this.con.runAndReadAll(sql);
-    return reader.getRowObjectsJson();
+    return jsonRows(reader);
   }
 
   /**
@@ -157,6 +157,18 @@ export class DuckDBStatement {
   async query(params) {
     if (params?.length) this.statement.bind(params);
     const reader = await this.statement.runAndReadAll();
-    return reader.getRowObjectsJson();
+    return jsonRows(reader);
   }
+}
+
+/** @param {DuckDBResultReader} reader */
+function jsonRows(reader) {
+  // @duckdb/node-api's object converters use prototype-sensitive column keys.
+  const seen = new Map();
+  const names = reader.columnNames().map(name => {
+    const count = seen.get(name) ?? 0;
+    seen.set(name, count + 1);
+    return count ? `${name}:${count}` : name;
+  });
+  return reader.getRowsJson().map(row => Object.fromEntries(names.map((name, index) => [name, row[index]])));
 }

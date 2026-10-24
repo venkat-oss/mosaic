@@ -1,7 +1,9 @@
 import type { AggregateNode } from '@uwdata/mosaic-sql';
+import { Precision, Type, type DataType } from '@uwdata/flechette';
 import { Query, asTableRef, count, isAggregateExpression, isNode, isNull, max, min, sql } from '@uwdata/mosaic-sql';
 import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { jsType } from './js-type.js';
+import { isArrowTable } from './is-arrow-table.js';
 import type { Coordinator } from '../Coordinator.js';
 import type { FieldInfoRequest, FieldInfo, NativeFieldInfoRequest, NativeFieldInfo, NativeFieldInfoOptions, Stat, FieldRef, ColumnDescription } from '../types.js';
 
@@ -71,23 +73,32 @@ async function nativeFieldInfo(
   const context = mc.nativeContext!;
   const execution = context.execution;
   if (!requests.length) return [];
-  if (execution.targetDialect !== nativeSQL.Dialect.DuckDB) {
-    throw new TypeError('Native field metadata currently requires a DuckDB target.');
-  }
   const read = async (input: nativeSQL.Query) => {
     const result = await mc.query(input);
     if (context.execution !== execution) throw new DOMException('SQL execution context changed during field metadata preparation.', 'AbortError');
     return result;
   };
+  const describe = async (input: nativeSQL.Query): Promise<ColumnDescription[]> => {
+    if (execution.targetDialect === nativeSQL.Dialect.DuckDB) {
+      return Array.from(await read(nativeSQL.Query.describe(input)) as Iterable<ColumnDescription>);
+    }
+    const result = await read(input.clone().limit(0));
+    if (!isArrowTable(result)) throw new TypeError('Native field metadata requires an Arrow schema for this backend.');
+    return result.schema.fields.map(field => ({
+      column_name: field.name,
+      column_type: field.metadata?.get('mosaic.sqlType') ?? arrowSqlType(field.type),
+      null: field.nullable ? 'YES' : 'NO'
+    }));
+  };
   if (requests.length === 1 && requests[0].column === '*') {
     const { table } = requests[0];
-    const description = await read(nativeSQL.Query.describe(nativeSQL.Query.from(nativeSQL.from(table)).select('*')));
-    return Array.from(description as Iterable<ColumnDescription>, desc => nativeDescription(table, desc.column_name, desc));
+    const description = await describe(nativeSQL.Query.from(nativeSQL.from(table)).select('*'));
+    return description.map(desc => nativeDescription(table, desc.column_name, desc));
   }
 
   const entries = query && nativeSQL.selectEntries(query);
   const descriptions = query
-    ? Array.from(await read(nativeSQL.Query.describe(query)) as Iterable<ColumnDescription>)
+    ? await describe(new nativeSQL.Query(nativeSQL.rootExpression(query)))
     : undefined;
   return Promise.all(requests.map(async ({ table, column, stats }) => {
     const expression = nativeSQL.asNode(column);
@@ -108,7 +119,7 @@ async function nativeFieldInfo(
       }
     } else {
       const descriptor = nativeSQL.Query.from(nativeSQL.from(table)).select({ __mosaic_field: expression });
-      const columns = Array.from(await read(nativeSQL.Query.describe(descriptor)) as Iterable<ColumnDescription>);
+      const columns = await describe(descriptor);
       if (columns.length !== 1) throw new TypeError('Native metadata fields require one output column per requested projection.');
       [desc] = columns;
       if (projected) {
@@ -129,6 +140,26 @@ async function nativeFieldInfo(
     const [result] = await read(summary);
     return Object.assign(info, result);
   }));
+}
+
+function arrowSqlType(type: DataType): string {
+  switch (type.typeId) {
+    case Type.Dictionary: return arrowSqlType(type.dictionary);
+    case Type.Null: return 'NULL';
+    case Type.Int: return (type.signed ? '' : 'U') + ({ 8: 'TINYINT', 16: 'SMALLINT', 32: 'INTEGER', 64: 'BIGINT' }[type.bitWidth]);
+    case Type.Float: return type.precision === Precision.DOUBLE ? 'DOUBLE' : 'FLOAT';
+    case Type.Decimal: return `DECIMAL(${type.precision},${type.scale})`;
+    case Type.Bool: return 'BOOLEAN';
+    case Type.Utf8: case Type.LargeUtf8: case Type.Utf8View: return 'VARCHAR';
+    case Type.Date: return 'DATE';
+    case Type.Time: return 'TIME';
+    case Type.Timestamp: return type.timezone ? 'TIMESTAMPTZ' : 'TIMESTAMP';
+    case Type.List: case Type.LargeList: case Type.FixedSizeList: case Type.ListView: case Type.LargeListView: return 'LIST';
+    case Type.Struct: return 'STRUCT';
+    case Type.Map: return 'MAP';
+    case Type.Binary: case Type.LargeBinary: case Type.FixedSizeBinary: case Type.BinaryView: return 'BLOB';
+    default: throw new TypeError(`Unsupported Arrow metadata type: ${type.typeId}`);
+  }
 }
 
 function nativeProjectedStats(expression: nativeSQL.SqlExpression): boolean {

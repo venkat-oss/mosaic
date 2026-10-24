@@ -9,11 +9,7 @@ await vg.coordinator().exec([
   "ST_Transform(ST_Point(dropoff_latitude, dropoff_longitude), 'EPSG:4326', 'ESRI:102718') AS drop"
 ]
 }),
-  `CREATE TABLE IF NOT EXISTS "trips" AS SELECT
-  (HOUR(datetime) + MINUTE(datetime)/60) AS time,
-  ST_X(pick) AS px, ST_Y(pick) AS py,
-  ST_X(drop) AS dx, ST_Y(drop) AS dy
-FROM rides`
+  vg.createTable("trips", "SELECT\n  (HOUR(datetime) + MINUTE(datetime)/60) AS time,\n  ST_X(pick) AS px, ST_Y(pick) AS py,\n  ST_X(drop) AS dx, ST_Y(drop) AS dy\nFROM rides")
 ]);
 
 const $filter = vg.Selection.crossfilter();

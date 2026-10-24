@@ -7,6 +7,8 @@ import type { JSType } from '../types.js';
  * @throws Throws an error if the given SQL type name is unsupported or unrecognized.
  */
 export function jsType(type: string): JSType {
+  type = type.trim().toUpperCase();
+  if (type.endsWith(']')) return 'array';
   switch (type) {
     case 'BIGINT':
     case 'HUGEINT':
@@ -17,6 +19,8 @@ export function jsType(type: string): JSType {
     case 'UINTEGER':
     case 'USMALLINT':
     case 'UTINYINT': // integers
+    case 'INT': case 'INT2': case 'INT4': case 'INT8':
+    case 'FLOAT4': case 'FLOAT8':
     case 'DOUBLE':
     case 'FLOAT':
     case 'REAL':
@@ -30,10 +34,12 @@ export function jsType(type: string): JSType {
     case 'TIMESTAMP_NS':
       return 'date';
     case 'BOOLEAN':
+    case 'BOOL':
       return 'boolean';
     case 'VARCHAR':
     case 'UUID':
     case 'JSON':
+    case 'JSONB': case 'TEXT': case 'CHAR': case 'CHARACTER': case 'CHARACTER VARYING':
       return 'string';
     case 'ARRAY':
     case 'LIST':
@@ -42,16 +48,19 @@ export function jsType(type: string): JSType {
     case 'STRUCT':
     case 'MAP':
     case 'GEOMETRY':
+    case 'BYTEA': case 'NULL':
       return 'object';
     default:
       if (type.startsWith('ENUM')) {
         return 'string';
-      } else if (type.startsWith('DECIMAL')) {
+      } else if (type.startsWith('DECIMAL') || type.startsWith('NUMERIC')) {
         return 'number';
       } else if (type.startsWith('STRUCT') || type.startsWith('MAP')) {
         return 'object';
-      } else if (type.endsWith(']')) {
-        return 'array';
+      } else if (/^TIMESTAMP\(\d+\)( WITH(?:OUT)? TIME ZONE)?$/.test(type)) {
+        return 'date';
+      } else if (/^(?:CHAR|VARCHAR|CHARACTER(?: VARYING)?)\(\d+\)$/.test(type)) {
+        return 'string';
       }
       throw new Error(`Unsupported type: ${type}`);
   }

@@ -16,6 +16,22 @@ describe('DuckDB', () => {
     await db.exec('DROP TABLE penguins');
   });
 
+  it('preserves prototype-named JSON fields and existing duplicate-name behavior', async () => {
+    const sql = 'SELECT 1 AS "__proto__", 2 AS constructor, 3 AS "quoted""name", 4 AS x, 5 AS x, 6 AS "__proto__"';
+    const expected = Object.fromEntries([['__proto__', 1], ['constructor', 2], ['quoted"name', 3], ['x', 4], ['x:1', 5], ['__proto__:1', 6]]);
+    const result = await db.query(sql);
+    expect(result).toEqual([expected]);
+    expect(Object.hasOwn(result[0], '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(result[0])).toBe(Object.prototype);
+    const statement = await db.prepare(sql);
+    try {
+      expect(await statement.query()).toEqual([expected]);
+    } finally {
+      statement.finalize();
+    }
+    expect(await db.query(sql + ' WHERE false')).toEqual([]);
+  });
+
   describe('arrowBuffer', () => {
     it('returns arrow ipc buffers', async () => {
       const chunks = await db.arrowBuffer('SELECT * FROM penguins');

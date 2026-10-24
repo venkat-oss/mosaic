@@ -41,3 +41,7 @@ export { From, from, cte, subquery, tuple, values, positionalRef, sample, join, 
 export type { TableArg, Sample, SampleMethod, JoinType, JoinOptions } from './relational.js';
 export { filterPushdown, filterQuery } from './filter-query.js';
 export { columnParts } from './tree.js';
+export { loadCSV, loadJSON, loadParquet, loadSpatial, loadObjects, sqlFrom } from './load.js';
+export type { LoadOptions, SQLFromOptions } from './load.js';
+export { loadExtension } from '../load/extension.js';
+export { geojson, x, y, centroid, centroidX, centroidY } from './spatial.js';

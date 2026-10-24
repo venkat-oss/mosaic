@@ -61,6 +61,15 @@ The `parseSpec()` method parses a specification in JSON format into an _abstract
 
 Given a parsed AST, the generator method `astToDOM()` instantiates a running web application, returning Mosaic-backed Document Object Model (DOM) elements that can be added to a web page.
 
+The API context supplies the data loaders used during instantiation. To use the
+native SQL preview, pass `astToDOM(ast, { api: createAPIContext({ coordinator }) })`
+with a coordinator that owns a `NativeSqlContext`. Table-query definitions are
+parsed into native queries, and file and inline-object definitions use the
+[native loaders](/api/sql/data-loading). Relative file paths still resolve
+against `baseURL`, and required DuckDB extensions load before the datasets.
+Generated JavaScript calls `createTable` through its API namespace so table
+setup follows the runtime context as well.
+
 Meanwhile, the `astToESM()` method instead generates JavaScript code, in the form of an ECMAScript Module (ESM), that uses the `vgplot` API. The JavaScript code listed in the examples above was generated using this method, and `astToPython()` similarly generates equivalent Python code for the [`vgplot` Python API](/vgplot/?lang=python).
 
 For more, see the [Specification Parser & Generators Reference](/api/spec/parser-generators).

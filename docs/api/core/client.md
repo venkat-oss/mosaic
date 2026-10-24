@@ -54,7 +54,7 @@ async prepare() {
 }
 ```
 
-For a native DuckDB coordinator, requests accept a native relation and expression
+For a native coordinator, requests accept a native relation and expression
 as `table` and `column`. Results retain those original references in request order.
 An optional third argument, `{ query }`, supplies the actual projection/grouping
 scope for aggregate or window expressions; request expressions must refer to its
@@ -62,8 +62,12 @@ authored projections. Aggregate statistics then summarize that query's output.
 Metadata for an empty relation still reports its schema. A sole `column: '*'`
 request returns the relation's columns by backend name.
 
-List expansion statistics summarize the expanded rows. An individual field
-request that expands into multiple columns rejects rather than guessing its output.
+DuckDB describes the projection without reading data. Other backends use an
+Arrow schema from a zero-row query, including field names and nullability. A
+connector can supply an exact SQL type in field metadata as `mosaic.sqlType`;
+otherwise Mosaic derives the type from Arrow. List expansion statistics summarize
+the expanded rows. An individual field request that expands into multiple columns
+rejects rather than guessing which output belongs to it.
 
 ## query
 

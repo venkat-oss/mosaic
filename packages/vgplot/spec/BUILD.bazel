@@ -74,7 +74,7 @@ js_library(
         "playwright.config.js",
         "test/grid-templates.browser.js",
         "test/util/grid-browser.js",
-    ] + glob(["test/visual*.js", "test/visual*.html", "test/visual*.js-snapshots/**"]),
+    ] + glob(["test/visual*.js", "test/visual*.html", "test/visual*.geojson", "test/visual*.js-snapshots/**"]),
 )
 
 copy_file(

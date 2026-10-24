@@ -51,6 +51,10 @@ Execute the provided _sql_ query and return a Promise that resolves when query e
 
 `db.query(sql)`
 
+JSON row objects preserve quoted column names, including `__proto__`. Repeated
+names use `:1`, `:2`, and subsequent suffixes. Prepared queries use the same naming
+behavior; Arrow results retain their original column names and positions.
+
 Execute the provided _sql_ query and return a Promise that resolves to the query result table as an array of JavaScript objects.
 
 ## arrowBuffer

@@ -1,4 +1,3 @@
-import { createTable } from '@uwdata/mosaic-sql';
 import { TABLE_DATA, PARQUET_DATA, CSV_DATA, JSON_DATA, SPATIAL_DATA, DATA_FORMATS, DATA_LOADERS, DEFAULT_DATA_FORMAT } from '../generated/data.js';
 import { DATA } from '../constants.js';
 import { isArray, isString } from '../util.js';
@@ -165,7 +164,7 @@ export class TableDataNode extends QueryDataNode {
   codegenQuery(ctx) {
     const { name, query, options } = this;
     if (query) {
-      return `\`${String(createTable(name, query, options.instantiate(ctx))).replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${')}\``;
+      return `${ctx.ns()}createTable(${JSON.stringify(name)}, ${JSON.stringify(query)}${codegenOptions(options, ctx)})`;
     }
   }
 

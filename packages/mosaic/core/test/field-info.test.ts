@@ -1,4 +1,5 @@
 import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { dateDay, float64, list, tableFromArrays, utf8 } from '@uwdata/flechette';
 import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 import type { Coordinator, FieldInfoRequest } from '../src/index.js';
@@ -154,5 +155,34 @@ describe('native queryFieldInfo', () => {
     expect(info.map(({ type }) => type)).toEqual(['number', 'string']);
     expect(info[0].column).toBe(first);
     expect(info[1].column).toBe(second);
+  });
+});
+
+describe('native Arrow metadata', () => {
+  it('reads types and nullability from a zero-row result schema without DESCRIBE', async () => {
+    const schema = tableFromArrays({ value: [], label: [], day: [], items: [] }, {
+      types: { value: float64(), label: utf8(), day: dateDay(), items: list(float64()) }
+    });
+    schema.schema.fields[0].nullable = false;
+    schema.schema.fields[1].metadata = new Map([['mosaic.sqlType', 'text']]);
+    const nativeContext = new NativeSqlContext({ backend: 'postgres', targetDialect: nativeSQL.Dialect.PostgreSQL });
+    const calls: string[] = [];
+    const mc = {
+      nativeContext,
+      query: async (query: nativeSQL.Query) => {
+        calls.push(nativeSQL.compile([query], nativeContext.execution)[0]);
+        return schema;
+      }
+    } as unknown as Coordinator;
+    const info = await queryFieldInfo(mc, [{ table: 'empty table', column: '*' }], {});
+    expect(info.map(({ column, type, sqlType, nullable }) => ({ column, type, sqlType, nullable }))).toEqual([
+      { column: 'value', type: 'number', sqlType: 'DOUBLE', nullable: false },
+      { column: 'label', type: 'string', sqlType: 'text', nullable: true },
+      { column: 'day', type: 'date', sqlType: 'DATE', nullable: true },
+      { column: 'items', type: 'array', sqlType: 'LIST', nullable: true }
+    ]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain('LIMIT 0');
+    expect(calls[0]).not.toMatch(/DESC|GROUP BY ALL/);
   });
 });

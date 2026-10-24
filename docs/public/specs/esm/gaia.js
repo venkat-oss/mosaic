@@ -1,23 +1,7 @@
 import * as vg from "@uwdata/vgplot";
 
 await vg.coordinator().exec([
-  `CREATE TABLE IF NOT EXISTS "gaia" AS -- compute u and v with natural earth projection
-WITH prep AS (
-  SELECT
-    radians((-l + 540) % 360 - 180) AS lambda,
-    radians(b) AS phi,
-    asin(sqrt(3)/2 * sin(phi)) AS t,
-    t^2 AS t2,
-    t2^3 AS t6,
-    *
-  FROM 'https://pub-1da360b43ceb401c809f68ca37c7f8a4.r2.dev/data/gaia-5m.parquet'
-  WHERE parallax BETWEEN -5 AND 20 AND phot_g_mean_mag IS NOT NULL AND bp_rp IS NOT NULL
-)
-SELECT
-  (1.340264 * "lambda" * cos(t)) / (sqrt(3)/2 * (1.340264 + (-0.081106 * 3 * t2) + (t6 * (0.000893 * 7 + 0.003796 * 9 * t2)))) AS u,
-  t * (1.340264 + (-0.081106 * t2) + (t6 * (0.000893 + 0.003796 * t2))) AS v,
-  * EXCLUDE('t', 't2', 't6')
-FROM prep`
+  vg.createTable("gaia", "-- compute u and v with natural earth projection\nWITH prep AS (\n  SELECT\n    radians((-l + 540) % 360 - 180) AS lambda,\n    radians(b) AS phi,\n    asin(sqrt(3)/2 * sin(phi)) AS t,\n    t^2 AS t2,\n    t2^3 AS t6,\n    *\n  FROM 'https://pub-1da360b43ceb401c809f68ca37c7f8a4.r2.dev/data/gaia-5m.parquet'\n  WHERE parallax BETWEEN -5 AND 20 AND phot_g_mean_mag IS NOT NULL AND bp_rp IS NOT NULL\n)\nSELECT\n  (1.340264 * \"lambda\" * cos(t)) / (sqrt(3)/2 * (1.340264 + (-0.081106 * 3 * t2) + (t6 * (0.000893 * 7 + 0.003796 * 9 * t2)))) AS u,\n  t * (1.340264 + (-0.081106 * t2) + (t6 * (0.000893 + 0.003796 * t2))) AS v,\n  * EXCLUDE('t', 't2', 't6')\nFROM prep")
 ]);
 
 const $brush = vg.Selection.crossfilter();

@@ -38,10 +38,9 @@ export function toDataColumns(data: unknown): DataColumns {
 function arrowToColumns(data: Table): DataColumns {
   const { numRows, schema } = data;
   // apache-arrow tables from third-party connectors lack toColumns()
-  const columns: Record<string, Arrayish> = {};
-  schema.fields.forEach(({ name }, i) => {
-    columns[name] = (data.getChildAt(i)?.toArray() ?? []) as Arrayish;
-  });
+  const columns: Record<string, Arrayish> = Object.fromEntries(schema.fields.map(({ name }, i) => [
+    name, (data.getChildAt(i)?.toArray() ?? []) as Arrayish
+  ]));
   return { numRows, columns };
 }
 
@@ -57,12 +56,7 @@ function arrayToColumns(data: Record<string,unknown>[]): DataColumns {
   const numRows = data.length;
   if (typeof data[0] === 'object') {
     const names = numRows ? Object.keys(data[0]!) : [];
-    const columns: Record<string, unknown[]> = {};
-    if (names.length > 0) {
-      names.forEach(name => {
-        columns[name] = data.map(d => d[name]);
-      });
-    }
+    const columns: Record<string, unknown[]> = Object.fromEntries(names.map(name => [name, data.map(d => d[name])]));
     return { numRows, columns };
   } else {
     return { numRows, values: data };
