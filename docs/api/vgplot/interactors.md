@@ -88,58 +88,39 @@ Select values from the mark closest to the pointer *y* location.
 
 ## region
 
+### region
+
 `region(options)`
 
-Select point values from elements within a rectangular region.
-Unlike `interval` interactors (which select a domain value range along an axis), the `region` interactor generates clauses for values extracted from the selected set of on-screen elements. This interactor functions similar to `toggle`, but uses a rectangular selection region rather than click / tap interactions.
+Select aspects of individual marks within a 2D range.
 
-To select non-visualized data fields, use the plot `channels` property to define additional named channels, which can then be included in this interactor's _channels_ option.
-
-- _as_: The [Selection](../core/selection) to populate with filter predicates. A clause of the form `(field = value1) OR (field = value2) ...` is added for the currently selected values.
-- _channels_: An array of encoding channels (e.g., `"x"`, `"y"`, `"color"`) indicating the data values to select. A sub-clause will be included for each channel.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#region-options).
 
 ## interval
-
-Select all values within an interval range.
 
 ### intervalX
 
 `intervalX(options)`
 
-Select a 1D interval range along the x dimension. The supported _options_ are:
+Select a continuous 1D interval selection over the `x` scale domain.
 
-- _as_: The [Selection](../core/selection) to populate with filter predicates.
-- _field_: The field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _pixelSize_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervalx-options).
 
 ### intervalY
 
 `intervalY(options)`
 
-Select a 1D interval range along the y dimension. The supported _options_ are:
+Select a continuous 1D interval selection over the `y` scale domain.
 
-- _as_: The [Selection](../core/selection) to populate with filter predicates.
-- _field_: The field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-- _pixelSize_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervaly-options).
 
 ### intervalXY
 
 `intervalXY(options)`
 
-Select a 2D interval range along the x and y dimensions. The supported _options_ are:
+Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
-- _as_: The [Selection](../core/selection) to populate with filter predicates.
-- _xfield_: The x field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _yfield_: The y field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-- _pixelSize_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervalxy-options).
 
 ## pan & zoom
 
@@ -297,58 +278,39 @@ Select values from the mark closest to the pointer *y* location.
 
 ## region
 
-`region(options)`
+### region
 
-Select point values from elements within a rectangular region.
-Unlike `interval` interactors (which select a domain value range along an axis), the `region` interactor generates clauses for values extracted from the selected set of on-screen elements. This interactor functions similar to `toggle`, but uses a rectangular selection region rather than click / tap interactions.
+`region(bind=None, channels=None, peers=None, brush=None)`
 
-To select non-visualized data fields, use the plot `channels` property to define additional named channels, which can then be included in this interactor's _channels_ option.
+Select aspects of individual marks within a 2D range.
 
-- _bind_: The [Selection](../core/selection) to populate with filter predicates. A clause of the form `(field = value1) OR (field = value2) ...` is added for the currently selected values.
-- _channels_: An array of encoding channels (e.g., `"x"`, `"y"`, `"color"`) indicating the data values to select. A sub-clause will be included for each channel.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#region-options).
 
 ## interval
 
-Select all values within an interval range.
-
 ### interval_x
 
-`interval_x(options)`
+`interval_x(bind=None, field=None, pixel_size=None, peers=None, brush=None)`
 
-Select a 1D interval range along the x dimension. The supported _options_ are:
+Select a continuous 1D interval selection over the `x` scale domain.
 
-- _bind_: The [Selection](../core/selection) to populate with filter predicates.
-- _field_: The field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _pixel_size_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervalx-options).
 
 ### interval_y
 
-`interval_y(options)`
+`interval_y(bind=None, field=None, pixel_size=None, peers=None, brush=None)`
 
-Select a 1D interval range along the y dimension. The supported _options_ are:
+Select a continuous 1D interval selection over the `y` scale domain.
 
-- _bind_: The [Selection](../core/selection) to populate with filter predicates.
-- _field_: The field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-- _pixel_size_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervaly-options).
 
 ### interval_xy
 
-`interval_xy(options)`
+`interval_xy(bind=None, xfield=None, yfield=None, pixel_size=None, peers=None, brush=None)`
 
-Select a 2D interval range along the x and y dimensions. The supported _options_ are:
+Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
-- _bind_: The [Selection](../core/selection) to populate with filter predicates.
-- _xfield_: The x field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _yfield_: The y field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-- _pixel_size_: The size of an interactive "pixel" (default 1). If set larger, the interval brush will "snap" to a grid larger than visible pixels. In some cases this can be helpful to improve scalability to large data by reducing interactive resolution.
-- _peers_: A Boolean-flag (default `true`) indicating if all marks in the current plot should be considered "peers" in the clients set used to perform cross-filtering. A peer mark will be exempt from filtering. Set this to false if you are using a cross-filtered selection but want to filter across marks within the same plot.
-- _brush_: An optional object of CSS style attribute-value pairs for the selection brush (SVG `rect`) element.
+[Options](#intervalxy-options).
 
 ## pan & zoom
 
@@ -514,5 +476,95 @@ Extends [`NearestOptions`](#nearestoptions-options).
 
 `toggle-filter-peers`: [json](/templates/interactors/point/toggle-filter-peers.json) · [yaml](/templates/interactors/point/toggle-filter-peers.yaml) · [js](/templates/interactors/point/toggle-filter-peers.js) · <a :href="withBase('/templates/interactors/point/toggle-filter-peers.py')" download>Python</a>.
 
+
+[Selection parameters](../core/selection).
+
+### Python brush and sort helpers
+
+`brush(**kwargs)` converts snake_case keys to camelCase; `sort(**kwargs)` preserves keys. Both omit `None` and preserve other values. Use brush for brush styling and sort for mark ordering.
+
+## brush options
+
+Options use wire names; Python arguments use the names shown in their signatures.
+
+### BrushStyles options
+
+**opacity** (`number`) — The overall opacity of the brush rectangle.
+
+**fillOpacity** (`number`) — The fill opacity of the brush rectangle.
+
+**strokeOpacity** (`number`) — The stroke opacity of the brush rectangle.
+
+**fill** (`string`) — The fill color of the brush rectangle.
+
+**stroke** (`string`) — The stroke color of the brush rectangle.
+
+**strokeDasharray** (`string`) — The stroke dash array of the brush rectangle.
+
+### Interval1DOptions options
+
+**as** (`ParamRef`) — The output selection. A clause of the form `field BETWEEN lo AND hi` is added for the currently selected interval [lo, hi].
+
+**field** (`string`) — The name of the field (database column) over which the interval selection should be defined. If unspecified, the  channel field of the first valid prior mark definition is used.
+
+**pixelSize** (`number`) — The size of an interactive pixel (default `1`). Larger pixel sizes reduce the brush resolution, which can reduce the size of pre-aggregated materialized views.
+
+**peers** (`boolean`) — A flag indicating if peer (sibling) marks are excluded when cross-filtering (default `true`). If set, peer marks will not be filtered by this interactor's selection in cross-filtering setups.
+
+**brush** (`BrushStyles`) — CSS styles for the brush (SVG `rect`) element.
+
+### IntervalX options
+
+Extends [`Interval1DOptions`](#interval1doptions-options).
+
+
+### IntervalY options
+
+Extends [`Interval1DOptions`](#interval1doptions-options).
+
+
+### Interval2DOptions options
+
+**as** (`ParamRef`) — The output selection. A clause of the form `(xfield BETWEEN x1 AND x2) AND (yfield BETWEEN y1 AND y2)` is added for the currently selected intervals.
+
+**xfield** (`string`) — The name of the field (database column) over which the `x`-component of the interval selection should be defined. If unspecified, the `x` channel field of the first valid prior mark definition is used.
+
+**yfield** (`string`) — The name of the field (database column) over which the `y`-component of the interval selection should be defined. If unspecified, the `y` channel field of the first valid prior mark definition is used.
+
+**pixelSize** (`number`) — The size of an interactive pixel (default `1`). Larger pixel sizes reduce the brush resolution, which can reduce the size of pre-aggregated materialized views.
+
+**peers** (`boolean`) — A flag indicating if peer (sibling) marks are excluded when cross-filtering (default `true`). If set, peer marks will not be filtered by this interactor's selection in cross-filtering setups.
+
+**brush** (`BrushStyles`) — CSS styles for the brush (SVG `rect`) element.
+
+### IntervalXY options
+
+Extends [`Interval2DOptions`](#interval2doptions-options).
+
+
+### RegionOptions options
+
+**as** (`ParamRef`) — The output selection. A clause of the form `(field = value1) OR (field = value2) ...` is added for the currently selected values.
+
+**channels** (`Array<string>`) — The encoding channels over which to select values. For a selected mark, selection clauses will cover the backing data fields for each channel.
+
+**peers** (`boolean`) — A flag indicating if peer (sibling) marks are excluded when cross-filtering (default `true`). If set, peer marks will not be filtered by this interactor's selection in cross-filtering setups.
+
+**brush** (`BrushStyles`) — CSS styles for the brush (SVG `rect`) element.
+
+### Region options
+
+Extends [`RegionOptions`](#regionoptions-options).
+
+
+**interval:** Each interactor attaches to the last preceding mark. IntervalX and intervalY force their x or y channel after caller options. Fields are inferred from that mark unless field, xfield or yfield is provided. Pixel sizes quantize SVG coordinates downward before domain inversion; zero falls back to one. Domain intervals are sorted even when the screen scale is reversed. Brush clearing removes the selection clause. Resetting an interactor only clears its local brush state; Selection.reset clears the selection itself. Peer exclusion defaults to all sibling marks and can be disabled. Crossed facets share one domain selection across per-panel brushes.
+
+**interval:** Known limitation: a plot with only a horizontal facet scale retains a malformed transform suffix in its brush groups. Use crossed facets for the runnable faceted starter; a single horizontal facet has this rendering limitation.
+
+**region:** Region selects backing channel values from SVG elements intersecting its screen rectangle, including translated facet groups, and deduplicates equal tuples. Channels are required at runtime; color resolves color, fill, then stroke. Missing channels throw an error. Peer exclusion defaults to all sibling marks. The default brush uses fill none, currentColor stroke and a 1,1 dash pattern. Native style sanitization converts names to SVG attributes and retains additional names; strict wire values allow only BrushStyles fields.
+
+### brush examples
+
+`crossed-facets`: [json](/templates/interactors/brush/crossed-facets.json) · [yaml](/templates/interactors/brush/crossed-facets.yaml) · [js](/templates/interactors/brush/crossed-facets.js) · <a :href="withBase('/templates/interactors/brush/crossed-facets.py')" download>Python</a>.
 
 [Selection parameters](../core/selection).

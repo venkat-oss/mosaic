@@ -12,15 +12,12 @@ import { interactor } from './interactor-runtime.js';
 export function highlight({ by, ...channels }) {
   return interactor(Highlight, { selection: by, channels });
 }
-
 export function intervalX({ as, ...rest }) {
   return interactor(Interval1D, { ...rest, selection: as, channel: 'x' });
 }
-
 export function intervalY({ as, ...rest }) {
   return interactor(Interval1D, { ...rest, selection: as, channel: 'y' });
 }
-
 export function intervalXY({ as, ...rest }) {
   return interactor(Interval2D, { ...rest, selection: as });
 }
@@ -33,7 +30,6 @@ export function nearestX({ as, ...rest }) {
 export function nearestY({ as, ...rest }) {
   return interactor(Nearest, { ...rest, selection: as, pointer: 'y' });
 }
-
 export function region({ as, ...rest }) {
   return interactor(Region, { ...rest, selection: as });
 }

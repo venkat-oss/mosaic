@@ -12,6 +12,7 @@ from . import (
     _source_runtime,
     _table_api,
 )
+from ._generated import brush_interactors as _brush_interactors
 from ._generated import layouts as _layouts
 from ._generated import legends as _legends
 from ._generated import plot_attributes as _plot_attributes
@@ -149,83 +150,8 @@ def _encode_component(
     return encode_value(item, param_names, data_names)
 
 
-def brush(**kwargs: Any) -> dict[str, Any]:
-    return {camelize(k): v for k, v in kwargs.items() if v is not None}
-
-
-def sort(**kwargs: Any) -> dict[str, Any]:
-    return {k: v for k, v in kwargs.items() if v is not None}
-
-
 def _interactor(select: str, **opts: Any) -> dict[str, Any]:
     return omit_none({"select": select, **opts})
-
-
-def interval_x(
-    bind: Any = None,
-    field: Any = None,
-    pixel_size: Any = None,
-    peers: Any = None,
-    brush: Any = None,
-) -> dict[str, Any]:
-    return _interactor(
-        "intervalX",
-        **{
-            "as": bind,
-            "field": field,
-            "pixelSize": pixel_size,
-            "peers": peers,
-            "brush": brush,
-        },
-    )
-
-
-def interval_y(
-    bind: Any = None,
-    field: Any = None,
-    pixel_size: Any = None,
-    peers: Any = None,
-    brush: Any = None,
-) -> dict[str, Any]:
-    return _interactor(
-        "intervalY",
-        **{
-            "as": bind,
-            "field": field,
-            "pixelSize": pixel_size,
-            "peers": peers,
-            "brush": brush,
-        },
-    )
-
-
-def interval_xy(
-    bind: Any = None,
-    xfield: Any = None,
-    yfield: Any = None,
-    pixel_size: Any = None,
-    peers: Any = None,
-    brush: Any = None,
-) -> dict[str, Any]:
-    return _interactor(
-        "intervalXY",
-        **{
-            "as": bind,
-            "xfield": xfield,
-            "yfield": yfield,
-            "pixelSize": pixel_size,
-            "peers": peers,
-            "brush": brush,
-        },
-    )
-
-
-def region(
-    bind: Any = None, channels: Any = None, peers: Any = None, brush: Any = None
-) -> dict[str, Any]:
-    return _interactor(
-        "region", **{"as": bind, "channels": channels, "peers": peers, "brush": brush}
-    )
 
 
 def pan(
@@ -299,3 +225,10 @@ toggle_color = _point_interactors.toggle_color
 toggle_x = _point_interactors.toggle_x
 toggle_y = _point_interactors.toggle_y
 toggle_z = _point_interactors.toggle_z
+
+brush = _brush_interactors.brush
+interval_x = _brush_interactors.interval_x
+interval_xy = _brush_interactors.interval_xy
+interval_y = _brush_interactors.interval_y
+region = _brush_interactors.region
+sort = _brush_interactors.sort
