@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ._generated import layouts as _layouts
 from .data import DataDef, is_frame
 from .params import _ParamBase
 from .util import camelize, omit_none
@@ -128,9 +129,6 @@ def mark(name: str, data: MarkData = None, **enc: Any) -> Mark:
     return Mark(name, data=data, enc=enc)
 
 
-# Mark helpers
-
-
 def margins(
     top: int | None = None,
     right: int | None = None,
@@ -174,39 +172,6 @@ def _encode_component(
     return encode_value(item, param_names, data_names)
 
 
-# Layout helpers
-def vconcat(
-    *items: Any, param_names: dict[int, str] | None = None, **kwargs: Any
-) -> View:
-    from .spec import View
-
-    return View(
-        {"vconcat": [_encode_component(i, param_names) for i in items]}, **kwargs
-    )
-
-
-def hconcat(
-    *items: Any, param_names: dict[int, str] | None = None, **kwargs: Any
-) -> View:
-    from .spec import View
-
-    return View(
-        {"hconcat": [_encode_component(i, param_names) for i in items]}, **kwargs
-    )
-
-
-def hspace(value: int | str) -> View:
-    from .spec import View
-
-    return View({"hspace": value})
-
-
-def vspace(value: int | str) -> View:
-    from .spec import View
-
-    return View({"vspace": value})
-
-
 _MISSING = object()
 
 
@@ -222,7 +187,6 @@ def sort(**kwargs: Any) -> dict[str, Any]:
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-# Interactor helpers
 def _interactor(select: str, **opts: Any) -> dict[str, Any]:
     return omit_none({"select": select, **opts})
 
@@ -371,7 +335,6 @@ def pan_zoom_y(y: Any = None, yfield: Any = None) -> dict[str, Any]:
     return _interactor("panZoomY", y=y, yfield=yfield)
 
 
-# Legend helpers
 def _legend(
     kind: str,
     plot: Any = None,
@@ -428,7 +391,6 @@ def symbol_legend(
     )
 
 
-# Input helpers
 _INPUT_ALIASES = {"bind": "as", "source": "from"}
 
 
@@ -563,3 +525,9 @@ def table_input(
         align=align,
         **opts,
     )
+
+
+hconcat = _layouts.hconcat
+hspace = _layouts.hspace
+vconcat = _layouts.vconcat
+vspace = _layouts.vspace

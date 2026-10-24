@@ -18,7 +18,6 @@
     "docs:examples": "bazelisk run //:examples",
     "docs:preview": "bazelisk run //docs:preview",
     "docs:schema": "node bin/publish-schema.js && bin/push-schema.sh",
-    "generate:python-api": "bazelisk run //bin:generate_python_api",
     "build": "bazelisk build //:build",
     "clean": "bazelisk clean",
     "lint": "bazelisk test //:lint //packages/server/duckdb-server-rust:clippy",

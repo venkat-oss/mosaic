@@ -63,8 +63,8 @@ API pages to `docs/api/index.md` as well.
 
 `specs/yaml/*.yaml` is canonical for gallery examples; run `pnpm docs:examples`
 and commit its generated docs and spec variants instead of editing them directly.
-After schema-backed vgplot API changes, run `pnpm generate:python-api`; schema
-descriptions also become generated Python docstrings. Do not run
+After family-backed vgplot API changes, validate the owning CUE `:contribution`
+and the affected package checks. Whole-API synchronization follows root composition. Do not run
 `pnpm docs:schema` during normal development: it stages, commits, and pushes
 published schemas.
 

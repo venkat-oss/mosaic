@@ -76,11 +76,3 @@ js_binary(
     visibility = ["//visibility:public"],
 )
 
-js_binary(
-    name = "generate_python_api",
-    entry_point = "generate-python-api.js",
-    data = ["//packages/vgplot/spec:ast_sources", "//packages/vgplot/spec:schema", "//build/python:ruff", "//:pyproject.toml"],
-    env = {"MOSAIC_SCHEMA": "$(rlocationpath //packages/vgplot/spec:schema)", "MOSAIC_RUFF": "$(rlocationpath //build/python:ruff)"},
-    patch_node_fs = False,
-    visibility = ["//visibility:public"],
-)
