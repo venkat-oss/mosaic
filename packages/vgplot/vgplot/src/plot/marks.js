@@ -70,14 +70,11 @@ export const delaunayMesh = (...args) => mark('delaunayMesh', ...args);
 export const hull = (...args) => mark('hull', ...args);
 export const arrow = (...args) => mark('arrow', ...args);
 export const link = (...args) => mark('link', ...args);
-
 export const frame = (...args) => mark('frame', ...args);
-
 export const axisX = (...args) => mark('axisX', ...args);
 export const axisY = (...args) => mark('axisY', ...args);
 export const axisFx = (...args) => mark('axisFx', ...args);
 export const axisFy = (...args) => mark('axisFy', ...args);
-
 export const gridX = (...args) => mark('gridX', ...args);
 export const gridY = (...args) => mark('gridY', ...args);
 export const gridFx = (...args) => mark('gridFx', ...args);

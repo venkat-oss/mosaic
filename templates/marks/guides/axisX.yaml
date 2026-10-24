@@ -1,0 +1,24 @@
+plot:
+  - data:
+      - x: 2
+        "y": 3
+        facet: a
+        row: c
+      - x: 7
+        "y": 8
+        facet: b
+        row: d
+    mark: dot
+    x: x
+    "y": "y"
+  - mark: axisX
+width: 320
+height: 240
+margin: 40
+axis: null
+xDomain:
+  - 0
+  - 10
+yDomain:
+  - 0
+  - 10

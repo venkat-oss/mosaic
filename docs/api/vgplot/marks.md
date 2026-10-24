@@ -81,9 +81,80 @@ An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
 
 ## Axis
 
-To go beyond the built-in axis generation, the axis mark supports explicit inclusion of axes, along with control over drawing order.
-The provided mark directives are `axisX` and `axisY` (for standard axes) as well as `axisFx` and `axisFy` (for facet axes).
-For supported options, see the [Observable Plot `axis` documentation](https://observablehq.com/plot/marks/axis).
+### axisX
+
+`axisX(options)`
+
+An axis mark to document the visual encoding of the horizontal position
+*x* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to tick values sampled from the *x* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *bottom-empty* if **anchor** is
+*bottom*, and *top-empty* if **anchor** is *top*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *top* - 30, 20, 0, 20
+- *bottom* - 0, 20, 30, 20
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; use the
+**transform** *y*-scale option to show thousands or millions; or use the
+**textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisx-options).
+
+### axisY
+
+`axisY(options)`
+
+An axis mark to document the visual encoding of the vertical position *y* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to tick values sampled from the *y* scale’s domain; if desired, use one of the
+**ticks**, **tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *right-empty* if **anchor** is
+*right*, and *left-empty* if **anchor** is *left*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *right* - 20, 40, 20, 0
+- *left* - 20, 0, 20, 40
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; or use the **textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisy-options).
+
+### axisFx
+
+`axisFx(options)`
+
+An axis mark to document the visual encoding of the horizontal facet position *fx* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to the *fx* scale’s domain; if desired, use one of the **ticks**,
+**tickSpacing**, or **interval** options.
+
+The **facetAnchor** and **frameAnchor** options defaults to **anchor**. The default margins likewise depend on **anchor** as follows; in order of
+**marginTop**, **marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *top* - 30, 20, 0, 20
+- *bottom* - 0, 20, 30, 20
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; use the
+**transform** *y*-scale option to show thousands or millions; or use the
+**textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisfx-options).
+
+### axisFy
+
+`axisFy(options)`
+
+An axis mark to document the visual encoding of the vertical facet position *fy* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to the *fy* scale’s domain; if desired, use one of the **ticks**,
+**tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *right-empty* if **anchor** is
+*right*, and *left-empty* if **anchor** is *left*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *right* - 20, 40, 20, 0
+- *left* - 20, 0, 20, 40
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; or use the **textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisfy-options).
 
 ## Bar
 
@@ -284,9 +355,13 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 
 ## Frame
 
-The `frame` mark draws a rectangle around the plot area.
-It does not take a _data_ argument.
-For supported options, see the [Observable Plot `frame` documentation](https://observablehq.com/plot/marks/frame).
+### frame
+
+`frame(options)`
+
+Draws a rectangle around the plot’s frame, or if an **anchor** is given, a line on the given side. Useful for visual separation of facets, or in conjunction with axes and grids to fill the frame’s background.
+
+[Options](#frame-options).
 
 ## Geo
 
@@ -303,10 +378,39 @@ For other supported options, see the [Observable Plot `geo` documentation](https
 
 ## Grid
 
-The grid mark is a specially-configured rule for drawing an axis-aligned grid.
-To go beyond the built-in axis generation, the grid mark supports explicit inclusion of grid lines, along with control over drawing order.
-The provided mark directives are `gridX` and `gridY` (for standard axes) as well as `gridFx` and `gridFy` (for facet axes).
-For supported options, see the [Observable Plot `grid` documentation](https://observablehq.com/plot/marks/grid).
+### gridX
+
+`gridX(options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |) that renders a grid for the *x* scale. The data defaults to tick values sampled from the
+*x* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+[Options](#gridx-options).
+
+### gridY
+
+`gridY(options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid for the *y* scale. The data defaults to tick values sampled from the
+*y* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+[Options](#gridy-options).
+
+### gridFx
+
+`gridFx(options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |) that renders a grid for the *fx* scale. The data defaults to the *fx* scale’s domain; if desired, use the **ticks** option.
+
+[Options](#gridfx-options).
+
+### gridFy
+
+`gridFy(options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid for the *fy* scale. The data defaults to the *fy* scale’s domain; if desired, use the **ticks** option.
+
+[Options](#gridfy-options).
 
 ## Heatmap
 
@@ -330,8 +434,16 @@ The supported _options_ are:
 
 ## Hexgrid
 
-The `hexgrid` mark draws a hexagonal grid spanning the frame.
-For supported options, see the [Observable Plot `hexgrid` documentation](https://observablehq.com/plot/marks/hexgrid).
+### hexgrid
+
+`hexgrid(options)`
+
+The hexgrid decoration mark complements the hexbin mark, showing the outlines of all hexagons spanning the frame with a default **stroke** of
+*currentColor* and a default **strokeOpacity** of 0.1, similar to the default axis grids.
+
+Note that the **binWidth** option of the hexgrid mark should match that of the hexbin transform. The grid is clipped by the frame. This is a stroke-only mark, and **fill** is not supported; to fill the frame, use the frame mark.
+
+[Options](#hexgrid-options).
 
 ## Image
 
@@ -684,9 +796,80 @@ An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
 
 ## Axis
 
-To go beyond the built-in axis generation, the axis mark supports explicit inclusion of axes, along with control over drawing order.
-The provided mark directives are `axis_x` and `axis_y` (for standard axes) as well as `axis_fx` and `axis_fy` (for facet axes).
-For supported options, see the [Observable Plot `axis` documentation](https://observablehq.com/plot/marks/axis).
+### axis_x
+
+`axis_x(data=None, **options)`
+
+An axis mark to document the visual encoding of the horizontal position
+*x* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to tick values sampled from the *x* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *bottom-empty* if **anchor** is
+*bottom*, and *top-empty* if **anchor** is *top*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *top* - 30, 20, 0, 20
+- *bottom* - 0, 20, 30, 20
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; use the
+**transform** *y*-scale option to show thousands or millions; or use the
+**textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisx-options).
+
+### axis_y
+
+`axis_y(data=None, **options)`
+
+An axis mark to document the visual encoding of the vertical position *y* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to tick values sampled from the *y* scale’s domain; if desired, use one of the
+**ticks**, **tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *right-empty* if **anchor** is
+*right*, and *left-empty* if **anchor** is *left*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *right* - 20, 40, 20, 0
+- *left* - 20, 0, 20, 40
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; or use the **textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisy-options).
+
+### axis_fx
+
+`axis_fx(data=None, **options)`
+
+An axis mark to document the visual encoding of the horizontal facet position *fx* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to the *fx* scale’s domain; if desired, use one of the **ticks**,
+**tickSpacing**, or **interval** options.
+
+The **facetAnchor** and **frameAnchor** options defaults to **anchor**. The default margins likewise depend on **anchor** as follows; in order of
+**marginTop**, **marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *top* - 30, 20, 0, 20
+- *bottom* - 0, 20, 30, 20
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; use the
+**transform** *y*-scale option to show thousands or millions; or use the
+**textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisfx-options).
+
+### axis_fy
+
+`axis_fy(data=None, **options)`
+
+An axis mark to document the visual encoding of the vertical facet position *fy* scale, comprised of (up to) three marks: a vector for ticks, a text for tick labels, and another text for an axis label. The data defaults to the *fy* scale’s domain; if desired, use one of the **ticks**,
+**tickSpacing**, or **interval** options.
+
+The **facetAnchor** option defaults to *right-empty* if **anchor** is
+*right*, and *left-empty* if **anchor** is *left*. The default margins likewise depend on **anchor** as follows; in order of **marginTop**,
+**marginRight**, **marginBottom**, and **marginLeft**, in pixels:
+
+- *right* - 20, 40, 20, 0
+- *left* - 20, 0, 20, 40
+
+For simplicity, and for consistent layout across plots, default axis margins are not affected by tick labels. If tick labels are too long, either increase the margin or shorten the labels: use the *k* SI-prefix tick format; or use the **textOverflow** and **lineWidth** options to clip.
+
+[Options](#axisfy-options).
 
 ## Bar
 
@@ -887,9 +1070,13 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 
 ## Frame
 
-The `frame` mark draws a rectangle around the plot area.
-It does not take a _data_ argument.
-For supported options, see the [Observable Plot `frame` documentation](https://observablehq.com/plot/marks/frame).
+### frame
+
+`frame(data=None, **options)`
+
+Draws a rectangle around the plot’s frame, or if an **anchor** is given, a line on the given side. Useful for visual separation of facets, or in conjunction with axes and grids to fill the frame’s background.
+
+[Options](#frame-options).
 
 ## Geo
 
@@ -906,10 +1093,39 @@ For other supported options, see the [Observable Plot `geo` documentation](https
 
 ## Grid
 
-The grid mark is a specially-configured rule for drawing an axis-aligned grid.
-To go beyond the built-in axis generation, the grid mark supports explicit inclusion of grid lines, along with control over drawing order.
-The provided mark directives are `grid_x` and `grid_y` (for standard axes) as well as `grid_fx` and `grid_fy` (for facet axes).
-For supported options, see the [Observable Plot `grid` documentation](https://observablehq.com/plot/marks/grid).
+### grid_x
+
+`grid_x(data=None, **options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |) that renders a grid for the *x* scale. The data defaults to tick values sampled from the
+*x* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+[Options](#gridx-options).
+
+### grid_y
+
+`grid_y(data=None, **options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid for the *y* scale. The data defaults to tick values sampled from the
+*y* scale’s domain; if desired, use one of the **ticks**, **tickSpacing**, or **interval** options.
+
+[Options](#gridy-options).
+
+### grid_fx
+
+`grid_fx(data=None, **options)`
+
+A horizontally-positioned ruleX mark (a vertical line, |) that renders a grid for the *fx* scale. The data defaults to the *fx* scale’s domain; if desired, use the **ticks** option.
+
+[Options](#gridfx-options).
+
+### grid_fy
+
+`grid_fy(data=None, **options)`
+
+A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid for the *fy* scale. The data defaults to the *fy* scale’s domain; if desired, use the **ticks** option.
+
+[Options](#gridfy-options).
 
 ## Heatmap
 
@@ -933,8 +1149,16 @@ The supported _options_ are:
 
 ## Hexgrid
 
-The `hexgrid` mark draws a hexagonal grid spanning the frame.
-For supported options, see the [Observable Plot `hexgrid` documentation](https://observablehq.com/plot/marks/hexgrid).
+### hexgrid
+
+`hexgrid(data=None, **options)`
+
+The hexgrid decoration mark complements the hexbin mark, showing the outlines of all hexagons spanning the frame with a default **stroke** of
+*currentColor* and a default **strokeOpacity** of 0.1, similar to the default axis grids.
+
+Note that the **binWidth** option of the hexgrid mark should match that of the hexbin transform. The grid is clipped by the frame. This is a stroke-only mark, and **fill** is not supported; to fill the frame, use the frame mark.
+
+[Options](#hexgrid-options).
 
 ## Image
 
@@ -1967,3 +2191,208 @@ How to draw a vector: either a named shape or a custom implementation.
 ### annotation examples
 
 `multiline-text`: [json](/templates/marks/annotation/multiline-text.json) · [yaml](/templates/marks/annotation/multiline-text.yaml) · [js](/templates/marks/annotation/multiline-text.js) · <a :href="withBase('/templates/marks/annotation/multiline-text.py')" download>Python</a>.
+
+## guides mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### ScaleOptions options
+
+The scale options used by axis and grid marks.
+
+**interval** (`Interval | ParamRef`) — Enforces uniformity for data at regular intervals, such as integer values or daily samples. The interval may be one of:
+
+- a named time interval such as *day* (for date intervals)
+- a number (for number intervals), defining intervals at integer multiples of *n*
+
+This option sets the internal transform to the given interval’s
+*interval*.floor function. In addition, the default **domain** will align with interval boundaries.
+
+**ticks** (`number | Interval | Array<any> | ParamRef`) — The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*.
+
+**tickSize** (`number | ParamRef`) — The length of axis tick marks in pixels; negative values extend in the opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
+*opacity* *ramp* legends, and 0 for *fx* and *fy* axes.
+
+**tickSpacing** (`number | ParamRef`) — The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*.
+
+**tickPadding** (`number | ParamRef`) — The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **xTickSize** and
+**xTickRotate**.
+
+**tickFormat** (`string | null | ParamRef`) — How to format inputs (abstract values) for axis tick labels; one of:
+
+- a [d3-format](https://d3js.org/d3-time) string for numeric scales
+- a [d3-time-format](https://d3js.org/d3-time-format) string for temporal scales
+
+**tickRotate** (`number | ParamRef`) — The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
+
+**label** (`string | null | ParamRef`) — A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+
+For axes and legends only.
+
+**labelAnchor** (`'top' | 'right' | 'bottom' | 'left' | 'center' | ParamRef`) — Where to place the axis **label** relative to the plot’s frame. For vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
+*center*; for horizontal position scales (*x* and *fx*), may be *left*,
+*right*, or *center*. Defaults to *center* for ordinal scales (including
+*fx* and *fy*), and otherwise *top* for *y*, and *right* for *x*.
+
+**labelOffset** (`number | ParamRef`) — The axis **label** position offset (in pixels); default depends on margins and orientation.
+
+**labelArrow** (`'auto' | 'up' | 'right' | 'down' | 'left' | 'none' | true | false | null | ParamRef`) — Whether to apply a directional arrow such as → or ↑ to the scale label. If
+*auto* (the default), the presence of the arrow depends on whether the scale is ordinal.
+
+### GridOptions options
+
+Options for the grid marks.
+
+Extends [`GridScaleOptions`](#scaleoptions-options).
+
+**anchor** (`'top' | 'right' | 'bottom' | 'left' | ParamRef`) — The side of the frame on which to place the axis: *top* or *bottom* for horizontal axes (axisX and axisFx) and their associated vertical grids (gridX and gridFx), or *left* or *right* for vertical axes (axisY and axisFY) and their associated horizontal grids (gridY and gridFy).
+
+The default **anchor** depends on the associated scale:
+
+- *x* - *bottom*
+- *y* - *left*
+- *fx* - *top* if there is a *bottom* *x* axis, and otherwise *bottom*
+- *fy* - *right* if there is a *left* *y* axis, and otherwise *right*
+
+For grids, the **anchor** also affects the extent of grid lines when the opposite dimension is specified (**x** for gridY and **y** for gridX).
+
+**color** (`MarkOptions['stroke']`) — A shorthand for setting both **fill** and **stroke**; affects the stroke of tick vectors and grid rules, and the fill of tick texts and axis label texts; defaults to *currentColor*.
+
+**opacity** (`MarkOptions['opacity']`) — A shorthand for setting both **fillOpacity** and **strokeOpacity**; affects the stroke opacity of tick vectors and grid rules, and the fill opacity of tick texts and axis label texts; defaults to 1 for axes and 0.1 for grids.
+
+### AxisOptions options
+
+Options for the axis marks.
+
+Extends [`GridOptions`](#gridoptions-options), [`MarkOptions`](../spec/common-marks#markoptions), [`TextOptions`](#textoptions-options), [`AxisScaleOptions`](#scaleoptions-options).
+
+**textStroke** (`MarkOptions['stroke']`) — The tick text **stroke**, say for a *white* outline to improve legibility; defaults to null.
+
+**textStrokeOpacity** (`MarkOptions['strokeOpacity']`) — The tick text **strokeOpacity**; defaults to 1; has no effect unless **textStroke** is set.
+
+**textStrokeWidth** (`MarkOptions['strokeWidth']`) — The tick text **strokeWidth**; defaults to 4; has no effect unless **textStroke** is set.
+
+### AxisXOptions options
+
+Options for the axisX and axisFx marks.
+
+Extends [`AxisOptions`](#axisoptions-options), [`Omit<TickXOptions, 'data'>`](#tickxoptions-options).
+
+
+### AxisYOptions options
+
+Options for the axisY and axisFy marks.
+
+Extends [`AxisOptions`](#axisoptions-options), [`Omit<TickYOptions, 'data'>`](#tickyoptions-options).
+
+
+### GridXOptions options
+
+Options for the gridX and gridFx marks.
+
+Extends [`GridOptions`](#gridoptions-options), [`Omit<RuleXOptions, 'data' | 'interval'>`](#rulexoptions-options).
+
+
+### GridYOptions options
+
+Options for the gridY and gridFy marks.
+
+Extends [`GridOptions`](#gridoptions-options), [`Omit<RuleYOptions, 'data' | 'interval'>`](#ruleyoptions-options).
+
+
+### AxisX options
+
+Extends [`AxisXOptions`](#axisxoptions-options).
+
+
+### AxisFx options
+
+Extends [`AxisXOptions`](#axisxoptions-options).
+
+
+### AxisY options
+
+Extends [`AxisYOptions`](#axisyoptions-options).
+
+
+### AxisFy options
+
+Extends [`AxisYOptions`](#axisyoptions-options).
+
+
+### GridX options
+
+Extends [`GridXOptions`](#gridxoptions-options).
+
+
+### GridFx options
+
+Extends [`GridXOptions`](#gridxoptions-options).
+
+
+### GridY options
+
+Extends [`GridYOptions`](#gridyoptions-options).
+
+
+### GridFy options
+
+Extends [`GridYOptions`](#gridyoptions-options).
+
+
+### FrameOptions options
+
+Options for the frame decoration mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`InsetOptions`](../spec/common-marks#insetoptions), [`RectCornerOptions`](#rectcorneroptions-options).
+
+**anchor** (`'top' | 'right' | 'bottom' | 'left' | null | ParamRef`) — If null (default), the rectangular outline of the frame is drawn; otherwise the frame is drawn as a line only on the given side, and the
+**rx**, **ry**, **fill**, and **fillOpacity** options are ignored.
+
+### Frame options
+
+Extends [`FrameOptions`](#frameoptions-options).
+
+
+### HexgridOptions options
+
+Options for the hexgrid mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**binWidth** (`number | ParamRef`) — The distance between centers of neighboring hexagons, in pixels; defaults to 20. Should match the **binWidth** of the hexbin mark.
+
+### Hexgrid options
+
+Extends [`HexgridOptions`](#hexgridoptions-options).
+
+
+### GridScaleOptions options
+
+The subset of scale options for grids.
+
+```ts
+type GridScaleOptions = Pick<ScaleOptions, 'interval' | 'ticks' | 'tickSpacing'>;
+```
+
+### AxisScaleOptions options
+
+The subset of scale options for axes.
+
+```ts
+type AxisScaleOptions = Pick<ScaleOptions, 'tickSize' | 'tickPadding' | 'tickFormat' | 'tickRotate' | 'label' | 'labelOffset' | 'labelAnchor' | 'labelArrow'>;
+```
+
+**`frame`, `axisX`, `axisY`, `axisFx`, `axisFy`, `gridX`, `gridY`, `gridFx`, `gridFy`, `hexgrid`:** These decorative marks support data-free, options-only JavaScript calls. JavaScript and Python helpers also accept native data/source arguments and extra options, while their closed declarative contracts omit the data property. The renderer retains that target difference.
+
+**`axisX`, `axisY`, `axisFx`, `axisFy`, `gridX`, `gridY`, `gridFx`, `gridFy`:** Axis and grid anchors follow scale orientation: top/bottom for x/fx, left/right for y/fy. Other sides are admitted by the broad wire and TypeScript contracts but the retained renderer rejects them with invalid anchor: side.
+
+**`axisX`, `axisY`, `axisFx`, `axisFy`:** Formatting functions are JavaScript-only. Numeric intervals remain native values beyond the default wire Interval alias. Numeric scales retain their default labels for an explicit null tickFormat. Use a named parameter for string-valued options that the retained mark runtime would otherwise classify as a field.
+
+**`hexgrid`:** The retained hexgrid renderer uses stroke-only outlines and defaults binWidth to 20. Fill remains admitted by inherited mark options; use frame to fill a background.
+
+### guides examples
+
+`axisX`: [json](/templates/marks/guides/axisX.json) · [yaml](/templates/marks/guides/axisX.yaml) · [js](/templates/marks/guides/axisX.js) · <a :href="withBase('/templates/marks/guides/axisX.py')" download>Python</a>.
+
+JavaScript-only `native-formatter`: [js](/templates/marks/guides/native-formatter.js).
