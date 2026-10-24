@@ -11,8 +11,14 @@
   "author": "Jeffrey Heer (https://idl.uw.edu)",
   "type": "module",
   "exports": {
-    "types": "./dist/src/index.d.ts",
-    "default": "./dist/src/index.js"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./native": {
+      "types": "./dist/src/native/index.d.ts",
+      "default": "./dist/src/native/index.js"
+    }
   },
   "files": [
     "dist",
@@ -31,5 +37,14 @@
   },
   "devDependencies": {
     "@uwdata/mosaic-duckdb": "workspace:^"
+  },
+  "imports": {
+    "#polyglot": {
+      "mosaic-widget": "@polyglot-sql/sdk/manual",
+      "default": "@polyglot-sql/sdk"
+    }
+  },
+  "dependencies": {
+    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f/polyglot-sql-sdk-0.13.3-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f.tgz"
   }
 }

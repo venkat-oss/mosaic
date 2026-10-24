@@ -7,7 +7,10 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@bazel_lib//lib:copy_file.bzl", "copy_file")
 
 def mosaic_package_test(package, packages, links):
-    links = links | {"@types/emscripten": "//packages/mosaic/core:node_modules/@types/emscripten"}
+    links = links | {
+        "@polyglot-sql/sdk": "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
+        "@types/emscripten": "//packages/mosaic/core:node_modules/@types/emscripten",
+    }
     js_test(
         name = "package_test",
         entry_point = "//build:npm_render_entry",

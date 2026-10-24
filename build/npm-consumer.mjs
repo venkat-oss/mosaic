@@ -10,18 +10,43 @@ const flechette = resolve(process.env.TEST_SRCDIR, process.env.TEST_WORKSPACE, f
 const { directory, run } = installPackages(pnpm, {
   '@uwdata/mosaic-sql': sql,
   '@uwdata/mosaic-duckdb': duckdb
-}, { '@duckdb/node-api': nodeApi, '@uwdata/flechette': flechette });
+}, {
+  '@duckdb/node-api': nodeApi,
+  '@uwdata/flechette': flechette,
+  '@polyglot-sql/sdk': resolve(process.env.TEST_SRCDIR, process.env.TEST_WORKSPACE, 'packages/mosaic/sql/node_modules/@polyglot-sql/sdk')
+});
 run(process.execPath, ['--input-type=module', '-e', `
 import assert from 'node:assert/strict';
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { asLiteral, asNode, compile, createExecutionContext, native } from '@uwdata/mosaic-sql/native';
 const db = new DuckDB(':memory:', {}, '');
 assert.deepEqual(await db.query(String(Query.select({ value: literal(42) }))), [{ value: 42 }]);
+await db.exec('CREATE TABLE native_values (amount INTEGER); INSERT INTO native_values VALUES (1), (2), (3)');
+const column = asNode('amount');
+const query = native.select([
+  native.alias(native.count(), 'rows'),
+  native.alias(native.aggregate('sum', column), 'total')
+], {
+  from: native.from([native.table('native_values')]).from,
+  where_clause: native.where(native.binary('gte', column, asLiteral(2))).where
+});
+const context = createExecutionContext({ backend: 'installed-sql' });
+const statements = compile([query, native.select([asLiteral(7)])], context);
+assert.equal(statements.length, 2);
+const rows = await db.query(statements[0]);
+assert.equal(Number(rows[0].rows), 2);
+assert.equal(Number(rows[0].total), 5);
+assert.equal(Object.values((await db.query(statements[1]))[0])[0], 7);
 db.close();
 `]);
 writeFileSync(join(directory, 'consumer.ts'), `
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { compile, createExecutionContext, native, type SqlExpression } from '@uwdata/mosaic-sql/native';
+const expression: SqlExpression = native.select([native.literal(42)]);
+const statements: string[] = compile([expression], createExecutionContext());
+void statements;
 const query: string = Query.select({ value: literal(42) }).toString();
 const rows: Promise<Record<string, unknown>[]> = new DuckDB().query(query);
 void rows;

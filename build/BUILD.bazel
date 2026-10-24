@@ -81,6 +81,7 @@ js_test(
     data = [
         ":npm_install_sources",
         "//packages/mosaic/sql:tarball",
+        "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
         "//packages/server/duckdb:tarball",
         "//packages/mosaic/core:tarball",
         "//packages/server/duckdb:node_modules/@duckdb/node-api",
@@ -109,6 +110,7 @@ js_test(
     data = [
         ":npm_install_sources",
         "//packages/mosaic/sql:tarball",
+        "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
         "//packages/server/duckdb:tarball",
         "//packages/server/duckdb:node_modules/@duckdb/node-api",
         "//packages/server/duckdb:node_modules/@uwdata/flechette",

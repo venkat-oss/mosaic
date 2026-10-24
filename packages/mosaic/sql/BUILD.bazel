@@ -1,3 +1,7 @@
 load("//build:javascript.bzl", "mosaic_javascript")
 
-mosaic_javascript(tests = True, consumer_tests = ["//build:npm_consumer"])
+mosaic_javascript(
+    deps = [":node_modules/@polyglot-sql/sdk"],
+    tests = True,
+    consumer_tests = ["//build:npm_consumer"],
+)

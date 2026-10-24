@@ -3,6 +3,41 @@
 The Mosaic `sql` package supports authoring of SQL queries.
 These utilities are used throughout Mosaic packages to build structured queries and perform query analysis.
 
+## Native compiler preview
+
+The temporary `@uwdata/mosaic-sql/native` entry exposes Polyglot's native
+expression data and Mosaic's compiler foundation during the [migration](../development/polyglot/).
+It requires Node.js 22 or later, or a browser with WebAssembly and ES2022 support.
+The existing Query facade moves to this representation in subsequent slices.
+
+```js
+import {
+  asLiteral, compile, createExecutionContext, native
+} from '@uwdata/mosaic-sql/native';
+
+const query = native.select([
+  native.alias(asLiteral(42), 'value')
+]);
+const statements = compile([query], createExecutionContext());
+```
+
+`asNode('amount')` creates a quoted column reference; `asLiteral('amount')`
+creates a string value. `compile` preserves every statement or scalar root in
+input order and raises `SqlCompilationError` when a target operation is
+unsupported. A context carries its source and target dialect, backend identity,
+and connection generation; each connection owner manages its own context.
+
+Node ESM initializes the compiler before imports complete. Browser builds must
+emit the SDK's sibling WebAssembly asset and support top-level await. The repository's
+Vite configurations select ES2022 and exclude the SDK from dependency prebundling.
+The Jupyter frontend embeds this asset in its bundle.
+
+The migration retains the mutable Query facade and aggregate/window authoring
+chains. Exported low-level node constructors, `instanceof` extensions, underscore
+clause mutation, custom code generators and `toString(visitor)` are scheduled for
+removal. Native factories and external live-binding registries replace those
+extensions; see the [architecture and compatibility decisions](../development/polyglot/#representation-and-compatibility-decisions).
+
 ## Query
 
 Use the `Query` class to build complete SQL queries.

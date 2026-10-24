@@ -229,6 +229,7 @@ test_suite(
     tests = [
         "//packages/examples:browser_tests",
         "//packages/vgplot/spec:browser_tests",
+        "//packages/vgplot/widget:browser_tests",
     ],
 )
 

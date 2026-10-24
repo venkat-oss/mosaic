@@ -43,7 +43,7 @@ try {
     configFile: false,
     cacheDir: join(temporary, 'vite'),
     resolve: config.resolve,
-    optimizeDeps: { entries: ['packages/vgplot/spec/test/visual-harness.html'] },
+    optimizeDeps: { ...config.optimizeDeps, entries: ['packages/vgplot/spec/test/visual-harness.html'] },
     plugins: [{
       name: 'mosaic-test-database',
       transformIndexHtml: html => html.replace('<head>', `<head><script>window.__MOSAIC_DATABASE_URI=${JSON.stringify(uri)};</script>`)

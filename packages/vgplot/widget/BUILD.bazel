@@ -1,4 +1,5 @@
-load("@aspect_rules_js//js:defs.bzl", "js_run_binary", "js_library")
+load("@aspect_rules_js//js:defs.bzl", "js_run_binary", "js_library", "js_test")
+load("@mosaic_browser//:defs.bzl", "PLAYWRIGHT_IMAGE")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:eslint/package_json.bzl", eslint_bin = "bin")
 load("@npm//:defs.bzl", "npm_link_all_packages")
@@ -20,6 +21,7 @@ js_run_binary(
     tool = ":esbuild",
     chdir = "packages/vgplot/widget",
     srcs = glob(["src/**"]) + [
+        ":node_modules/@polyglot-sql/sdk",
         ":node_modules/@uwdata/mosaic-core",
         ":node_modules/@uwdata/mosaic-spec",
         ":node_modules/uuid",
@@ -28,6 +30,9 @@ js_run_binary(
         "src/index.js",
         "--bundle",
         "--format=esm",
+        "--target=es2022",
+        "--conditions=mosaic-widget",
+        "--loader:.wasm=dataurl",
         "--outfile=mosaic_widget/static/index.js",
     ],
     outs = [
@@ -38,6 +43,45 @@ js_run_binary(
 )
 
 mosaic_widget_python(bundle = ":bundle")
+
+js_run_binary(
+    name = "compiler_browser_bundle",
+    testonly = True,
+    tool = ":esbuild",
+    chdir = "packages/vgplot/widget",
+    srcs = [
+        "test/compiler-entry.js",
+        "src/compiler.js",
+        ":node_modules/@polyglot-sql/sdk",
+        ":node_modules/@uwdata/mosaic-sql",
+    ],
+    args = [
+        "test/compiler-entry.js",
+        "--bundle",
+        "--format=esm",
+        "--target=es2022",
+        "--conditions=mosaic-widget",
+        "--loader:.wasm=dataurl",
+        "--outfile=compiler-browser.js",
+    ],
+    outs = ["compiler-browser.js"],
+)
+
+js_test(
+    name = "browser_tests",
+    size = "large",
+    timeout = "long",
+    entry_point = "browser-tests.mjs",
+    args = [
+        "$(rlocationpath :mosaic_widget/static/index.js)",
+        "$(rlocationpath :compiler-browser.js)",
+    ],
+    data = [":mosaic_widget/static/index.js", ":compiler-browser.js", "//:node_modules/@playwright/test"],
+    env = {"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"},
+    exec_properties = {"container-image": "docker://" + PLAYWRIGHT_IMAGE},
+    tags = ["requires-browser"],
+    visibility = ["//visibility:public"],
+)
 
 ts_config(
     name = "tsconfig",
@@ -59,7 +103,7 @@ ts_project(
     root_dir = ".",
     tsc = "//:tsc",
     supports_workers = 0,
-    deps = [":node_modules/@uwdata/mosaic-core", ":node_modules/@uwdata/mosaic-spec", ":node_modules/anywidget", ":node_modules/uuid"],
+    deps = [":node_modules/@polyglot-sql/sdk", ":node_modules/@uwdata/mosaic-core", ":node_modules/@uwdata/mosaic-spec", ":node_modules/anywidget", ":node_modules/uuid"],
 )
 
 js_library(

@@ -40,7 +40,7 @@ try {
       if (packagePath === '.') {
         const { default: rootConfig } = await import(pathToFileURL(join(source, 'vite.config.js')));
         const base = dirname(realpathSync(join(source, 'vite.config.js')));
-        Object.assign(config, rootConfig, { root: live, configFile: false, optimizeDeps: { entries: ['dev/*.html'] } });
+        Object.assign(config, rootConfig, { root: live, configFile: false, optimizeDeps: { ...rootConfig.optimizeDeps, entries: ['dev/*.html'] } });
         config.server = { ...rootConfig.server, watch: { ignored: ['**/bazel-*/**'] } };
         config.resolve = { ...rootConfig.resolve, alias: Object.fromEntries(Object.entries(rootConfig.resolve.alias).map(([name, path]) => [name, join(live, relative(base, path))])) };
       }

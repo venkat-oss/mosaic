@@ -14,11 +14,13 @@ filegroup(
 js_test(
     name = "browser_tests",
     args = [
+        "$(rlocationpath //docs:site)",
         "$(rlocationpath //packages/examples/vanilla-example:build)",
         "$(rlocationpath //packages/examples/vega-example:build)",
         "$(rlocationpath //packages/examples/svelte-example:build)",
     ],
     data = [
+        "//docs:site",
         "//:node_modules/@playwright/test",
         "//packages/examples/svelte-example:build",
         "//packages/examples/vanilla-example:build",

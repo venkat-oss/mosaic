@@ -1,3 +1,4 @@
+import './compiler.js';
 import { coordinator, isSelection } from '@uwdata/mosaic-core';
 import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 import './style.css';

@@ -5,7 +5,15 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 BAZEL_FLAGS=()
 [[ -z "${CI:-}" ]] || BAZEL_FLAGS+=(--config=ci)
-IMAGE="$(bazelisk run "${BAZEL_FLAGS[@]}" @mosaic_browser//:image)"
+BASE_IMAGE="$(bazelisk run "${BAZEL_FLAGS[@]}" @mosaic_browser//:image)"
+IMAGE="mosaic-browser:${BASE_IMAGE##*:}-gcc"
+if ! "${CONTAINER_RUNTIME:-docker}" image inspect "$IMAGE" >/dev/null 2>&1; then
+  "${CONTAINER_RUNTIME:-docker}" build --build-arg BASE_IMAGE="$BASE_IMAGE" -t "$IMAGE" - <<'DOCKERFILE'
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
+DOCKERFILE
+fi
 VERSION="$(cat .bazelversion)"
 CACHE="${MOSAIC_BROWSER_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mosaic-browser}"
 mkdir -p "$CACHE"

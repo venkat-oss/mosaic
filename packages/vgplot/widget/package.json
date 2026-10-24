@@ -16,8 +16,10 @@
     "notebook": "bazelisk run //packages/vgplot/widget:notebook"
   },
   "dependencies": {
+    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f/polyglot-sql-sdk-0.13.3-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f.tgz",
     "@uwdata/mosaic-core": "workspace:^",
     "@uwdata/mosaic-spec": "workspace:^",
+    "@uwdata/mosaic-sql": "workspace:^",
     "uuid": "^14.0.2"
   },
   "devDependencies": {

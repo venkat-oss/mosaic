@@ -11,6 +11,13 @@ Use `bazelisk run //:generate` and `bazelisk test //:api_check` to update and ch
 committed API files. Ordinary package compilation consumes those files without
 regenerating the entire API.
 
+The [native Polyglot design](./polyglot/index.md) and its
+[implementation packets](./polyglot/work-packets.md) describe the SQL compiler
+migration. The temporary SQL `/native` entry consumes a pinned, prebuilt Polyglot
+SDK archive with its matching WebAssembly binary. Browser builds emit that asset;
+the Jupyter bundle embeds it. Mosaic builds consume the archive without compiling
+Polyglot's Rust sources. DuckDB remains the execution backend during this foundation.
+
 ## Commands
 
 Run commands from the repository root. Bazelisk selects `.bazelversion`; the
@@ -40,8 +47,10 @@ Standalone Cargo users can choose the package's `bundled` feature instead.
 Select an affected package's `:check` target during development. The five CI jobs
 select `//:node_checks`, `//:python_checks`, `//:browser_tests` and the Go/Rust
 package targets. Browser tests remain separate from normal checks because they
-need their matching container. Source hot reload uses `:dev`; restart after
-changing dependencies or build configuration.
+need their matching container. The browser helper caches a derived Playwright
+image with GCC and C headers, which Bazel's Python tooling requires when building
+the docs fixtures. Source hot reload uses `:dev`; restart after changing
+dependencies or build configuration.
 
 DuckDB 2 checks community extensions against their repository origin. Browser and
 Node server checks install `nanoarrow` by name from `community`, so their first

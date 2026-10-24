@@ -9,6 +9,7 @@ const { directory, run } = installPackages(pnpm, {
   '@uwdata/mosaic-duckdb': duckdb,
   '@uwdata/mosaic-core': core
 }, {
+  '@polyglot-sql/sdk': resolve(process.env.TEST_SRCDIR, process.env.TEST_WORKSPACE, 'packages/mosaic/sql/node_modules/@polyglot-sql/sdk'),
   '@duckdb/node-api': resolve(process.env.TEST_SRCDIR, process.env.TEST_WORKSPACE, 'packages/server/duckdb/node_modules/@duckdb/node-api'),
   '@duckdb/duckdb-wasm': dependency('@duckdb/duckdb-wasm'),
   '@types/emscripten': dependency('@types/emscripten'),

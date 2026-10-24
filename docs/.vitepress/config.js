@@ -38,6 +38,8 @@ export default defineConfig({
   description: 'Scalable, interactive data visualization',
   base: '/mosaic/',
   vite: {
+    build: viteConfig.build,
+    optimizeDeps: viteConfig.optimizeDeps,
     resolve: viteConfig.resolve,
     plugins: [
       langToggleLLMMarkers(),
@@ -81,6 +83,7 @@ export default defineConfig({
           { text: 'Mosaic Spec', link: '/spec/' },
           { text: 'Specification Generation', link: '/spec-generation/' },
           { text: 'Bazel Build', link: '/development/build' },
+          { text: 'Native Polyglot Plan', link: '/development/polyglot/' },
           { text: 'Mosaic Server', link: '/server/' },
           { text: 'Jupyter Widget', link: '/jupyter/' },
           { text: 'Web Clients', link: '/web-clients/' }
@@ -112,6 +115,8 @@ export default defineConfig({
             { text: 'Mosaic Spec', link: '/spec/' },
             { text: 'Specification Generation', link: '/spec-generation/' },
             { text: 'Bazel Build', link: '/development/build' },
+            { text: 'Native Polyglot Plan', link: '/development/polyglot/' },
+            { text: 'Polyglot Work Packets', link: '/development/polyglot/work-packets' },
             { text: 'Mosaic Server', link: '/server/' },
             { text: 'Jupyter Widget', link: '/jupyter/' },
             { text: 'Web Clients', link: '/web-clients/' }
