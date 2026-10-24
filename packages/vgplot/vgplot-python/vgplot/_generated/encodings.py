@@ -3,6 +3,25 @@ from __future__ import annotations
 from typing import Any
 
 from .._types import UNSET, TransformArg
+from .aggregate import (
+    argmax,
+    argmin,
+    avg,
+    count,
+    first,
+    last,
+    max,
+    median,
+    min,
+    mode,
+    product,
+    quantile,
+    stddev,
+    stddev_pop,
+    sum,
+    var_pop,
+    variance,
+)
 from .column import (
     bin,
     centroid,
@@ -24,26 +43,6 @@ def _transform(
     return {name: value, **options}
 
 
-def argmax(col: TransformArg, by: TransformArg, **options: Any) -> dict[str, Any]:
-    """Find a value of the first column that maximizes the second column."""
-    return _transform("argmax", (col, by), options)
-
-
-def argmin(col: TransformArg, by: TransformArg, **options: Any) -> dict[str, Any]:
-    """Find a value of the first column that minimizes the second column."""
-    return _transform("argmin", (col, by), options)
-
-
-def avg(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the average (mean) value of the given column."""
-    return _transform("avg", (col,), options)
-
-
-def count(col: TransformArg | UNSET = UNSET, **options: Any) -> dict[str, Any]:
-    """Compute the count of records in an aggregation group."""
-    return _transform("count", (col,), options)
-
-
 def cume_dist(**options: Any) -> dict[str, Any]:
     """Compute the cumulative distribution value over an ordered window partition."""
     return {"cume_dist": None, **options}
@@ -52,11 +51,6 @@ def cume_dist(**options: Any) -> dict[str, Any]:
 def dense_rank(**options: Any) -> dict[str, Any]:
     """Compute the dense row rank (no gaps) over an ordered window partition."""
     return {"dense_rank": None, **options}
-
-
-def first(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Return the first column value found in an aggregation group."""
-    return _transform("first", (col,), options)
 
 
 def first_value(col: TransformArg, **options: Any) -> dict[str, Any]:
@@ -74,11 +68,6 @@ def lag(
     return _transform("lag", (col, offset, default), options)
 
 
-def last(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Return the last column value found in an aggregation group."""
-    return _transform("last", (col,), options)
-
-
 def last_value(col: TransformArg, **options: Any) -> dict[str, Any]:
     """Get the last value of the given column in the current window frame."""
     return _transform("last_value", (col,), options)
@@ -92,26 +81,6 @@ def lead(
 ) -> dict[str, Any]:
     """Compute leading values in a column."""
     return _transform("lead", (col, offset, default), options)
-
-
-def max(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the maximum value of the given column."""
-    return _transform("max", (col,), options)
-
-
-def median(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the median value of the given column."""
-    return _transform("median", (col,), options)
-
-
-def min(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the minimum value of the given column."""
-    return _transform("min", (col,), options)
-
-
-def mode(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the mode value of the given column."""
-    return _transform("mode", (col,), options)
 
 
 def nth_value(
@@ -131,16 +100,6 @@ def percent_rank(**options: Any) -> dict[str, Any]:
     return {"percent_rank": None, **options}
 
 
-def product(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the product of the given column."""
-    return _transform("product", (col,), options)
-
-
-def quantile(col: TransformArg, p: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the quantile value of the given column at the provided probability threshold."""
-    return _transform("quantile", (col, p), options)
-
-
 def rank(**options: Any) -> dict[str, Any]:
     """Compute the row rank over an ordered window partition."""
     return {"rank": None, **options}
@@ -149,31 +108,6 @@ def rank(**options: Any) -> dict[str, Any]:
 def row_number(**options: Any) -> dict[str, Any]:
     """Compute the 1-based row number over an ordered window partition."""
     return {"row_number": None, **options}
-
-
-def stddev(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the sum of the given column."""
-    return _transform("stddev", (col,), options)
-
-
-def stddev_pop(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the sum of the given column."""
-    return _transform("stddevPop", (col,), options)
-
-
-def sum(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the sum of the given column."""
-    return _transform("sum", (col,), options)
-
-
-def variance(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the sample variance of the given column."""
-    return _transform("variance", (col,), options)
-
-
-def var_pop(col: TransformArg, **options: Any) -> dict[str, Any]:
-    """Compute the population variance of the given column."""
-    return _transform("varPop", (col,), options)
 
 
 __all__ = [

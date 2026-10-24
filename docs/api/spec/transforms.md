@@ -290,3 +290,481 @@ export type BinInterval = 'date' | 'number' | 'millisecond' | 'second' | 'minute
 | `Nullary` | A zero argument transform signature. |
 | `Unary<T>` | A single argument transform signature. |
 | `Binary<T>` | A two argument transform signature; both arguments are required. |
+
+## Aggregate Transforms
+
+Aggregate transforms combine values within groups. A plot groups by its
+non-aggregate channels. JavaScript calls the SQL expression functions;
+Python helpers create dictionaries for the specification parser.
+See [SQL aggregates](/api/sql/aggregate-functions) for the query methods.
+
+`distinct` selects distinct input values. `orderby`, `partitionby`, `rows`,
+`range`, `groups` and `exclude` turn the expression into a windowed aggregate.
+JavaScript uses expression methods such as `.distinct()`, `.orderby(...)`,
+`.partitionby(...)` and `.frame(vg.frameRows(...))`; Python passes these as
+keyword options. Python retains raw option keys and values, including `None`,
+and an option may override the transform discriminator. Parser normalization
+and code generation may omit null or falsy options.
+
+JavaScript `count()` counts all rows. Python `count()` emits `{"count": ""}`;
+`count(None)` emits `{"count": None}`. The wire signature accepts null, an empty
+tuple, or a field argument. The parser normalizes a nullary count to an empty
+string, which is also wire-valid through the unary string-field alternative.
+
+DuckDB `quantile` function computes a discrete quantile.
+For an even-sized group, `quantile(column, 0.5)` can differ from `median(column)`.
+
+`covariance`, `covarPop` and `geomean` have exported TypeScript interfaces,
+JavaScript functions and parser registrations, but are absent from the
+`AggregateTransform` wire union and Python API.
+
+The additional JavaScript-only exports below have no declarative transform
+interface, parser registration or Python helper.
+
+### Aggregate example
+
+- `avg`: [YAML](/templates/transforms/aggregate/avg.yaml) · [JSON](/templates/transforms/aggregate/avg.json) · [JavaScript](/templates/transforms/aggregate/avg.js) · <a :href="withBase('/templates/transforms/aggregate/avg.py')" download>Python</a>.
+
+### argmax
+
+Find a value of the first column that maximizes the second column.
+
+JavaScript: `argmax(col, by)`, from `@uwdata/mosaic-sql`.
+Python: `argmax(col, by, **options: Any)`.
+
+```ts
+/**
+ * An argmax aggregate transform.
+ */
+export interface Argmax extends AggregateOptions, WindowOptions {
+  /**
+   * Find a value of the first column that maximizes the second column.
+   */
+  argmax: Binary<TransformField>;
+}
+```
+
+
+### argmin
+
+Find a value of the first column that minimizes the second column.
+
+JavaScript: `argmin(col, by)`, from `@uwdata/mosaic-sql`.
+Python: `argmin(col, by, **options: Any)`.
+
+```ts
+/**
+ * An argmin aggregate transform.
+ */
+export interface Argmin extends AggregateOptions, WindowOptions {
+  /**
+   * Find a value of the first column that minimizes the second column.
+   */
+  argmin: Binary<TransformField>;
+}
+```
+
+
+### avg
+
+Compute the average (mean) value of the given column.
+
+JavaScript: `avg(col)`, from `@uwdata/mosaic-sql`.
+Python: `avg(col, **options: Any)`.
+
+```ts
+/**
+ * An avg (average, or mean) aggregate transform.
+ */
+export interface Avg extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the average (mean) value of the given column.
+   */
+  avg: Unary<TransformField>;
+}
+```
+
+
+### count
+
+Compute the count of records in an aggregation group.
+
+JavaScript: `count(col?)`, from `@uwdata/mosaic-sql`.
+Python: `count(col = UNSET, **options: Any)`.
+
+```ts
+/**
+ * A count aggregate transform.
+ */
+export interface Count extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the count of records in an aggregation group.
+   */
+  count: Nullary | Unary<TransformField>;
+}
+```
+
+
+### covariance
+
+Compute the sample covariance of between the given columns.
+
+JavaScript: `covariance(col, by)`, from `@uwdata/mosaic-sql`.
+
+
+```ts
+/**
+ * A sample covariance aggregate transform.
+ */
+export interface Covariance extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the sample covariance of between the given columns.
+   */
+  covariance: Binary<TransformField>;
+}
+```
+
+
+### covarPop
+
+Compute the population covariance of between the given columns.
+
+JavaScript: `covarPop(col, by)`, from `@uwdata/mosaic-sql`.
+
+
+```ts
+/**
+ * A population covariance aggregate transform.
+ */
+export interface CovarPop extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the population covariance of between the given columns.
+   */
+  covarPop: Binary<TransformField>;
+}
+```
+
+
+### first
+
+Return the first column value found in an aggregation group.
+
+JavaScript: `first(col)`, from `@uwdata/mosaic-sql`.
+Python: `first(col, **options: Any)`.
+
+```ts
+/**
+ * A first aggregate transform.
+ */
+export interface First extends AggregateOptions, WindowOptions {
+  /**
+   * Return the first column value found in an aggregation group.
+   */
+  first: Unary<TransformField>;
+}
+```
+
+
+### geomean
+
+Compute the geometric mean value of the given column.
+
+JavaScript: `geomean(col)`, from `@uwdata/mosaic-sql`.
+
+
+```ts
+/**
+ * A geometric mean aggregate transform.
+ */
+export interface Geomean extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the geometric mean value of the given column.
+   */
+  geomean: Unary<TransformField>;
+}
+```
+
+
+### last
+
+Return the last column value found in an aggregation group.
+
+JavaScript: `last(col)`, from `@uwdata/mosaic-sql`.
+Python: `last(col, **options: Any)`.
+
+```ts
+/**
+ * A last aggregate transform.
+ */
+export interface Last extends AggregateOptions, WindowOptions {
+  /**
+   * Return the last column value found in an aggregation group.
+   */
+  last: Unary<TransformField>;
+}
+```
+
+
+### max
+
+Compute the maximum value of the given column.
+
+JavaScript: `max(col)`, from `@uwdata/mosaic-sql`.
+Python: `max(col, **options: Any)`.
+
+```ts
+/**
+ * A max aggregate transform.
+ */
+export interface Max extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the maximum value of the given column.
+   */
+  max: Unary<TransformField>;
+}
+```
+
+
+### min
+
+Compute the minimum value of the given column.
+
+JavaScript: `min(col)`, from `@uwdata/mosaic-sql`.
+Python: `min(col, **options: Any)`.
+
+```ts
+/**
+ * A min aggregate transform.
+ */
+export interface Min extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the minimum value of the given column.
+   */
+  min: Unary<TransformField>;
+}
+```
+
+
+### median
+
+Compute the median value of the given column.
+
+JavaScript: `median(col)`, from `@uwdata/mosaic-sql`.
+Python: `median(col, **options: Any)`.
+
+```ts
+/**
+ * A median aggregate transform.
+ */
+export interface Median extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the median value of the given column.
+   */
+  median: Unary<TransformField>;
+}
+```
+
+
+### mode
+
+Compute the mode value of the given column.
+
+JavaScript: `mode(col)`, from `@uwdata/mosaic-sql`.
+Python: `mode(col, **options: Any)`.
+
+```ts
+/**
+ * A mode aggregate transform.
+ */
+export interface Mode extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the mode value of the given column.
+   */
+  mode: Unary<TransformField>;
+}
+```
+
+
+### product
+
+Compute the product of the given column.
+
+JavaScript: `product(col)`, from `@uwdata/mosaic-sql`.
+Python: `product(col, **options: Any)`.
+
+```ts
+/**
+ * A product aggregate transform.
+ */
+export interface Product extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the product of the given column.
+   */
+  product: Unary<TransformField>;
+}
+```
+
+
+### quantile
+
+Compute the quantile value of the given column at the provided probability threshold. For example, 0.5 is the median.
+
+JavaScript: `quantile(col, p)`, from `@uwdata/mosaic-sql`.
+Python: `quantile(col, p, **options: Any)`.
+
+```ts
+/**
+ * A quantile aggregate transform.
+ */
+export interface Quantile extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the quantile value of the given column at the provided probability threshold. For example, 0.5 is the median.
+   */
+  quantile: [expr: TransformField, p: TransformField | number];
+}
+```
+
+
+### stddev
+
+Compute the sum of the given column.
+
+JavaScript: `stddev(col)`, from `@uwdata/mosaic-sql`.
+Python: `stddev(col, **options: Any)`.
+
+```ts
+/**
+ * A sample standard deviation aggregate transform.
+ */
+export interface Stddev extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the sum of the given column.
+   */
+  stddev: Unary<TransformField>;
+}
+```
+
+
+### stddevPop
+
+Compute the sum of the given column.
+
+JavaScript: `stddevPop(col)`, from `@uwdata/mosaic-sql`.
+Python: `stddev_pop(col, **options: Any)`.
+
+```ts
+/**
+ * A population standard deviation aggregate transform.
+ */
+export interface StddevPop extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the sum of the given column.
+   */
+  stddevPop: Unary<TransformField>;
+}
+```
+
+
+### sum
+
+Compute the sum of the given column.
+
+JavaScript: `sum(col)`, from `@uwdata/mosaic-sql`.
+Python: `sum(col, **options: Any)`.
+
+```ts
+/**
+ * A sum aggregate transform.
+ */
+export interface Sum extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the sum of the given column.
+   */
+  sum: Unary<TransformField>;
+}
+```
+
+
+### variance
+
+Compute the sample variance of the given column.
+
+JavaScript: `variance(col)`, from `@uwdata/mosaic-sql`.
+Python: `variance(col, **options: Any)`.
+
+```ts
+/**
+ * A sample variance aggregate transform.
+ */
+export interface Variance extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the sample variance of the given column.
+   */
+  variance: Unary<TransformField>;
+}
+```
+
+
+### varPop
+
+Compute the population variance of the given column.
+
+JavaScript: `varPop(col)`, from `@uwdata/mosaic-sql`.
+Python: `var_pop(col, **options: Any)`.
+
+```ts
+/**
+ * A population variance aggregate transform.
+ */
+export interface VarPop extends AggregateOptions, WindowOptions {
+  /**
+   * Compute the population variance of the given column.
+   */
+  varPop: Unary<TransformField>;
+}
+```
+
+
+### JavaScript-only Aggregate Exports
+
+#### arrayAgg
+
+Compute an array aggregation.
+
+JavaScript: `arrayAgg(expr)`, from `@uwdata/mosaic-sql`.
+
+#### corr
+
+Compute a correlation aggregate.
+
+JavaScript: `corr(x, y)`, from `@uwdata/mosaic-sql`.
+
+#### entropy
+
+Compute an entropy aggregate.
+
+JavaScript: `entropy(expr)`, from `@uwdata/mosaic-sql`.
+
+#### kurtosis
+
+Compute a sample kurtosis aggregate.
+
+JavaScript: `kurtosis(expr)`, from `@uwdata/mosaic-sql`.
+
+#### mad
+
+Compute a median absolute deviation (MAD) aggregate.
+
+JavaScript: `mad(expr)`, from `@uwdata/mosaic-sql`.
+
+#### skewness
+
+Compute a skewness aggregate.
+
+JavaScript: `skewness(expr)`, from `@uwdata/mosaic-sql`.
+
+#### stringAgg
+
+Compute a string aggregation.
+
+JavaScript: `stringAgg(expr)`, from `@uwdata/mosaic-sql`.

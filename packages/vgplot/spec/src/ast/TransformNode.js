@@ -1,5 +1,7 @@
 import { ASTNode } from './ASTNode.js';
 import { SQL, TRANSFORM } from '../constants.js';
+import { COLUMN_TRANSFORM_APIS } from '../generated/column.js';
+import { AGGREGATE_TRANSFORM_APIS } from '../generated/aggregate.js';
 import { isObject } from '../util.js';
 import { parseExpression } from './ExpressionNode.js';
 import { parseOptions } from './OptionsNode.js';
@@ -31,12 +33,12 @@ export function parseTransform(spec, ctx) {
     return; // return undefined to signal no transform!
   }
 
-  if (name === 'bin') {
-    const { bin, ...options } = spec;
-    const [arg] = toArray(bin, ctx);
+  if (COLUMN_TRANSFORM_APIS[name]?.parser === 'bin-options') {
+    const { [name]: value, ...options } = spec;
+    const [arg] = toArray(value, ctx);
     return new BinTransformNode(name, arg, parseOptions(options, ctx));
   } else {
-    const args = name === 'count' && !spec[name] ? [] : toArray(spec[name], ctx);
+    const args = AGGREGATE_TRANSFORM_APIS[name]?.parser === 'falsy-empty' && !spec[name] ? [] : toArray(spec[name], ctx);
     const options = {
       distinct: spec.distinct,
       orderby: toArray(spec.orderby, ctx),

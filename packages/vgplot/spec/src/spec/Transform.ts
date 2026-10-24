@@ -26,8 +26,9 @@ export interface WindowOptions {
 
   exclude?: Uppercase<FrameExclude> | Lowercase<FrameExclude>;
 }
-
-/** Aggregate transform options. */
+/**
+ * Aggregate transform options.
+ */
 export interface AggregateOptions {
   distinct?: boolean;
 }
@@ -160,161 +161,180 @@ export interface GeoJSON {
    */
   geojson: Unary<TransformField>;
 }
-
-/** An argmax aggregate transform. */
+/**
+ * An argmax aggregate transform.
+ */
 export interface Argmax extends AggregateOptions, WindowOptions {
   /**
    * Find a value of the first column that maximizes the second column.
    */
   argmax: Binary<TransformField>;
 }
-
-/** An argmin aggregate transform. */
+/**
+ * An argmin aggregate transform.
+ */
 export interface Argmin extends AggregateOptions, WindowOptions {
   /**
    * Find a value of the first column that minimizes the second column.
    */
   argmin: Binary<TransformField>;
 }
-
-/** An avg (average, or mean) aggregate transform. */
+/**
+ * An avg (average, or mean) aggregate transform.
+ */
 export interface Avg extends AggregateOptions, WindowOptions {
   /**
    * Compute the average (mean) value of the given column.
    */
   avg: Unary<TransformField>;
 }
-
-/** A count aggregate transform. */
+/**
+ * A count aggregate transform.
+ */
 export interface Count extends AggregateOptions, WindowOptions {
   /**
    * Compute the count of records in an aggregation group.
    */
   count: Nullary | Unary<TransformField>;
 }
-
-/** A sample covariance aggregate transform. */
+/**
+ * A sample covariance aggregate transform.
+ */
 export interface Covariance extends AggregateOptions, WindowOptions {
   /**
    * Compute the sample covariance of between the given columns.
    */
   covariance: Binary<TransformField>;
 }
-
-/** A population covariance aggregate transform. */
+/**
+ * A population covariance aggregate transform.
+ */
 export interface CovarPop extends AggregateOptions, WindowOptions {
   /**
    * Compute the population covariance of between the given columns.
    */
   covarPop: Binary<TransformField>;
 }
-
-/** A first aggregate transform. */
+/**
+ * A first aggregate transform.
+ */
 export interface First extends AggregateOptions, WindowOptions {
   /**
    * Return the first column value found in an aggregation group.
    */
   first: Unary<TransformField>;
 }
-
-/** A geometric mean aggregate transform. */
+/**
+ * A geometric mean aggregate transform.
+ */
 export interface Geomean extends AggregateOptions, WindowOptions {
   /**
    * Compute the geometric mean value of the given column.
    */
   geomean: Unary<TransformField>;
 }
-
-/** A last aggregate transform. */
+/**
+ * A last aggregate transform.
+ */
 export interface Last extends AggregateOptions, WindowOptions {
   /**
    * Return the last column value found in an aggregation group.
    */
   last: Unary<TransformField>;
 }
-
-/** A max aggregate transform. */
+/**
+ * A max aggregate transform.
+ */
 export interface Max extends AggregateOptions, WindowOptions {
   /**
    * Compute the maximum value of the given column.
    */
   max: Unary<TransformField>;
 }
-
-/** A min aggregate transform. */
+/**
+ * A min aggregate transform.
+ */
 export interface Min extends AggregateOptions, WindowOptions {
   /**
    * Compute the minimum value of the given column.
    */
   min: Unary<TransformField>;
 }
-
-/** A median aggregate transform. */
+/**
+ * A median aggregate transform.
+ */
 export interface Median extends AggregateOptions, WindowOptions {
   /**
    * Compute the median value of the given column.
    */
   median: Unary<TransformField>;
 }
-
-/** A mode aggregate transform. */
+/**
+ * A mode aggregate transform.
+ */
 export interface Mode extends AggregateOptions, WindowOptions {
   /**
    * Compute the mode value of the given column.
    */
   mode: Unary<TransformField>;
 }
-
-/** A product aggregate transform. */
+/**
+ * A product aggregate transform.
+ */
 export interface Product extends AggregateOptions, WindowOptions {
   /**
    * Compute the product of the given column.
    */
   product: Unary<TransformField>;
 }
-
-/** A quantile aggregate transform. */
+/**
+ * A quantile aggregate transform.
+ */
 export interface Quantile extends AggregateOptions, WindowOptions {
   /**
-   * Compute the quantile value of the given column at the provided
-   * probability threshold. For example, 0.5 is the median.
+   * Compute the quantile value of the given column at the provided probability threshold. For example, 0.5 is the median.
    */
   quantile: [expr: TransformField, p: TransformField | number];
 }
-
-/** A sample standard deviation aggregate transform. */
+/**
+ * A sample standard deviation aggregate transform.
+ */
 export interface Stddev extends AggregateOptions, WindowOptions {
   /**
    * Compute the sum of the given column.
    */
   stddev: Unary<TransformField>;
 }
-
-/** A population standard deviation aggregate transform. */
+/**
+ * A population standard deviation aggregate transform.
+ */
 export interface StddevPop extends AggregateOptions, WindowOptions {
   /**
    * Compute the sum of the given column.
    */
   stddevPop: Unary<TransformField>;
 }
-
-/** A sum aggregate transform. */
+/**
+ * A sum aggregate transform.
+ */
 export interface Sum extends AggregateOptions, WindowOptions {
   /**
    * Compute the sum of the given column.
    */
   sum: Unary<TransformField>;
 }
-
-/** A sample variance aggregate transform. */
+/**
+ * A sample variance aggregate transform.
+ */
 export interface Variance extends AggregateOptions, WindowOptions {
   /**
    * Compute the sample variance of the given column.
    */
   variance: Unary<TransformField>;
 }
-
-/** A population variance aggregate transform. */
+/**
+ * A population variance aggregate transform.
+ */
 export interface VarPop extends AggregateOptions, WindowOptions {
   /**
    * Compute the population variance of the given column.

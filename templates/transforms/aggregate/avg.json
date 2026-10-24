@@ -1,0 +1,20 @@
+{
+  "data": {
+    "aggregate_data": {
+      "type": "table",
+      "query": "SELECT category, x, x * 2 AS y, 'v' || x::VARCHAR AS label FROM (VALUES ('A',1),('A',2),('A',2),('A',3),('A',4),('A',5),('B',2),('B',3),('B',3),('B',4),('B',5),('B',6)) AS t(category,x)"
+    }
+  },
+  "plot": [
+    {
+      "data": {
+        "from": "aggregate_data"
+      },
+      "mark": "barY",
+      "x": "category",
+      "y": {
+        "avg": "x"
+      }
+    }
+  ]
+}
