@@ -109,8 +109,6 @@ export const yZero = attrf('yZero');
 export const yBase = attrf('yBase');
 export const yExponent = attrf('yExponent');
 export const yConstant = attrf('yConstant');
-
-// facet attributes
 export const facetMargin = attrf('facetMargin');
 export const facetMarginTop = attrf('facetMarginTop');
 export const facetMarginBottom = attrf('facetMarginBottom');
@@ -118,8 +116,6 @@ export const facetMarginLeft = attrf('facetMarginLeft');
 export const facetMarginRight = attrf('facetMarginRight');
 export const facetGrid = attrf('facetGrid');
 export const facetLabel = attrf('facetLabel');
-
-// fx scale attributes
 export const fxDomain = attrf('fxDomain');
 export const fxRange = attrf('fxRange');
 export const fxInset = attrf('fxInset');
@@ -146,8 +142,6 @@ export const fxFontVariant = attrf('fxFontVariant');
 export const fxAriaLabel = attrf('fxAriaLabel');
 export const fxAriaDescription = attrf('fxAriaDescription');
 export const fxReverse = attrf('fxReverse');
-
-// fy scale attributes
 export const fyDomain = attrf('fyDomain');
 export const fyRange = attrf('fyRange');
 export const fyInset = attrf('fyInset');

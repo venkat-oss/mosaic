@@ -841,42 +841,41 @@ export interface PlotAttributes {
   xyDomain?: Array<any> | Fixed | ParamRef;
 
 
-  // facet attributes
-
   /**
-   * Shorthand to set the same default for all four facet margins: marginTop,
-   * marginRight, marginBottom, and marginLeft.
+   * Shorthand to set the same default for all four facet margins: marginTop, marginRight, marginBottom, and marginLeft.
    */
   facetMargin?: number | ParamRef;
 
+
   /**
-   * The top facet margin; the (minimum) distance in pixels between the top
-   * edges of the inner and outer plot area.
+   * The top facet margin; the (minimum) distance in pixels between the top edges of the inner and outer plot area.
    */
   facetMarginTop?: number | ParamRef;
 
+
   /**
-   * The right facet margin; the (minimum) distance in pixels between the right
-   * edges of the inner and outer plot area.
+   * The bottom facet margin; the (minimum) distance in pixels between the bottom edges of the inner and outer plot area.
    */
   facetMarginBottom?: number | ParamRef;
 
+
   /**
-   * The bottom facet margin; the (minimum) distance in pixels between the
-   * bottom edges of the inner and outer plot area.
+   * The left facet margin; the (minimum) distance in pixels between the left edges of the inner and outer plot area.
    */
   facetMarginLeft?: number | ParamRef;
 
+
   /**
-   * The left facet margin; the (minimum) distance in pixels between the left
-   * edges of the inner and outer plot area.
+   * The right facet margin; the (minimum) distance in pixels between the right edges of the inner and outer plot area.
    */
   facetMarginRight?: number | ParamRef;
+
 
   /**
    * Default axis grid for fx and fy scales; typically set to true to enable.
    */
-  facetGrid?: boolean | string | Interval | any[] | ParamRef;
+  facetGrid?: boolean | string | Interval | Array<any> | ParamRef;
+
 
   /**
    * Default axis label for fx and fy scales; typically set to null to disable.
@@ -884,57 +883,47 @@ export interface PlotAttributes {
   facetLabel?: string | null | ParamRef;
 
 
-  // fx scale attributes
+  /**
+   * The extent of the scale’s inputs (abstract values). By default inferred from channel values. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+   */
+  fxDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
-   * The extent of the scale’s inputs (abstract values). By default inferred
-   * from channel values. For ordinal data (strings or booleans), it is an
-   * array (or iterable) of values is the desired order, defaulting to natural
-   * ascending order.
+   * The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**, and the plot’s dimensions. For ordinal position scales (*point* and *band*), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
    */
-  fxDomain?: any[] | Fixed | ParamRef;
+  fxRange?: Array<any> | Fixed | ParamRef;
 
-  /**
-   * The extent of the scale’s outputs (visual values). By default inferred from
-   * the scale’s **type** and **domain**, and the plot’s dimensions. For ordinal
-   * position scales (*point* and *band*), it is typically [*min*, *max*]; it
-   * can be [*max*, *min*] to reverse the scale.
-   */
-  fxRange?: any[] | Fixed | ParamRef;
 
   /**
    * Shorthand to set the same default for all four insets: **insetTop**,
-   * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically
-   * default to zero, though not always (say when using bin transform). A
-   * positive inset reduces effective area, while a negative inset increases it.
+   * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically default to zero, though not always (say when using bin transform). A positive inset reduces effective area, while a negative inset increases it.
    */
   fxInset?: number | ParamRef;
 
+
   /**
-   * Insets the right edge by the specified number of pixels. A positive value
-   * insets towards the left edge (reducing effective area), while a negative
-   * value insets away from the left edge (increasing it).
+   * Insets the right edge by the specified number of pixels. A positive value insets towards the left edge (reducing effective area), while a negative value insets away from the left edge (increasing it).
    */
   fxInsetRight?: number | ParamRef;
 
+
   /**
-   * Insets the left edge by the specified number of pixels. A positive value
-   * insets towards the right edge (reducing effective area), while a negative
-   * value insets away from the right edge (increasing it).
+   * Insets the left edge by the specified number of pixels. A positive value insets towards the right edge (reducing effective area), while a negative value insets away from the right edge (increasing it).
    */
   fxInsetLeft?: number | ParamRef;
 
+
   /**
-   * If true, round the output value to the nearest integer (pixel); useful for
-   * crisp edges when rendering.
+   * If true, round the output value to the nearest integer (pixel); useful for crisp edges when rendering.
    *
    * For position scales only.
    */
   fxRound?: boolean | ParamRef;
 
+
   /**
-   * How to distribute unused space in the **range** for *point* and *band*
-   * scales. A number in [0, 1], such as:
+   * How to distribute unused space in the **range** for *point* and *band* scales. A number in [0, 1], such as:
    *
    * - 0 - use the start of the range, putting unused space at the end
    * - 0.5 (default) - use the middle, distributing unused space evenly
@@ -944,64 +933,61 @@ export interface PlotAttributes {
    */
   fxAlign?: number | ParamRef;
 
+
   /**
-   * For *band* scales, how much of the **range** to reserve to separate
-   * adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
-   * inset for the first and last value as a proportion of the bandwidth;
-   * defaults to 0.5 (50%).
+   * For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of inset for the first and last value as a proportion of the bandwidth; defaults to 0.5 (50%).
    *
    * For ordinal position scales only.
    */
   fxPadding?: number | ParamRef;
 
+
   /**
-   * For a *band* scale, how much of the range to reserve to separate
-   * adjacent bands.
+   * For a *band* scale, how much of the range to reserve to separate adjacent bands.
    */
   fxPaddingInner?: number | ParamRef;
 
+
   /**
-   * For a *band* scale, how much of the range to reserve to inset first and
-   * last bands.
+   * For a *band* scale, how much of the range to reserve to inset first and last bands.
    */
   fxPaddingOuter?: number | ParamRef;
 
+
   /**
    * The side of the frame on which to place the implicit axis: *top* or
-   * *bottom* for *fx*. Defaults to *top* if there is a *bottom* *x* axis,
-   * and otherwise *bottom*.
+   * *bottom* for *fx*. Defaults to *top* if there is a *bottom* *x* axis, and otherwise *bottom*.
    *
-   * If *both*, an implicit axis will be rendered on both sides of the plot
-   * (*top* and *bottom* for *fx*). If null, the implicit axis is suppressed.
+   * If *both*, an implicit axis will be rendered on both sides of the plot (*top* and *bottom* for *fx*). If null, the implicit axis is suppressed.
    */
   fxAxis?: 'top' | 'bottom' | 'both' | boolean | null | ParamRef;
 
-  /**
-   * The desired approximate number of axis ticks, or an explicit array of tick
-   * values, or an interval such as *day* or *month*.
-   */
-  fxTicks?: number | Interval | any[] | ParamRef;
 
   /**
-   * The length of axis tick marks in pixels; negative values extend in the
-   * opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
+   * The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*.
+   */
+  fxTicks?: number | Interval | Array<any> | ParamRef;
+
+
+  /**
+   * The length of axis tick marks in pixels; negative values extend in the opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
    * *opacity* *ramp* legends, and 0 for *fx* and *fy* axes.
    */
   fxTickSize?: number | ParamRef;
 
+
   /**
-   * The desired approximate spacing between adjacent axis ticks, affecting the
-   * default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels
-   * for *y* and *fy*.
+   * The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*.
    */
   fxTickSpacing?: number | ParamRef;
 
+
   /**
-   * The distance between an axis tick mark and its associated text label (in
-   * pixels); often defaults to 3, but may be affected by **fxTickSize** and
+   * The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **fxTickSize** and
    * **fxTickRotate**.
    */
   fxTickPadding?: number | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -1009,70 +995,71 @@ export interface PlotAttributes {
    * - a [d3-format][1] string for numeric scales
    * - a [d3-time-format][2] string for temporal scales
    *
-   * [1]: https://d3js.org/d3-time
-   * [2]: https://d3js.org/d3-time-format
+   * [1]: https://d3js.org/d3-time [2]: https://d3js.org/d3-time-format
    */
   fxTickFormat?: string | null | ParamRef;
+
 
   /**
    * The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
    */
   fxTickRotate?: number | ParamRef;
 
+
   /**
-   * Whether to show a grid aligned with the scale’s ticks. If true, show a grid
-   * with the currentColor stroke; if a string, show a grid with the specified
-   * stroke color; if an approximate number of ticks, an interval, or an array
-   * of tick values, show corresponding grid lines. See also the grid mark.
+   * Whether to show a grid aligned with the scale’s ticks. If true, show a grid with the currentColor stroke; if a string, show a grid with the specified stroke color; if an approximate number of ticks, an interval, or an array of tick values, show corresponding grid lines. See also the grid mark.
    *
    * For axes only.
    */
-  fxGrid?: boolean | string | Interval | any[] | ParamRef;
+  fxGrid?: boolean | string | Interval | Array<any> | ParamRef;
+
 
   /**
    * If true, draw a line along the axis; if false (default), do not.
    */
   fxLine?: boolean | ParamRef;
 
+
   /**
-   * A textual label to show on the axis or legend; if null, show no label. By
-   * default the scale label is inferred from channel definitions, possibly with
-   * an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+   * A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
    *
    * For axes and legends only.
    */
   fxLabel?: string | null | ParamRef;
 
+
   /**
-   * Where to place the axis **label** relative to the plot’s frame. For
-   * vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
+   * Where to place the axis **label** relative to the plot’s frame. For vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
    * *center*; for horizontal position scales (*x* and *fx*), may be *left*,
    * *right*, or *center*. Defaults to *center* for ordinal scales (including
    * *fx* and *fy*), and otherwise *top* for *y*, and *right* for *x*.
    */
   fxLabelAnchor?: 'top' | 'right' | 'bottom' | 'left' | 'center' | ParamRef;
 
+
   /**
-   * The axis **label** position offset (in pixels); default depends on margins
-   * and orientation.
+   * The axis **label** position offset (in pixels); default depends on margins and orientation.
    */
   fxLabelOffset?: number | ParamRef;
 
+
   /**
-   * The font-variant attribute for axis ticks; defaults to *tabular-nums* for
-   * quantitative axes.
+   * The font-variant attribute for axis ticks; defaults to *tabular-nums* for quantitative axes.
    */
   fxFontVariant?: string | ParamRef;
+
 
   /**
    * A short label representing the axis in the accessibility tree.
    */
   fxAriaLabel?: string | ParamRef;
 
+
   /**
    * A textual description for the axis in the accessibility tree.
    */
   fxAriaDescription?: string | ParamRef;
+
 
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the
@@ -1081,57 +1068,47 @@ export interface PlotAttributes {
   fxReverse?: boolean | ParamRef;
 
 
-  // fy scale attributes
+  /**
+   * The extent of the scale’s inputs (abstract values). By default inferred from channel values. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+   */
+  fyDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
-   * The extent of the scale’s inputs (abstract values). By default inferred
-   * from channel values. For ordinal data (strings or booleans), it is an
-   * array (or iterable) of values is the desired order, defaulting to natural
-   * ascending order.
+   * The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**, and the plot’s dimensions. For ordinal position scales (*point* and *band*), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
    */
-  fyDomain?: any[] | Fixed | ParamRef;
+  fyRange?: Array<any> | Fixed | ParamRef;
 
-  /**
-   * The extent of the scale’s outputs (visual values). By default inferred from
-   * the scale’s **type** and **domain**, and the plot’s dimensions. For ordinal
-   * position scales (*point* and *band*), it is typically [*min*, *max*]; it
-   * can be [*max*, *min*] to reverse the scale.
-   */
-  fyRange?: any[] | Fixed | ParamRef;
 
   /**
    * Shorthand to set the same default for all four insets: **insetTop**,
-   * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically
-   * default to zero, though not always (say when using bin transform). A
-   * positive inset reduces effective area, while a negative inset increases it.
+   * **insetRight**, **insetBottom**, and **insetLeft**. All insets typically default to zero, though not always (say when using bin transform). A positive inset reduces effective area, while a negative inset increases it.
    */
   fyInset?: number | ParamRef;
 
+
   /**
-   * Insets the top edge by the specified number of pixels. A positive value
-   * insets towards the bottom edge (reducing effective area), while a negative
-   * value insets away from the bottom edge (increasing it).
+   * Insets the top edge by the specified number of pixels. A positive value insets towards the bottom edge (reducing effective area), while a negative value insets away from the bottom edge (increasing it).
    */
   fyInsetTop?: number | ParamRef;
 
+
   /**
-   * Insets the bottom edge by the specified number of pixels. A positive value
-   * insets towards the top edge (reducing effective area), while a negative
-   * value insets away from the top edge (increasing it).
+   * Insets the bottom edge by the specified number of pixels. A positive value insets towards the top edge (reducing effective area), while a negative value insets away from the top edge (increasing it).
    */
   fyInsetBottom?: number | ParamRef;
 
+
   /**
-   * If true, round the output value to the nearest integer (pixel); useful for
-   * crisp edges when rendering.
+   * If true, round the output value to the nearest integer (pixel); useful for crisp edges when rendering.
    *
    * For position scales only.
    */
   fyRound?: boolean | ParamRef;
 
+
   /**
-   * How to distribute unused space in the **range** for *point* and *band*
-   * scales. A number in [0, 1], such as:
+   * How to distribute unused space in the **range** for *point* and *band* scales. A number in [0, 1], such as:
    *
    * - 0 - use the start of the range, putting unused space at the end
    * - 0.5 (default) - use the middle, distributing unused space evenly
@@ -1141,63 +1118,61 @@ export interface PlotAttributes {
    */
   fyAlign?: number | ParamRef;
 
+
   /**
-   * For *band* scales, how much of the **range** to reserve to separate
-   * adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of
-   * inset for the first and last value as a proportion of the bandwidth;
-   * defaults to 0.5 (50%).
+   * For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of inset for the first and last value as a proportion of the bandwidth; defaults to 0.5 (50%).
    *
    * For ordinal position scales only.
    */
   fyPadding?: number | ParamRef;
 
+
   /**
-   * For a *band* scale, how much of the range to reserve to separate
-   * adjacent bands.
+   * For a *band* scale, how much of the range to reserve to separate adjacent bands.
    */
   fyPaddingInner?: number | ParamRef;
 
+
   /**
-   * For a *band* scale, how much of the range to reserve to inset first and
-   * last bands.
+   * For a *band* scale, how much of the range to reserve to inset first and last bands.
    */
   fyPaddingOuter?: number | ParamRef;
+
 
   /**
    * The side of the frame on which to place the implicit axis: *left* or
    * *right* for *fy*. Defaults to *left* for an *fy* scale.
    *
-   * If *both*, an implicit axis will be rendered on both sides of the plot
-   * (*left* and *right* for *fy*). If null, the implicit axis is suppressed.
+   * If *both*, an implicit axis will be rendered on both sides of the plot (*left* and *right* for *fy*). If null, the implicit axis is suppressed.
    */
   fyAxis?: 'left' | 'right' | 'both' | boolean | null | ParamRef;
 
-  /**
-   * The desired approximate number of axis ticks, or an explicit array of tick
-   * values, or an interval such as *day* or *month*.
-   */
-  fyTicks?: number | Interval | any[] | ParamRef;
 
   /**
-   * The length of axis tick marks in pixels; negative values extend in the
-   * opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
+   * The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*.
+   */
+  fyTicks?: number | Interval | Array<any> | ParamRef;
+
+
+  /**
+   * The length of axis tick marks in pixels; negative values extend in the opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
    * *opacity* *ramp* legends, and 0 for *fx* and *fy* axes.
    */
   fyTickSize?: number | ParamRef;
 
+
   /**
-   * The desired approximate spacing between adjacent axis ticks, affecting the
-   * default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels
-   * for *y* and *fy*.
+   * The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*.
    */
   fyTickSpacing?: number | ParamRef;
 
+
   /**
-   * The distance between an axis tick mark and its associated text label (in
-   * pixels); often defaults to 3, but may be affected by **fyTickSize** and
+   * The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **fyTickSize** and
    * **fyTickRotate**.
    */
   fyTickPadding?: number | ParamRef;
+
 
   /**
    * How to format inputs (abstract values) for axis tick labels; one of:
@@ -1205,70 +1180,71 @@ export interface PlotAttributes {
    * - a [d3-format][1] string for numeric scales
    * - a [d3-time-format][2] string for temporal scales
    *
-   * [1]: https://d3js.org/d3-time
-   * [2]: https://d3js.org/d3-time-format
+   * [1]: https://d3js.org/d3-time [2]: https://d3js.org/d3-time-format
    */
   fyTickFormat?: string | null | ParamRef;
+
 
   /**
    * The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
    */
   fyTickRotate?: number | ParamRef;
 
+
   /**
-   * Whether to show a grid aligned with the scale’s ticks. If true, show a grid
-   * with the currentColor stroke; if a string, show a grid with the specified
-   * stroke color; if an approximate number of ticks, an interval, or an array
-   * of tick values, show corresponding grid lines. See also the grid mark.
+   * Whether to show a grid aligned with the scale’s ticks. If true, show a grid with the currentColor stroke; if a string, show a grid with the specified stroke color; if an approximate number of ticks, an interval, or an array of tick values, show corresponding grid lines. See also the grid mark.
    *
    * For axes only.
    */
-  fyGrid?: boolean | string | Interval | any[] | ParamRef;
+  fyGrid?: boolean | string | Interval | Array<any> | ParamRef;
+
 
   /**
    * If true, draw a line along the axis; if false (default), do not.
    */
   fyLine?: boolean | ParamRef;
 
+
   /**
-   * A textual label to show on the axis or legend; if null, show no label. By
-   * default the scale label is inferred from channel definitions, possibly with
-   * an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+   * A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
    *
    * For axes and legends only.
    */
   fyLabel?: string | null | ParamRef;
 
+
   /**
-   * Where to place the axis **label** relative to the plot’s frame. For
-   * vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
+   * Where to place the axis **label** relative to the plot’s frame. For vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
    * *center*; for horizontal position scales (*x* and *fx*), may be *left*,
    * *right*, or *center*. Defaults to *center* for ordinal scales (including
    * *fx* and *fy*), and otherwise *top* for *y*, and *right* for *x*.
    */
   fyLabelAnchor?: 'top' | 'right' | 'bottom' | 'left' | 'center' | ParamRef;
 
+
   /**
-   * The axis **label** position offset (in pixels); default depends on margins
-   * and orientation.
+   * The axis **label** position offset (in pixels); default depends on margins and orientation.
    */
   fyLabelOffset?: number | ParamRef;
 
+
   /**
-   * The font-variant attribute for axis ticks; defaults to *tabular-nums* for
-   * quantitative axes.
+   * The font-variant attribute for axis ticks; defaults to *tabular-nums* for quantitative axes.
    */
   fyFontVariant?: string | ParamRef;
+
 
   /**
    * A short label representing the axis in the accessibility tree.
    */
   fyAriaLabel?: string | ParamRef;
 
+
   /**
    * A textual description for the axis in the accessibility tree.
    */
   fyAriaDescription?: string | ParamRef;
+
 
   /**
    * Whether to reverse the scale’s encoding; equivalent to reversing either the

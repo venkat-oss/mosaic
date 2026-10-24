@@ -198,6 +198,80 @@ In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 | [`projectionInsetBottom(value)`](#projectioninsetbottom) | `` number \| ParamRef `` |
 | [`projectionInsetLeft(value)`](#projectioninsetleft) | `` number \| ParamRef `` |
 
+## fx Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`fxDomain(value)`](#fxdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`fxRange(value)`](#fxrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`fxInset(value)`](#fxinset) | `` number \| ParamRef `` |
+| [`fxInsetRight(value)`](#fxinsetright) | `` number \| ParamRef `` |
+| [`fxInsetLeft(value)`](#fxinsetleft) | `` number \| ParamRef `` |
+| [`fxRound(value)`](#fxround) | `` boolean \| ParamRef `` |
+| [`fxAlign(value)`](#fxalign) | `` number \| ParamRef `` |
+| [`fxPadding(value)`](#fxpadding) | `` number \| ParamRef `` |
+| [`fxPaddingInner(value)`](#fxpaddinginner) | `` number \| ParamRef `` |
+| [`fxPaddingOuter(value)`](#fxpaddingouter) | `` number \| ParamRef `` |
+| [`fxAxis(value)`](#fxaxis) | `` 'top' \| 'bottom' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`fxTicks(value)`](#fxticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`fxTickSize(value)`](#fxticksize) | `` number \| ParamRef `` |
+| [`fxTickSpacing(value)`](#fxtickspacing) | `` number \| ParamRef `` |
+| [`fxTickPadding(value)`](#fxtickpadding) | `` number \| ParamRef `` |
+| [`fxTickFormat(value)`](#fxtickformat) | `` string \| null \| ParamRef `` |
+| [`fxTickRotate(value)`](#fxtickrotate) | `` number \| ParamRef `` |
+| [`fxGrid(value)`](#fxgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`fxLine(value)`](#fxline) | `` boolean \| ParamRef `` |
+| [`fxLabel(value)`](#fxlabel) | `` string \| null \| ParamRef `` |
+| [`fxLabelAnchor(value)`](#fxlabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`fxLabelOffset(value)`](#fxlabeloffset) | `` number \| ParamRef `` |
+| [`fxFontVariant(value)`](#fxfontvariant) | `` string \| ParamRef `` |
+| [`fxAriaLabel(value)`](#fxarialabel) | `` string \| ParamRef `` |
+| [`fxAriaDescription(value)`](#fxariadescription) | `` string \| ParamRef `` |
+| [`fxReverse(value)`](#fxreverse) | `` boolean \| ParamRef `` |
+
+## fy Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`fyDomain(value)`](#fydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`fyRange(value)`](#fyrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`fyInset(value)`](#fyinset) | `` number \| ParamRef `` |
+| [`fyInsetTop(value)`](#fyinsettop) | `` number \| ParamRef `` |
+| [`fyInsetBottom(value)`](#fyinsetbottom) | `` number \| ParamRef `` |
+| [`fyRound(value)`](#fyround) | `` boolean \| ParamRef `` |
+| [`fyAlign(value)`](#fyalign) | `` number \| ParamRef `` |
+| [`fyPadding(value)`](#fypadding) | `` number \| ParamRef `` |
+| [`fyPaddingInner(value)`](#fypaddinginner) | `` number \| ParamRef `` |
+| [`fyPaddingOuter(value)`](#fypaddingouter) | `` number \| ParamRef `` |
+| [`fyAxis(value)`](#fyaxis) | `` 'left' \| 'right' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`fyTicks(value)`](#fyticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`fyTickSize(value)`](#fyticksize) | `` number \| ParamRef `` |
+| [`fyTickSpacing(value)`](#fytickspacing) | `` number \| ParamRef `` |
+| [`fyTickPadding(value)`](#fytickpadding) | `` number \| ParamRef `` |
+| [`fyTickFormat(value)`](#fytickformat) | `` string \| null \| ParamRef `` |
+| [`fyTickRotate(value)`](#fytickrotate) | `` number \| ParamRef `` |
+| [`fyGrid(value)`](#fygrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`fyLine(value)`](#fyline) | `` boolean \| ParamRef `` |
+| [`fyLabel(value)`](#fylabel) | `` string \| null \| ParamRef `` |
+| [`fyLabelAnchor(value)`](#fylabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`fyLabelOffset(value)`](#fylabeloffset) | `` number \| ParamRef `` |
+| [`fyFontVariant(value)`](#fyfontvariant) | `` string \| ParamRef `` |
+| [`fyAriaLabel(value)`](#fyarialabel) | `` string \| ParamRef `` |
+| [`fyAriaDescription(value)`](#fyariadescription) | `` string \| ParamRef `` |
+| [`fyReverse(value)`](#fyreverse) | `` boolean \| ParamRef `` |
+
+## Facet Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`facetMargin(value)`](#facetmargin) | `` number \| ParamRef `` |
+| [`facetMarginTop(value)`](#facetmargintop) | `` number \| ParamRef `` |
+| [`facetMarginBottom(value)`](#facetmarginbottom) | `` number \| ParamRef `` |
+| [`facetMarginLeft(value)`](#facetmarginleft) | `` number \| ParamRef `` |
+| [`facetMarginRight(value)`](#facetmarginright) | `` number \| ParamRef `` |
+| [`facetGrid(value)`](#facetgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`facetLabel(value)`](#facetlabel) | `` string \| null \| ParamRef `` |
+
 </template>
 
 <template v-else-if="language === 'python'">
@@ -407,6 +481,80 @@ In addition to value arrays, scale domain attributes accept the string `"Fixed"`
 | [`vg.projection_inset_right(value)`](#projectioninsetright) | `` number \| ParamRef `` |
 | [`vg.projection_inset_bottom(value)`](#projectioninsetbottom) | `` number \| ParamRef `` |
 | [`vg.projection_inset_left(value)`](#projectioninsetleft) | `` number \| ParamRef `` |
+
+## fx Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.fx_domain(value)`](#fxdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.fx_range(value)`](#fxrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.fx_inset(value)`](#fxinset) | `` number \| ParamRef `` |
+| [`vg.fx_inset_right(value)`](#fxinsetright) | `` number \| ParamRef `` |
+| [`vg.fx_inset_left(value)`](#fxinsetleft) | `` number \| ParamRef `` |
+| [`vg.fx_round(value=True)`](#fxround) | `` boolean \| ParamRef `` |
+| [`vg.fx_align(value)`](#fxalign) | `` number \| ParamRef `` |
+| [`vg.fx_padding(value)`](#fxpadding) | `` number \| ParamRef `` |
+| [`vg.fx_padding_inner(value)`](#fxpaddinginner) | `` number \| ParamRef `` |
+| [`vg.fx_padding_outer(value)`](#fxpaddingouter) | `` number \| ParamRef `` |
+| [`vg.fx_axis(value=True)`](#fxaxis) | `` 'top' \| 'bottom' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`vg.fx_ticks(value)`](#fxticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.fx_tick_size(value)`](#fxticksize) | `` number \| ParamRef `` |
+| [`vg.fx_tick_spacing(value)`](#fxtickspacing) | `` number \| ParamRef `` |
+| [`vg.fx_tick_padding(value)`](#fxtickpadding) | `` number \| ParamRef `` |
+| [`vg.fx_tick_format(value)`](#fxtickformat) | `` string \| null \| ParamRef `` |
+| [`vg.fx_tick_rotate(value)`](#fxtickrotate) | `` number \| ParamRef `` |
+| [`vg.fx_grid(value=True)`](#fxgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.fx_line(value=True)`](#fxline) | `` boolean \| ParamRef `` |
+| [`vg.fx_label(value)`](#fxlabel) | `` string \| null \| ParamRef `` |
+| [`vg.fx_label_anchor(value)`](#fxlabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`vg.fx_label_offset(value)`](#fxlabeloffset) | `` number \| ParamRef `` |
+| [`vg.fx_font_variant(value)`](#fxfontvariant) | `` string \| ParamRef `` |
+| [`vg.fx_aria_label(value)`](#fxarialabel) | `` string \| ParamRef `` |
+| [`vg.fx_aria_description(value)`](#fxariadescription) | `` string \| ParamRef `` |
+| [`vg.fx_reverse(value=True)`](#fxreverse) | `` boolean \| ParamRef `` |
+
+## fy Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.fy_domain(value)`](#fydomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.fy_range(value)`](#fyrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.fy_inset(value)`](#fyinset) | `` number \| ParamRef `` |
+| [`vg.fy_inset_top(value)`](#fyinsettop) | `` number \| ParamRef `` |
+| [`vg.fy_inset_bottom(value)`](#fyinsetbottom) | `` number \| ParamRef `` |
+| [`vg.fy_round(value=True)`](#fyround) | `` boolean \| ParamRef `` |
+| [`vg.fy_align(value)`](#fyalign) | `` number \| ParamRef `` |
+| [`vg.fy_padding(value)`](#fypadding) | `` number \| ParamRef `` |
+| [`vg.fy_padding_inner(value)`](#fypaddinginner) | `` number \| ParamRef `` |
+| [`vg.fy_padding_outer(value)`](#fypaddingouter) | `` number \| ParamRef `` |
+| [`vg.fy_axis(value=True)`](#fyaxis) | `` 'left' \| 'right' \| 'both' \| boolean \| null \| ParamRef `` |
+| [`vg.fy_ticks(value)`](#fyticks) | `` number \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.fy_tick_size(value)`](#fyticksize) | `` number \| ParamRef `` |
+| [`vg.fy_tick_spacing(value)`](#fytickspacing) | `` number \| ParamRef `` |
+| [`vg.fy_tick_padding(value)`](#fytickpadding) | `` number \| ParamRef `` |
+| [`vg.fy_tick_format(value)`](#fytickformat) | `` string \| null \| ParamRef `` |
+| [`vg.fy_tick_rotate(value)`](#fytickrotate) | `` number \| ParamRef `` |
+| [`vg.fy_grid(value=True)`](#fygrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.fy_line(value=True)`](#fyline) | `` boolean \| ParamRef `` |
+| [`vg.fy_label(value)`](#fylabel) | `` string \| null \| ParamRef `` |
+| [`vg.fy_label_anchor(value)`](#fylabelanchor) | `` 'top' \| 'right' \| 'bottom' \| 'left' \| 'center' \| ParamRef `` |
+| [`vg.fy_label_offset(value)`](#fylabeloffset) | `` number \| ParamRef `` |
+| [`vg.fy_font_variant(value)`](#fyfontvariant) | `` string \| ParamRef `` |
+| [`vg.fy_aria_label(value)`](#fyarialabel) | `` string \| ParamRef `` |
+| [`vg.fy_aria_description(value)`](#fyariadescription) | `` string \| ParamRef `` |
+| [`vg.fy_reverse(value=True)`](#fyreverse) | `` boolean \| ParamRef `` |
+
+## Facet Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.facet_margin(value)`](#facetmargin) | `` number \| ParamRef `` |
+| [`vg.facet_margin_top(value)`](#facetmargintop) | `` number \| ParamRef `` |
+| [`vg.facet_margin_bottom(value)`](#facetmarginbottom) | `` number \| ParamRef `` |
+| [`vg.facet_margin_left(value)`](#facetmarginleft) | `` number \| ParamRef `` |
+| [`vg.facet_margin_right(value)`](#facetmarginright) | `` number \| ParamRef `` |
+| [`vg.facet_grid(value=True)`](#facetgrid) | `` boolean \| string \| Interval \| Array<any> \| ParamRef `` |
+| [`vg.facet_label(value)`](#facetlabel) | `` string \| null \| ParamRef `` |
 
 </template>
 
@@ -1893,3 +2041,266 @@ while a negative value insets away from the right edge (increasing it).
 `projectionType`: [json](/templates/attributes/projection/projectionType.json) · [yaml](/templates/attributes/projection/projectionType.yaml) · [js](/templates/attributes/projection/projectionType.js) · <a :href="withBase('/templates/attributes/projection/projectionType.py')" download>Python</a>.
 
 JavaScript-only [`native-initializer`](/templates/attributes/projection/native-initializer.js).
+
+## facet attribute reference
+
+### facetMargin
+
+Shorthand to set the same default for all four facet margins: marginTop, marginRight, marginBottom, and marginLeft.
+
+### facetMarginTop
+
+The top facet margin; the (minimum) distance in pixels between the top edges of the inner and outer plot area.
+
+### facetMarginBottom
+
+The bottom facet margin; the (minimum) distance in pixels between the bottom edges of the inner and outer plot area.
+
+### facetMarginLeft
+
+The left facet margin; the (minimum) distance in pixels between the left edges of the inner and outer plot area.
+
+### facetMarginRight
+
+The right facet margin; the (minimum) distance in pixels between the right edges of the inner and outer plot area.
+
+### facetGrid
+
+Default axis grid for fx and fy scales; typically set to true to enable.
+
+### facetLabel
+
+Default axis label for fx and fy scales; typically set to null to disable.
+
+### fxDomain
+
+<span id="fydomain"></span>
+Applies to `fxDomain`, `fyDomain`.
+
+The extent of the scale’s inputs (abstract values). By default inferred from channel values. For ordinal data (strings or booleans), it is an array (or iterable) of values is the desired order, defaulting to natural ascending order.
+
+### fxRange
+
+<span id="fyrange"></span>
+Applies to `fxRange`, `fyRange`.
+
+The extent of the scale’s outputs (visual values). By default inferred from the scale’s **type** and **domain**, and the plot’s dimensions. For ordinal position scales (*point* and *band*), it is typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
+
+### fxInset
+
+<span id="fyinset"></span>
+Applies to `fxInset`, `fyInset`.
+
+Shorthand to set the same default for all four insets: **insetTop**,
+**insetRight**, **insetBottom**, and **insetLeft**. All insets typically default to zero, though not always (say when using bin transform). A positive inset reduces effective area, while a negative inset increases it.
+
+### fxInsetRight
+
+Insets the right edge by the specified number of pixels. A positive value insets towards the left edge (reducing effective area), while a negative value insets away from the left edge (increasing it).
+
+### fxInsetLeft
+
+Insets the left edge by the specified number of pixels. A positive value insets towards the right edge (reducing effective area), while a negative value insets away from the right edge (increasing it).
+
+### fxRound
+
+<span id="fyround"></span>
+Applies to `fxRound`, `fyRound`.
+
+If true, round the output value to the nearest integer (pixel); useful for crisp edges when rendering.
+
+For position scales only.
+
+### fxAlign
+
+<span id="fyalign"></span>
+Applies to `fxAlign`, `fyAlign`.
+
+How to distribute unused space in the **range** for *point* and *band* scales. A number in [0, 1], such as:
+
+- 0 - use the start of the range, putting unused space at the end
+- 0.5 (default) - use the middle, distributing unused space evenly
+- 1 use the end, putting unused space at the start
+
+For ordinal position scales only.
+
+### fxPadding
+
+<span id="fypadding"></span>
+Applies to `fxPadding`, `fyPadding`.
+
+For *band* scales, how much of the **range** to reserve to separate adjacent bands; defaults to 0.1 (10%). For *point* scales, the amount of inset for the first and last value as a proportion of the bandwidth; defaults to 0.5 (50%).
+
+For ordinal position scales only.
+
+### fxPaddingInner
+
+<span id="fypaddinginner"></span>
+Applies to `fxPaddingInner`, `fyPaddingInner`.
+
+For a *band* scale, how much of the range to reserve to separate adjacent bands.
+
+### fxPaddingOuter
+
+<span id="fypaddingouter"></span>
+Applies to `fxPaddingOuter`, `fyPaddingOuter`.
+
+For a *band* scale, how much of the range to reserve to inset first and last bands.
+
+### fxAxis
+
+The side of the frame on which to place the implicit axis: *top* or
+*bottom* for *fx*. Defaults to *top* if there is a *bottom* *x* axis, and otherwise *bottom*.
+
+If *both*, an implicit axis will be rendered on both sides of the plot (*top* and *bottom* for *fx*). If null, the implicit axis is suppressed.
+
+### fxTicks
+
+<span id="fyticks"></span>
+Applies to `fxTicks`, `fyTicks`.
+
+The desired approximate number of axis ticks, or an explicit array of tick values, or an interval such as *day* or *month*.
+
+### fxTickSize
+
+<span id="fyticksize"></span>
+Applies to `fxTickSize`, `fyTickSize`.
+
+The length of axis tick marks in pixels; negative values extend in the opposite direction. Defaults to 6 for *x* and *y* axes and *color* and
+*opacity* *ramp* legends, and 0 for *fx* and *fy* axes.
+
+### fxTickSpacing
+
+<span id="fytickspacing"></span>
+Applies to `fxTickSpacing`, `fyTickSpacing`.
+
+The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*.
+
+### fxTickPadding
+
+The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **fxTickSize** and
+**fxTickRotate**.
+
+### fxTickFormat
+
+<span id="fytickformat"></span>
+Applies to `fxTickFormat`, `fyTickFormat`.
+
+How to format inputs (abstract values) for axis tick labels; one of:
+
+- a [d3-format](https://d3js.org/d3-time) string for numeric scales
+- a [d3-time-format](https://d3js.org/d3-time-format) string for temporal scales
+
+### fxTickRotate
+
+<span id="fytickrotate"></span>
+Applies to `fxTickRotate`, `fyTickRotate`.
+
+The rotation angle of axis tick labels in degrees clocksize; defaults to 0.
+
+### fxGrid
+
+<span id="fygrid"></span>
+Applies to `fxGrid`, `fyGrid`.
+
+Whether to show a grid aligned with the scale’s ticks. If true, show a grid with the currentColor stroke; if a string, show a grid with the specified stroke color; if an approximate number of ticks, an interval, or an array of tick values, show corresponding grid lines. See also the grid mark.
+
+For axes only.
+
+### fxLine
+
+<span id="fyline"></span>
+Applies to `fxLine`, `fyLine`.
+
+If true, draw a line along the axis; if false (default), do not.
+
+### fxLabel
+
+<span id="fylabel"></span>
+Applies to `fxLabel`, `fyLabel`.
+
+A textual label to show on the axis or legend; if null, show no label. By default the scale label is inferred from channel definitions, possibly with an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+
+For axes and legends only.
+
+### fxLabelAnchor
+
+<span id="fylabelanchor"></span>
+Applies to `fxLabelAnchor`, `fyLabelAnchor`.
+
+Where to place the axis **label** relative to the plot’s frame. For vertical position scales (*y* and *fy*), may be *top*, *bottom*, or
+*center*; for horizontal position scales (*x* and *fx*), may be *left*,
+*right*, or *center*. Defaults to *center* for ordinal scales (including
+*fx* and *fy*), and otherwise *top* for *y*, and *right* for *x*.
+
+### fxLabelOffset
+
+<span id="fylabeloffset"></span>
+Applies to `fxLabelOffset`, `fyLabelOffset`.
+
+The axis **label** position offset (in pixels); default depends on margins and orientation.
+
+### fxFontVariant
+
+<span id="fyfontvariant"></span>
+Applies to `fxFontVariant`, `fyFontVariant`.
+
+The font-variant attribute for axis ticks; defaults to *tabular-nums* for quantitative axes.
+
+### fxAriaLabel
+
+<span id="fyarialabel"></span>
+Applies to `fxAriaLabel`, `fyAriaLabel`.
+
+A short label representing the axis in the accessibility tree.
+
+### fxAriaDescription
+
+<span id="fyariadescription"></span>
+Applies to `fxAriaDescription`, `fyAriaDescription`.
+
+A textual description for the axis in the accessibility tree.
+
+### fxReverse
+
+<span id="fyreverse"></span>
+Applies to `fxReverse`, `fyReverse`.
+
+Whether to reverse the scale’s encoding; equivalent to reversing either the
+**domain** or **range**.
+
+### fyInsetTop
+
+Insets the top edge by the specified number of pixels. A positive value insets towards the bottom edge (reducing effective area), while a negative value insets away from the bottom edge (increasing it).
+
+### fyInsetBottom
+
+Insets the bottom edge by the specified number of pixels. A positive value insets towards the top edge (reducing effective area), while a negative value insets away from the top edge (increasing it).
+
+### fyAxis
+
+The side of the frame on which to place the implicit axis: *left* or
+*right* for *fy*. Defaults to *left* for an *fy* scale.
+
+If *both*, an implicit axis will be rendered on both sides of the plot (*left* and *right* for *fy*). If null, the implicit axis is suppressed.
+
+### fyTickPadding
+
+The distance between an axis tick mark and its associated text label (in pixels); often defaults to 3, but may be affected by **fyTickSize** and
+**fyTickRotate**.
+
+**`fxTickFormat`, `fyTickFormat`:** JavaScript formatter callbacks are native execution adapters beyond the string/null/reference wire contract.
+
+**`fxRange`:** **Known limitation**: Fixed is admitted and serializes for facet ranges, but the renderer only implements Fixed domain inference. Use an explicit range array.
+
+**`fyRange`:** **Known limitation**: Fixed is admitted and serializes for facet ranges, but the renderer only implements Fixed domain inference. Use an explicit range array.
+
+**`fxLabelAnchor`:** **Known limitation**: The renderer accepts left/right/center for horizontal facet label anchors and top/bottom/center for vertical facet label anchors.
+
+**`fyLabelAnchor`:** **Known limitation**: The renderer accepts left/right/center for horizontal facet label anchors and top/bottom/center for vertical facet label anchors.
+
+**`fyInset`:** **Known limitation**: The retained route is spelled fy,inset with a comma, so this directive does not change the facet scale range. Use fyInsetTop or fyInsetBottom.
+
+### Facet examples
+
+`fxDomain`: [json](/templates/attributes/facet/fxDomain.json) · [yaml](/templates/attributes/facet/fxDomain.yaml) · [js](/templates/attributes/facet/fxDomain.js) · <a :href="withBase('/templates/attributes/facet/fxDomain.py')" download>Python</a>.
