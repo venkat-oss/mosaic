@@ -67,6 +67,8 @@ view = vg.plot(
 MosaicWidget(view)
 ```
 
+The widget copies the specification mapping before extracting in-memory data, so the same dict can be reused to create another widget.
+
 To register the data yourself instead, pass `data={"weather": weather}` to `MosaicWidget` and reference the table from a mark with `vg.source("weather")`.
 
 ### Loading a YAML/JSON spec
@@ -149,6 +151,8 @@ widget.data().df()  # pandas DataFrame of the currently filtered rows
 ```
 
 `widget.sql` combines the active selection predicates from `params` with `AND`. `widget.data()` returns the lazy [DuckDB relation](https://duckdb.org/docs/api/python/relational_api) for that query; materialize it with `.df()` (pandas), `.pl()` (Polars), `.arrow()`, or `.fetchall()`.
+
+Table names are quoted as identifiers, including names containing double quotes.
 
 `widget.data()` infers the source table from the spec's `data` entries and the `data` constructor argument. If those name more than one table, pass the table explicitly (`widget.sql` returns `None` in that case). The query applies every selection; pass `filter_by` with a selection name or a list of names to apply a subset:
 

@@ -89,7 +89,9 @@ class MosaicWidget(anywidget.AnyWidget):
             spec_: dict[str, Any] = {}
         elif _has_to_dict(spec):
             frame = inspect.currentframe()
-            caller_locals = frame.f_back.f_locals if frame and frame.f_back else {}
+            caller_locals = (
+                dict(frame.f_back.f_locals) if frame and frame.f_back else {}
+            )
             try:
                 spec_ = spec.to_dict(_context=caller_locals)
             except TypeError:
@@ -100,6 +102,7 @@ class MosaicWidget(anywidget.AnyWidget):
             msg = f"spec must be a dict or have a to_dict() method, got {type(spec)}"
             raise TypeError(msg)
 
+        spec_ = dict(spec_)
         merged_data = _data | data if (_data := spec_.pop("data", None)) else data
 
         super().__init__(*args, **kwargs)
@@ -238,7 +241,8 @@ class MosaicWidget(anywidget.AnyWidget):
             for name in names
             if (predicate := self.params[name].get("predicate", "")).strip()
         ]
-        base = f'SELECT * FROM "{table}"'
+        quoted_table = table.replace('"', '""')
+        base = f'SELECT * FROM "{quoted_table}"'
         if not predicates:
             return base
         return f"{base} WHERE {' AND '.join(f'({p})' for p in predicates)}"
