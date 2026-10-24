@@ -2,6 +2,33 @@
 
 SQL aggregate function expressions. Aggregate detection in SQL fragments includes the DuckDB 2.0 functions `combine_aggr`, `decimal_average`, `lttb`, and `variant_group_object`. These names can be used through [`sql`](./expressions#sql) or `AggregateNode`.
 
+## Native aggregate preview
+
+The temporary `@uwdata/mosaic-sql/native` entry provides these high-level
+aggregate helpers over Polyglot's semantic expression variants. Derived
+aggregates retain `.distinct()`, `.where()` and `.argOrder()`; `.window()`,
+`.partitionby()`, `.orderby()` and `.frame()` construct windowed versions.
+These methods return new handles, leaving the original aggregate unchanged.
+
+``` js
+import { Query, gt, sum } from '@uwdata/mosaic-sql/native';
+
+const positive = sum('amount').where(gt('amount', 0));
+const query = Query.from('sales').select({ total: positive });
+```
+
+Native DuckDB coordinators can preaggregate compatible queries using sufficient
+statistics, including mean-centered variance and regression calculations.
+Distinct or ordered aggregates that cannot be combined safely run directly.
+See the [coordinator options](../core/coordinator#constructor).
+
+Cross-dialect compilation raises an error when a semantic conversion is
+unsupported. DuckDB discrete quantile, argmax/min and correlation/slope edge
+semantics are among the PostgreSQL restrictions; successful DuckDB execution
+does not imply support for another target.
+Portable string aggregation requires known text semantics and a constant,
+non-null separator. The compiler supplies DuckDB's default comma when omitted.
+
 ## AggregateNode {#aggregate-node}
 
 The `AggregateNode` class represents a SQL AST node for an aggregate function call.
@@ -37,25 +64,13 @@ Provide one or more _expressions_ by which to partition a windowed version of th
 
 Provide one or more _expressions_ by which to sort a windowed version of this aggregate function and returns a new [WindowNode](./window-functions#window-node) instance.
 
-### rows
+### frame
 
-`AggregateNode.rows(expression)`
+`AggregateNode.frame(definition)`
 
-Provide a window "rows" frame specification as an array or array-valued _expression_ and returns a windowed version of this aggregate function as a new [WindowNode](./window-functions#window-node) instance.
-A "rows" window frame is insensitive to peer rows (those that are tied according to the [orderby](#orderby) criteria).
-The frame expression should evaluate to a two-element array indicating the number of preceding or following rows.
-A zero value (`0`) indicates the current row.
-A non-finite value (including `null` and `undefined`) indicates either unbounded preceding row (for the first array entry) or unbounded following rows (for the second array entry).
-
-### range
-
-`AggregateNode.range(expression)`
-
-Provide a window "range" frame specification as an array or array-valued _expression_ and returns a windowed version of this aggregate function as a new [WindowNode](./window-functions#window-node) instance.
-A "range" window grows to include peer rows (those that are tied according to the [orderby](#orderby) criteria).
-The frame expression should evaluate to a two-element array indicating the number of preceding or following rows.
-A zero value (`0`) indicates the current row.
-A non-finite value (including `null` and `undefined`) indicates either unbounded preceding row (for the first array entry) or unbounded following rows (for the second array entry).
+Return a windowed version of this aggregate with the given frame definition.
+Use `frameRows(extent)`, `frameRange(extent)` or `frameGroups(extent)` to construct
+the definition. See [window frames](./window-functions#frame).
 
 ## count
 

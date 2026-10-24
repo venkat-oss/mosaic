@@ -59,21 +59,39 @@ export function hasColumnExpansion(input: SqlRoot): boolean {
 }
 
 export function isAggregateExpression(input: SqlRoot): boolean {
-  const active = new Set<SqlExpression>();
-  const prepare = (expression: SqlExpression): SqlExpression => {
-    if (active.has(expression)) throw new TypeError('Native SQL expressions must be acyclic.');
-    active.add(expression);
-    const result = mapTree(expression, node => {
-      if ('subquery' in node || node !== expression && isQueryExpression(node)) return native.literal(0);
-      if ('window_function' in node) return native.tuple([
-        ...windowInputs(node.window_function.this),
-        ...expressionChildren(node.window_function.over)
-      ].map(prepare));
-    });
-    active.delete(expression);
-    return result;
+  return collectAggregates(input).length > 0;
+}
+
+export function collectAggregates(input: SqlRoot): SqlExpression[] {
+  const result: SqlExpression[] = [];
+  const visited = new Set<SqlExpression>();
+  const categories = new Map<string, boolean>();
+  const isAggregate = (node: SqlExpression): boolean => {
+    if (native.inspectAggregate(node)) return true;
+    const tag = Object.keys(node)[0];
+    if (!categories.has(tag)) {
+      const shallow = mapTree(node, child => child === node ? undefined : native.literal(0));
+      categories.set(tag, ast.hasAggregates(shallow));
+    }
+    return categories.get(tag)!;
   };
-  return ast.hasAggregates(prepare(rootExpression(input)));
+  const visit = (node: SqlExpression, root = false): void => {
+    if (visited.has(node) || 'subquery' in node || !root && isQueryExpression(node)) return;
+    visited.add(node);
+    if ('window_function' in node) {
+      [...windowInputs(node.window_function.this), ...expressionChildren(node.window_function.over)].forEach(child => visit(child));
+      return;
+    }
+    if ('filter' in node && isAggregate(node.filter.this)) {
+      result.push(node);
+      [...windowInputs(node.filter.this), node.filter.expression].forEach(child => visit(child));
+      return;
+    }
+    if (isAggregate(node)) result.push(node);
+    expressionChildren(node).forEach(child => visit(child));
+  };
+  visit(rootExpression(input), true);
+  return result;
 }
 
 function windowInputs(expression: SqlExpression): SqlExpression[] {

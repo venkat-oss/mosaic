@@ -81,8 +81,9 @@ when submitted.
 
 Use separate contexts and selection graphs for independent coordinators.
 The normal SQL API and other input families keep their current implementation
-during this slice. Native consolidation and pre-aggregation follow in P03/P04;
-see the [work packets](/development/polyglot/work-packets).
+during this slice. Native consolidation and DuckDB pre-aggregation are enabled
+for compatible queries; see the [coordinator options](/api/core/coordinator#constructor)
+and [work packets](/development/polyglot/work-packets).
 
 ## Table
 

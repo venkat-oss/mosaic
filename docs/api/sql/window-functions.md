@@ -2,6 +2,29 @@
 
 SQL window function expressions.
 
+## Native window preview
+
+Import window helpers from the temporary `@uwdata/mosaic-sql/native` entry to
+construct Polyglot trees. Window handles retain the high-level `.over()`,
+`.partitionby()`, `.orderby()` and `.frame()` chains, including named windows.
+Use `frameRows`, `frameRange` or `frameGroups` to define a frame.
+
+``` js
+import { Query, frameRows, row_number, sum } from '@uwdata/mosaic-sql/native';
+
+const query = Query.from('sales').select('day', {
+  row: row_number().orderby('day'),
+  total: sum('amount').orderby('day').frame(frameRows([null, 0]))
+});
+```
+
+An implicit extent uses absolute distances: its first bound is PRECEDING and
+its second is FOLLOWING. Zero denotes CURRENT ROW; null or a non-finite value
+denotes an unbounded extent on that side. `preceding()` and `following()` set
+the direction explicitly. Live frame Params resolve into a submission snapshot,
+including frames in named WINDOW definitions; cloning retains those live
+bindings while isolating editable query clauses.
+
 ## WindowNode {#window-node}
 
 The `WindowNode` class represents a window function.
@@ -27,25 +50,18 @@ Provide one or more _expressions_ by which to partition this window function and
 
 Provide one or more _expressions_ by which to sort this window function and returns a new WindowFunction instance.
 
-### rows
+### frame
 
-`WindowNode.rows(expression)`
+`WindowNode.frame(definition)`
 
-Provide a window "rows" frame specification as an array or array-valued _expression_ and returns a new WindowNode instance.
-A "rows" window frame is insensitive to peer rows (those that are tied according to the [orderby](#orderby) criteria).
-The frame expression should evaluate to a two-element array indicating the number of preceding or following rows.
-A zero value (`0`) indicates the current row.
-A non-finite value (including `null` and `undefined`) indicates either unbounded preceding row (for the first array entry) or unbounded following rows (for the second array entry).
+Return a new window with the given frame definition. Use `frameRows(extent)`,
+`frameRange(extent)` or `frameGroups(extent)`, with an optional second argument
+for `EXCLUDE`: `'NO OTHERS'`, `'CURRENT ROW'`, `'TIES'` or `'GROUP'`.
 
-### range
-
-`WindowNode.range(expression)`
-
-Provide a window "range" frame specification as an array or array-valued _expression_ and returns a new WindowNode instance.
-A "range" window grows to include peer rows (those that are tied according to the [orderby](#orderby) criteria).
-The frame expression should evaluate to a two-element array indicating the number of preceding or following rows.
-A zero value (`0`) indicates the current row.
-A non-finite value (including `null` and `undefined`) indicates either unbounded preceding row (for the first array entry) or unbounded following rows (for the second array entry).
+ROWS counts individual rows; RANGE includes peers according to the ordering;
+GROUPS counts peer groups. The two-element extent specifies preceding and
+following distances. Zero denotes CURRENT ROW, and null or a non-finite value
+denotes an unbounded extent on that side. The extent may be a live Param.
 
 ## row_number {#row_number}
 

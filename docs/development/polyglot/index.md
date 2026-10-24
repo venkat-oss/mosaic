@@ -128,8 +128,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`f302b8d7aeb04baca547eb119d105118c70f83c6`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-f302b8d7aeb04baca547eb119d105118c70f83c6)
+`d8eedaa743419c95175e59be884b9e498b486c94`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d8eedaa743419c95175e59be884b9e498b486c94)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -288,8 +288,11 @@ P09 removes the boundary and every legacy SQL representation. P03 enables native
 consolidation using structural keys, a shared submission snapshot and captured
 SQL/context cache keys. Unsupported grouping shapes use the original native
 query. The existing consolidator branch still serves unmigrated clients and is
-deleted in P09. Native preaggregation remains P04 work and must be restored
-before the default switch.
+deleted in P09. P04 enables native DuckDB preaggregation with semantic aggregate
+and window factories, scoped lineage and submission-time scalar snapshots.
+Unsafe nested grouping, deduplication or filter boundaries run their original
+native queries. Materialization failures also fall back through the native path.
+The legacy preaggregator branches remain for unmigrated clients until P09.
 
 Per-slice packets identify code to delete immediately and shared code whose final
 owner is P09. Keep behavior tests; remove temporary comparisons and tests whose
@@ -301,8 +304,8 @@ generated migration manifests or additional status systems are needed.
 
 - [Polyglot SDK](https://github.com/tobilg/polyglot/blob/main/packages/sdk/README.md)
   and [native dialect compilation](https://github.com/tobilg/polyglot/blob/main/crates/polyglot-sql/src/dialects/mod.rs).
-- [Our Polyglot fork](https://github.com/venkat-oss/polyglot), where missing AST
-  compilation, lowering and typed factories will be implemented.
+- [Our Polyglot fork](https://github.com/venkat-oss/polyglot), which owns native AST
+  compilation, lowering and typed factories.
 - [Sitting Duck](https://github.com/teaguesterling/sitting_duck) for source AST
   analysis; this is distinct from the SQL AST being migrated.
 - [Existing build workflow](../build.md) and

@@ -9,7 +9,9 @@ The temporary `@uwdata/mosaic-sql/native` entry exposes Polyglot's native
 expression data and Mosaic's compiler foundation during the [migration](../development/polyglot/).
 It requires Node.js 22 or later, or a browser with WebAssembly and ES2022 support.
 Its native Query facade supports [relational queries](../api/sql/queries#native-query-preview),
-consolidation and the [reactive Slider slice](../inputs/#native-slider-preview)
+[aggregates](../api/sql/aggregate-functions#native-aggregate-preview),
+[windows](../api/sql/window-functions#native-window-preview), consolidation,
+DuckDB pre-aggregation and the [reactive Slider slice](../inputs/#native-slider-preview)
 while the normal SQL entry retains its existing implementation.
 
 ```js
@@ -145,15 +147,15 @@ Query.select({
 ## Window Functions
 
 General purpose [window functions](https://duckdb.org/docs/sql/window_functions) include `row_number`, `rank`, `cume_dist`, `lag`, `lead`, _etc_.
-Aggregate functions become window operations (such as cumulative sums or moving averages) if you define the parameters `orderby`, `partitionby`, or the window frame specifiers `rows` or `range`.
+Aggregate functions become window operations (such as cumulative sums or moving averages) if you define `orderby`, `partitionby`, or a `frame` using `frameRows`, `frameRange` or `frameGroups`.
 
 ``` js
-import { Query, row_number, avg } from "@uwdata/mosaic-sql";
+import { Query, row_number, avg, frameRows } from "@uwdata/mosaic-sql";
 
-// 7-day moving average (previous and next 3 days)
+// 7-row moving average (previous and next 3 rows)
 // and corresponding ordered row numbers
 Query.select({
-  avg: avg("foo").orderby("date").rows([3, 3]),
+  avg: avg("foo").orderby("date").frame(frameRows([3, 3])),
   num: row_number().orderby("date")
 }).from("myTable");
 ```

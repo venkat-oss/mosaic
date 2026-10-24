@@ -281,9 +281,9 @@ export class QueryManager {
    * @param priority The query priority, defaults to `Priority.Normal`.
    * @returns A query result promise.
    */
-  request(request: QueryRequest, priority: number = Priority.Normal): QueryResult {
+  request(request: QueryRequest, priority: number = Priority.Normal, prepare?: () => string): QueryResult {
     const result = new QueryResult();
-    const entry = { request, result };
+    const entry = { request, result, prepare };
     if (this._consolidate && this._consolidating) {
       this._consolidate.add(entry, priority);
     } else {

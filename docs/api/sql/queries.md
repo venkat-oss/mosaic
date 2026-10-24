@@ -69,6 +69,11 @@ embedded expression and child-query references remain shared. Use
 tree. Both operations retain live Param bindings. Compilation resolves those
 bindings into a submission snapshot.
 
+Give computed projections explicit aliases when consuming their result fields.
+Unaliased computed labels come from the database and can change with equivalent
+function spellings or target dialects. Column references and explicit aliases
+retain their authored names.
+
 Native coordinators can consolidate compatible SELECT projections into one
 query and project the Arrow result back to each caller. Queries with filters,
 ordering, distinct projections, column expansion or dynamic projection shapes

@@ -2,7 +2,7 @@ import type { ast } from '#polyglot';
 import { isParamLike } from '../util/type-check.js';
 import { ast as syntax, native, createExecutionContext } from './runtime.js';
 import type { SqlExecutionContext } from './runtime.js';
-import { BindingScope, fields, rootExpression } from './bindings.js';
+import { BindingScope, copyBinding, fields, rootExpression } from './bindings.js';
 import { asLiteral, asNode, isExpressionHandle } from './expression.js';
 import { parseExpression } from './ingress.js';
 import { and } from './operators.js';
@@ -10,6 +10,8 @@ import { mapTree } from './tree.js';
 import { compile } from './compile.js';
 import { asRelation, cte, sample as makeSample } from './relational.js';
 import type { Sample, SampleMethod, TableArg } from './relational.js';
+import { namedWindows, syncWindowTemplate } from './window.js';
+import type { WindowInput } from './window.js';
 import type { ExprValue, MaybeArray, SqlExpression, SqlExpressionHandle, SqlRoot } from './types.js';
 
 export type SelectEntry = ExprValue | Record<string, ExprValue> | readonly [string, ExprValue];
@@ -127,6 +129,10 @@ export class Query implements SqlExpressionHandle {
     return new Query().from(...values);
   }
 
+  static with(...values: WithInput[]): WithQuery {
+    return new WithQuery().with(...values);
+  }
+
   static describe(input: SqlRoot): Query {
     return new Query(native.describe(rootExpression(input)));
   }
@@ -181,7 +187,7 @@ export class Query implements SqlExpressionHandle {
 
   clone(): Query {
     const root = this.node;
-    const copy = mapTree(root, node => node === root || 'describe' in root && node === root.describe.target ? undefined : node, new Map(), true);
+    const copy = mapTree(root, node => node === root || 'describe' in root && node === root.describe.target ? undefined : node, new Map(), true, copyBinding);
     const query = new Query(copy);
     query.implicitSelect = this.implicitSelect;
     query.plainDistinct = this.plainDistinct;
@@ -282,7 +288,28 @@ export class Query implements SqlExpressionHandle {
       }
     }
     const { ctes: existing, ...options } = statement.with ?? { ctes: [] };
-    statement.with = native.withClause([...existing, ...clauses], options).with;
+    const combined = [...existing, ...clauses];
+    statement.with = combined.length ? native.withClause(combined, options).with : null;
+    return this;
+  }
+
+  protected copyWith<T extends Query>(query: T): T {
+    query.statementData().with = this.statementData().with;
+    return query;
+  }
+
+  setWith(...values: WithInput[]): this {
+    this.statementData().with = null;
+    return this.with(...values);
+  }
+
+  window(...values: WindowInput[]): this {
+    const selected = this.selectData();
+    const windows = namedWindows(values);
+    const names = new Set(windows.map(window => window.name.name));
+    const combined = [...(selected.windows ?? []).filter(window => !names.has(window.name.name)), ...windows];
+    selected.windows = combined.length ? combined : null;
+    syncWindowTemplate(this.node);
     return this;
   }
 
@@ -306,6 +333,34 @@ export class Query implements SqlExpressionHandle {
   setWhere(...values: FilterInput[]): this {
     this.selectData().where_clause = null;
     return this.where(...values);
+  }
+
+  having(...values: FilterInput[]): this {
+    const selected = this.selectData();
+    const clauses = values.flat().filter(value => value != null)
+      .map(value => typeof value === 'string' ? parseExpression(value) : asNode(value));
+    if (selected.having) clauses.unshift(selected.having.this);
+    if (clauses.length) selected.having = native.having(and(clauses)).having;
+    return this;
+  }
+
+  setHaving(...values: FilterInput[]): this {
+    this.selectData().having = null;
+    return this.having(...values);
+  }
+
+  qualify(...values: FilterInput[]): this {
+    const selected = this.selectData();
+    const clauses = values.flat().filter(value => value != null)
+      .map(value => typeof value === 'string' ? parseExpression(value) : asNode(value));
+    if (selected.qualify) clauses.unshift(selected.qualify.this);
+    if (clauses.length) selected.qualify = native.qualify(and(clauses)).qualify;
+    return this;
+  }
+
+  setQualify(...values: FilterInput[]): this {
+    this.selectData().qualify = null;
+    return this.qualify(...values);
   }
 
   groupby(...values: MaybeArray<ExprValue>[]): this {
@@ -381,6 +436,18 @@ export class Query implements SqlExpressionHandle {
   }
 }
 
+class WithQuery extends Query {
+  pivot(source: TableArg): PivotQuery { return this.copyWith(Query.pivot(source)); }
+  union(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.union(...queries)); }
+  unionAll(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.unionAll(...queries)); }
+  unionByName(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.unionByName(...queries)); }
+  unionAllByName(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.unionAllByName(...queries)); }
+  intersect(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.intersect(...queries)); }
+  intersectAll(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.intersectAll(...queries)); }
+  except(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.except(...queries)); }
+  exceptAll(...queries: MaybeArray<SqlRoot>[]): Query { return this.copyWith(Query.exceptAll(...queries)); }
+}
+
 export function isPivotQuery(value: unknown): value is PivotQuery {
   return value instanceof PivotQuery;
 }
@@ -454,7 +521,7 @@ export class PivotQuery extends Query {
 
   clone(): PivotQuery {
     const root = this.expression;
-    const copy = mapTree(root, node => node === root || 'subquery' in node || 'pivot' in node ? undefined : node, new Map(), true);
+    const copy = mapTree(root, node => node === root || 'subquery' in node || 'pivot' in node ? undefined : node, new Map(), true, copyBinding);
     return new PivotQuery(this.pivotData().this, copy);
   }
 }

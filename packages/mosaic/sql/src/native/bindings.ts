@@ -9,7 +9,8 @@ export interface SqlBinding {
   readonly kind: 'scalar' | 'identifier' | 'deferred';
   readonly parameters: readonly ParamLike[];
   readonly qualifier?: readonly string[];
-  readonly resolve: (read: ParamReader) => SqlRoot;
+  readonly frame?: boolean;
+  readonly resolve: (read: ParamReader, template?: SqlExpression) => SqlRoot;
   readonly field?: (read: ParamReader) => { column: string; table?: string };
 }
 
@@ -22,6 +23,15 @@ export function rootExpression(value: SqlRoot): SqlExpression {
 
 export function bindingOf(node: SqlExpression): SqlBinding | undefined {
   return metadata.get(node);
+}
+
+export function bindTemplate(node: SqlExpression, binding: SqlBinding): void {
+  if ('parameter' in node || binding.kind !== 'deferred') throw new TypeError('Native templates require a structured expression and deferred binding.');
+  metadata.set(node, binding);
+}
+
+export function unbindTemplate(node: SqlExpression): void {
+  if (!('parameter' in node)) metadata.delete(node);
 }
 
 function bindingName(node: SqlExpression): string | undefined {
@@ -90,23 +100,27 @@ export class BindingScope {
   snapshotAll(inputs: readonly SqlRoot[]): SqlExpression[] {
     const reads = new Map<ParamLike, unknown>();
     const memo: CloneMemo = new Map();
-    const resolved = new Map<SqlBinding, SqlExpression>();
-    const active = new Set<SqlBinding>();
+    const resolved = new Map<SqlBinding | SqlExpression, SqlExpression>();
+    const active = new Set<SqlBinding | SqlExpression>();
     const read: ParamReader = param => {
       if (!reads.has(param)) reads.set(param, param.value);
       return reads.get(param);
     };
     const resolve = (expression: SqlExpression): SqlExpression => mapTree(expression, node => {
       const name = bindingName(node);
-      if (!name) return;
       const binding = metadata.get(node);
-      if (!binding) throw new Error(`Unresolved native SQL binding: ${name}`);
-      if (resolved.has(binding)) return resolved.get(binding)!;
-      if (active.has(binding)) throw new Error('Cyclic native SQL binding.');
-      active.add(binding);
-      const value = resolve(rootExpression(binding.resolve(read)));
-      active.delete(binding);
-      resolved.set(binding, value);
+      if (!binding) {
+        if (name) throw new Error(`Unresolved native SQL binding: ${name}`);
+        return;
+      }
+      if (binding.frame) throw new TypeError('Dynamic frames must be attached using a window expression or Query.window.');
+      const key = name ? binding : node;
+      if (resolved.has(key)) return resolved.get(key)!;
+      if (active.has(key)) throw new Error('Cyclic native SQL binding.');
+      active.add(key);
+      const value = resolve(rootExpression(binding.resolve(read, node)));
+      active.delete(key);
+      resolved.set(key, value);
       return value;
     }, memo, true);
     return inputs.map(input => resolve(this.adopt(input)));
@@ -134,6 +148,7 @@ export function assertResolved(input: SqlRoot): void {
   for (const node of walk(rootExpression(input))) {
     const name = bindingName(node);
     if (name) throw new Error(`Unresolved native SQL binding: ${name}`);
+    if (metadata.has(node)) throw new Error('Unresolved native SQL template.');
   }
 }
 
@@ -149,6 +164,7 @@ export class StructuralKeyScope {
   key(input: SqlRoot): string {
     const root = rootExpression(input);
     const memo = new Map<object, string>();
+    const templates = new Map<object, string>();
     const active = new Set<object>();
     const pending: { value: object; visited: boolean }[] = [{ value: root, visited: false }];
     const encode = (value: unknown): string => {
@@ -162,14 +178,19 @@ export class StructuralKeyScope {
       const { value, visited } = pending.pop()!;
       if (memo.has(value)) continue;
       if (!visited) {
-        const binding = ast.isExpressionValue(value) ? metadata.get(value) : undefined;
-        if (binding) {
-          memo.set(value, JSON.stringify([
+        const node = ast.isExpressionValue(value) ? value : undefined;
+        const binding = node ? metadata.get(node) : undefined;
+        if (binding && node) {
+          const token = JSON.stringify([
             'binding', binding.kind, this.identity(binding), this.identity(binding.resolve),
-            binding.field ? this.identity(binding.field) : null, binding.qualifier,
+            binding.field ? this.identity(binding.field) : null, binding.qualifier, binding.frame ?? false,
             binding.parameters.map(param => this.identity(param))
-          ]));
-          continue;
+          ]);
+          if (bindingName(node)) {
+            memo.set(value, token);
+            continue;
+          }
+          templates.set(value, token);
         }
         if (active.has(value)) throw new TypeError('Native SQL expressions must be acyclic.');
         active.add(value);
@@ -182,7 +203,8 @@ export class StructuralKeyScope {
         const result = Array.isArray(value)
           ? '[' + value.map(encode).join(',') + ']'
           : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + encode(Reflect.get(value, key))).join(',') + '}';
-        memo.set(value, result);
+        const template = templates.get(value);
+        memo.set(value, template ? '["template",' + template + ',' + result + ']' : result);
       }
     }
     return memo.get(root)!;
@@ -226,10 +248,11 @@ export function fields(input: SqlRoot): SqlField[] {
       continue;
     }
     const binding = metadata.get(node);
+    if (binding?.frame) continue;
     if (binding?.field) {
       result.push({ node, ...binding.field(read) });
       continue;
-    } else if (binding?.kind === 'deferred') {
+    } else if (binding?.kind === 'deferred' && bindingName(node)) {
       result.push(...fields(snapshot(node)));
       continue;
     }

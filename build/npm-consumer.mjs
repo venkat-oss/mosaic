@@ -19,7 +19,7 @@ run(process.execPath, ['--input-type=module', '-e', `
 import assert from 'node:assert/strict';
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
-import { asLiteral, asNode, compile, createExecutionContext, cte, from, join, native, Query as NativeQuery, values } from '@uwdata/mosaic-sql/native';
+import { asLiteral, asNode, compile, createExecutionContext, cte, frameRows, from, join, native, Query as NativeQuery, sum, values } from '@uwdata/mosaic-sql/native';
 const db = new DuckDB(':memory:', {}, '');
 assert.deepEqual(await db.query(String(Query.select({ value: literal(42) }))), [{ value: 42 }]);
 await db.exec('CREATE TABLE native_values (amount INTEGER); INSERT INTO native_values VALUES (1), (2), (3)');
@@ -43,6 +43,12 @@ const right = from(values([[2], [3]]), 'r', undefined, ['amount']);
 const matched = NativeQuery.from(join(left, right, { using: ['amount'] })).select('amount');
 const relational = NativeQuery.from('matched').with(cte('matched', matched));
 assert.deepEqual(await db.query(compile([relational], context)[0]), [{ amount: 2 }]);
+const window = NativeQuery.from('native_values').select('amount', {
+  running: sum('amount').orderby('amount').frame(frameRows([null, 0]))
+}).orderby('amount');
+assert.deepEqual((await db.query(compile([window], context)[0])).map(row => [row.amount, Number(row.running)]), [
+  [1, 1], [2, 3], [3, 6]
+]);
 db.close();
 `]);
 writeFileSync(join(directory, 'consumer.ts'), `

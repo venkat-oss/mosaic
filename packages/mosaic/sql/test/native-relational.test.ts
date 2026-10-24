@@ -14,6 +14,24 @@ import { stubParam } from './util/stub-param.js';
 const context = createExecutionContext({ backend: 'native-relational-test' });
 
 describe('native relational authoring', () => {
+  it('starts fluent SELECT, FROM and set queries with shared native CTEs', async () => {
+    const child = Query.select({ x: literal(1) });
+    const common = Query.with({ c: child });
+    const selected = Query.with({ c: child }).select('x').from('c');
+    const source = common.from('c').select('x');
+    const union = common.unionAll(Query.from('c'), Query.select({ x: literal(3) })).orderby('x');
+    child.setSelect({ x: literal(2) });
+    const db = new DuckDB(':memory:', {}, '');
+    try {
+      expect(await db.query(compile([selected], context)[0])).toEqual([{ x: 2 }]);
+      expect(await db.query(compile([source], context)[0])).toEqual([{ x: 2 }]);
+      expect(await db.query(compile([union], context)[0])).toEqual([{ x: 2 }, { x: 3 }]);
+      expect(await db.query(compile([common.intersect(Query.from('c'), Query.select({ x: literal(2) }))], context)[0])).toEqual([{ x: 2 }]);
+    } finally {
+      db.close();
+    }
+  });
+
   it('retains mutable child queries embedded before their projections are authored', async () => {
     const child = Query.from('data');
     const originalRoot = child.expression;

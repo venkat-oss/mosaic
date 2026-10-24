@@ -45,21 +45,32 @@ const nativeCoordinator = new Coordinator({
 await nativeCoordinator.exec('CREATE TABLE native_consumer (amount INTEGER); INSERT INTO native_consumer VALUES (1), (2), (3), (NULL)');
 const selection = native.selection();
 const source = {};
-await selection.update(native.interval('amount', [2, 3], { source }));
+selection.update(native.interval('amount', [2, 3], { source }));
+await selection.pending('value');
 let row;
+const nativeErrors = [];
 const client = makeClient({
   coordinator: nativeCoordinator,
   selection,
   query: filter => Query.select({ rows: count(), total: sum('amount') }).from('native_consumer').where(filter ?? []),
-  queryResult: data => { row = Array.from(data)[0]; }
+  queryResult: data => { row = Array.from(data)[0]; },
+  queryError: error => { nativeErrors.push(error); }
 });
 await client.pending;
 assert.equal(Number(row.rows), 2);
 assert.equal(Number(row.total), 5);
-await selection.update(native.interval('amount', [3, 3], { source }));
-await client.pending;
+selection.update(native.interval('amount', [3, 3], { source }));
+await selection.pending('value');
 assert.equal(Number(row.rows), 1);
 assert.equal(Number(row.total), 3);
+selection.update(native.point('amount', 2, { source }));
+await selection.pending('value');
+assert.equal(Number(row.rows), 1);
+assert.equal(Number(row.total), 2);
+assert.deepEqual(nativeErrors, []);
+assert.ok(nativeCoordinator.preaggregator.entries.get(client)?.result);
+assert.ok(calls.some(sql => /CREATE TABLE.*preagg_/is.test(sql)));
+assert.ok(calls.some(sql => /^SELECT\\b/i.test(sql) && /FROM\\s+"mosaic"\\."preagg_/i.test(sql)));
 const bound = Param.value(2);
 const query = Query.select({ rows: count() }).from('native_consumer').where(gte('amount', asLiteral(bound)));
 assert.equal(Number(Array.from(await nativeCoordinator.query(query))[0].rows), 2);

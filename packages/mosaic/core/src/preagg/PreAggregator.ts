@@ -1,3 +1,9 @@
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import type { ParamLike, ParamReader, SqlExpression } from '@uwdata/mosaic-sql/native';
+import type { NativeSqlContext } from '../native-sql.js';
+import type { SelectionExpression } from '../types.js';
+import { Priority } from '../QueryManager.js';
+import { nativeColumnPath, type NativeTable } from './lineage.js';
 import { ExprNode, ScaleOptions, SelectQuery, Query, ExprValue, MaybeArray, FunctionNode, TableRefNode, createSchema, SelectClauseNode, OrderByNode, and, asNode, ceil, collectColumns, createTable, float64, floor, isBetween, int32, mul, round, scaleTransform, sub, rewrite, deepClone } from '@uwdata/mosaic-sql';
 import type { BinMethod, ClauseSource, IntervalMetadata, SelectionClause } from '../clause/index.js';
 import type { Coordinator } from '../Coordinator.js';
@@ -6,8 +12,8 @@ import type { Selection } from '../Selection.js';
 import { fnv_hash } from '../util/hash.js';
 import { resolvePositional } from '../util/positional.js';
 import { QueryError } from '../util/query-error.js';
-import { preaggColumns, PreAggColumnsResult } from './preagg-columns.js';
-import { subqueryPushdown } from './subquery-pushdown.js';
+import { nativeIndexable, nativePreaggColumns, type NativePreAggColumnsResult, preaggColumns, PreAggColumnsResult } from './preagg-columns.js';
+import { nativeSubqueryPushdown, subqueryPushdown } from './subquery-pushdown.js';
 
 /**
  * Dummy preaggregate info object that indicates a view should be skipped
@@ -25,9 +31,21 @@ export interface PreAggregateOptions {
 type ActivePredicate = (clause?: SelectionClause) => MaybeArray<ExprNode>;
 
 interface ActiveColumnsResult {
+  native?: false;
   source: ClauseSource | null;
   columns?: Record<string, ExprNode>;
   predicate?: ActivePredicate;
+}
+
+type AnyClient = MosaicClient<SelectionExpression>;
+type AnySelection = Selection<SelectionExpression>;
+type AnyClause = SelectionClause<SelectionExpression>;
+
+interface NativeActiveColumnsResult {
+  native: true;
+  source: ClauseSource | null;
+  columns?: Record<string, SqlExpression>;
+  predicate?: (clause: SelectionClause<SqlExpression>) => SqlExpression[];
 }
 
 interface PreAggregateInfoOptions {
@@ -57,8 +75,9 @@ interface PreAggregateInfoOptions {
  * should be used with care.
  */
 export class PreAggregator {
-  public entries: Map<MosaicClient, PreAggregateInfo | typeof Skip | null>;
-  private active: ActiveColumnsResult | null;
+  public entries: Map<AnyClient, PreAggregateInfo | NativePreAggregateInfo | typeof Skip | null>;
+  private active: ActiveColumnsResult | NativeActiveColumnsResult | null;
+  private activeKey: string | null;
   private mc: Coordinator;
   private _schema: string;
   private _enabled: boolean;
@@ -74,6 +93,7 @@ export class PreAggregator {
   }: PreAggregateOptions = {}) {
     this.entries = new Map();
     this.active = null;
+    this.activeKey = null;
     this.mc = coordinator;
     this._schema = schema;
     this._enabled = enabled;
@@ -98,7 +118,8 @@ export class PreAggregator {
    * @returns The current enabled state.
    */
   get enabled(): boolean {
-    return this._enabled;
+    return this._enabled && (!this.mc.nativeContext
+      || this.mc.nativeContext.execution.targetDialect === nativeSQL.Dialect.DuckDB);
   }
 
   /**
@@ -134,7 +155,9 @@ export class PreAggregator {
    */
   dropSchema(): Promise<unknown> {
     this.clear();
-    return this.mc.exec(`DROP SCHEMA IF EXISTS "${this.schema}" CASCADE`);
+    return this.mc.nativeContext
+      ? this.mc.exec(nativeSQL.dropSchema(this.schema, { ifExists: true, cascade: true }))
+      : this.mc.exec(`DROP SCHEMA IF EXISTS "${this.schema}" CASCADE`);
   }
 
   /**
@@ -146,6 +169,7 @@ export class PreAggregator {
   clear(): void {
     this.entries.clear();
     this.active = null;
+    this.activeKey = null;
   }
 
   /**
@@ -160,83 +184,81 @@ export class PreAggregator {
    * @returns Information and query generator
    * for pre-aggregated tables, or null if the client has unstable filters.
    */
-  request(client: MosaicClient, selection: Selection, activeClause: SelectionClause | null): PreAggregateInfo | typeof Skip | null {
-    // if not enabled, do nothing
-    if (!this.enabled || activeClause == null) return null;
-
+  request(client: AnyClient, selection: AnySelection, activeClause: AnyClause | null): PreAggregateInfo | NativePreAggregateInfo | typeof Skip | null {
+    if (!this.enabled || !activeClause?.source) return null;
     const { entries, mc, schema } = this;
-    const { source } = activeClause;
-
-    // if there is no clause source to track, do nothing
-    if (!source) return null;
-
-    // if we have cached active columns, check for updates or exit
-    if (this.active) {
-      // if the active clause source has changed, clear the state
-      // this cancels outstanding requests and clears the local cache
-      // a clear also sets this.active to null
-      if (this.active.source !== source) this.clear();
-      // if we've seen this source and it has unstable filters, do nothing
+    const context = mc.nativeContext;
+    const execution = context?.execution;
+    if (client.sqlOwner !== context || selection.owner !== context || (activeClause.context ?? null) !== context) return null;
+    try {
+      const nativeActive = context && isNativeClause(activeClause) ? nativeActiveColumns(activeClause) : null;
+      const key = context && nativeActive && isNativeClause(activeClause)
+        ? JSON.stringify([
+          context.execution.generation, activeClause.meta?.type,
+          activeClause.fields.map(field => context.structuralKey(field)),
+          Object.entries(nativeActive.columns ?? {}).map(([name, expression]) => [name, context.structuralKey(expression)])
+        ])
+        : null;
+      if (this.active && (this.active.source !== activeClause.source || key !== this.activeKey)) this.clear();
       if (this.active?.source === null) return null;
-    }
-
-    // the current active columns cache value
-    let { active } = this;
-
-    // if cached active columns are unset, analyze the active clause
-    if (!active) {
-      // if active clause predicate is null, we can't analyze it
-      // return null to backoff to standard client query
-      // non-null clauses may come later, so don't set active state
-      if (activeClause.predicate == null) return null;
-      // generate active dimension columns to select over
-      // will return an object with null source if it has unstable filters
-      this.active = active = activeColumns(activeClause);
-      // if the active clause has unstable filters, exit now
-      if (active.source === null) return null;
-    }
-
-    // if we have cached pre-aggregate info, return that
-    if (entries.has(client)) {
-      return entries.get(client)!;
-    }
-
-    // get non-active materialized view columns
-    const preaggCols = preaggColumns(client);
-
-    let info: PreAggregateInfo | typeof Skip | null;
-    if (!preaggCols) {
-      // if client is not indexable, record null info
-      info = null;
-    } else if (selection.skip(client, activeClause)) {
-      // skip client if untouched by cross-filtering
-      info = Skip;
-    } else {
-      // generate materialized view table
-      const filter = selection.remove(source).predicate(client);
-      const _info = preaggregateInfo(
-        client.query(filter) as SelectQuery,
-        active, preaggCols, schema
-      );
-      if (!_info) {
-        entries.set(client, null);
-        return null;
+      if (!this.active) {
+        if (!activeClause.predicate) return null;
+        this.active = nativeActive ?? (isLegacyClause(activeClause) ? activeColumns(activeClause) : null);
+        this.activeKey = key;
+        if (!this.active?.source) return null;
       }
-      const createQuery = [
-        createSchema(schema),
-        createTable(_info.table, _info.create, { temp: false })
-      ];
-      _info.result = mc.exec(createQuery);
-      // if create query fails, log and mark as failed
-      _info.result.catch((e: Error) => {
-        mc.logger().error(new QueryError(e, createQuery.join(';\n')));
-        _info.result = null; // indicate lack of preagg view
-      });
-      info = _info;
+      if (entries.has(client)) return entries.get(client)!;
+      let info: PreAggregateInfo | NativePreAggregateInfo | typeof Skip | null = null;
+      if (context && this.active.native && isNativeClient(client) && isNativeSelection(selection) && isNativeClause(activeClause)) {
+        const columns = nativePreaggColumns(client, expression => context.structuralKey(expression));
+        if (columns) {
+          if (selection.skip(client, activeClause)) info = Skip;
+          else {
+            const inactive = selection.remove(activeClause.source).predicate(client);
+            const query = client.query(inactive);
+            if (nativeSQL.isSelectQuery(query)) {
+              info = nativePreaggregateInfo(query, activeClause, columns, context, clause => {
+                if (client.sqlOwner !== context) throw new TypeError('Native preaggregation owner changed.');
+                const fallback = client.query([inactive ?? [], clause.predicate ?? []].flat());
+                if (!nativeSQL.isQuery(fallback) || !nativeSQL.isResultQuery(fallback)) {
+                  throw new TypeError('Native preaggregation fallback requires a native result query.');
+                }
+                return fallback;
+              }, plan => {
+                if (entries.get(client) === plan) entries.delete(client);
+              });
+            }
+          }
+        }
+      } else if (!this.active.native && isLegacyClient(client) && isLegacySelection(selection) && isLegacyClause(activeClause)) {
+        const columns = preaggColumns(client);
+        if (columns) {
+          if (selection.skip(client, activeClause)) info = Skip;
+          else {
+            const query = client.query(selection.remove(activeClause.source).predicate(client));
+            if (query instanceof SelectQuery) info = preaggregateInfo(query, this.active, columns, schema);
+          }
+        }
+      }
+      if (info && !info.skip) {
+        const plan = info;
+        if (plan instanceof NativePreAggregateInfo) {
+          plan.result = mc.manager.request({ type: 'exec', query: plan.create }, Priority.Normal, () => plan.prepare(schema));
+        } else {
+          plan.result = mc.exec([createSchema(schema), createTable(plan.table, plan.create, { temp: false })]);
+        }
+        plan.result.catch((error: unknown) => {
+          mc.logger().error(error instanceof QueryError ? error : new QueryError(error, plan.create));
+          plan.result = null;
+        });
+      }
+      if (context && context.execution !== execution) return null;
+      entries.set(client, info);
+      return info;
+    } catch {
+      if (!context || context.execution === execution) entries.set(client, null);
+      return null;
     }
-
-    entries.set(client, info);
-    return info;
   }
 }
 
@@ -464,8 +486,224 @@ export class PreAggregateInfo {
    * @param clause The current selection clause.
    * @returns A materialized view query.
    */
-  query(clause: SelectionClause): SelectQuery {
+  query(clause: AnyClause): SelectQuery {
+    if (!isLegacyClause(clause)) throw new TypeError('Native clause reached a legacy preaggregation plan.');
     const filter = this.active.predicate?.(clause) ?? [];
     return this.select.clone().where(filter);
   }
+}
+
+function nativeActiveColumns(clause: SelectionClause<SqlExpression>): NativeActiveColumnsResult {
+  const { fields, meta, source } = clause;
+  if (!meta || !fields.length || fields.some(field => !nativeIndexable(field) || nativeSQL.params(field).length)) {
+    return { native: true, source: null };
+  }
+  const columns: Record<string, SqlExpression> = {};
+  if (meta.type === 'point') {
+    fields.forEach((field, index) => { columns[`active${index}`] = field; });
+    return {
+      native: true, source, columns,
+      predicate(current = clause) {
+        if (!current.predicate) return [];
+        const memo = new Map<object, unknown>();
+        const fields = current.fields.map(field => nativeSQL.deepClone(field, memo));
+        const predicate = nativeSQL.deepClone(current.predicate, memo);
+        const replacements = new Map(fields.map((field, index) => [field, nativeSQL.column(`active${index}`)]));
+        return [nativeSQL.rewrite(predicate, replacements)];
+      }
+    };
+  }
+  if (meta.type !== 'interval') return { native: true, source: null };
+  const { scales, bin, pixelSize = 1 } = meta as IntervalMetadata;
+  const bins = scales?.map(scale => nativeBinInterval(scale, pixelSize, bin));
+  if (!bins || bins.length !== fields.length || bins.some(bin => !bin)) return { native: true, source: null };
+  const transforms = bins.filter((bin): bin is NonNullable<typeof bin> => !!bin);
+  fields.forEach((field, index) => { columns[`active${index}`] = transforms[index](field); });
+  return {
+    native: true, source, columns,
+    predicate(current = clause) {
+      if (!current.predicate) return [];
+      const ranges = fields.length === 1 ? [current.value] : current.value;
+      if (!Array.isArray(ranges) || ranges.length !== fields.length) throw new TypeError('Invalid native interval dimensions.');
+      return ranges.map((range, index) => {
+        if (!Array.isArray(range) || range.length !== 2) throw new TypeError('Invalid native interval extent.');
+        return nativeSQL.between(nativeSQL.column(`active${index}`), [
+          transforms[index](nativeSQL.asLiteral(range[0])), transforms[index](nativeSQL.asLiteral(range[1]))
+        ]);
+      });
+    }
+  };
+}
+
+function nativeBinInterval(scale: ScaleOptions, pixelSize: number, bin?: BinMethod): ((value: nativeSQL.ExprValue) => SqlExpression) | undefined {
+  if (!Number.isFinite(pixelSize) || pixelSize <= 0 || !scale.domain?.length) return;
+  const { type, domain, range, apply, sqlApply } = nativeSQL.scaleTransform<number>(scale);
+  const lo = apply(Math.min(...domain!.map(Number)));
+  const hi = apply(Math.max(...domain!.map(Number)));
+  const scalar = (type === 'identity' ? 1 : Math.abs(range![1] - range![0]) / (hi - lo)) / pixelSize;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || !Number.isFinite(scalar)) return;
+  const round = bin === 'ceil' ? nativeSQL.ceil : bin === 'round' ? nativeSQL.round : nativeSQL.floor;
+  return value => {
+    const transformed = sqlApply(value);
+    const delta = lo === 0 ? transformed : nativeSQL.sub(transformed, nativeSQL.float64(lo));
+    const pixels = scalar === 1 ? delta : nativeSQL.mul(nativeSQL.float64(scalar), delta);
+    return nativeSQL.int32(round(pixels));
+  };
+}
+
+function nativePreaggregateInfo(
+  input: nativeSQL.Query,
+  clause: SelectionClause<SqlExpression>,
+  columns: NativePreAggColumnsResult,
+  context: NativeSqlContext,
+  fallback: (clause: SelectionClause<SqlExpression>) => nativeSQL.Query,
+  invalidate: (plan: NativePreAggregateInfo) => void
+): NativePreAggregateInfo | null {
+  const memo = new Map<object, unknown>();
+  const query = new nativeSQL.Query(nativeSQL.deepClone(input, memo));
+  const clonedClause = {
+    ...clause,
+    fields: clause.fields.map(field => nativeSQL.deepClone(field, memo)),
+    predicate: clause.predicate && nativeSQL.deepClone(clause.predicate, memo)
+  };
+  const active = nativeActiveColumns(clonedClause);
+  if (!active.source || !active.columns) return null;
+  const clone = (entries: Record<string, SqlExpression>) => Object.fromEntries(
+    Object.entries(entries).map(([name, expression]) => [name, nativeSQL.deepClone(expression, memo)])
+  );
+  const statistics = clone(columns.preagg);
+  const output = clone(columns.output);
+  const source = nativeSQL.deepClone(columns.source, memo);
+  if (!('table' in source)) return null;
+  const selected = nativeSQL.selectEntries(query);
+  const names = new Set<string>();
+  for (const field of Object.values(active.columns)) {
+    nativeSQL.walk(field, node => {
+      if ('subquery' in node) return 1;
+      const path = nativeColumnPath(node);
+      if (path) { names.add(path[path.length - 1]); return 1; }
+    });
+  }
+  if (!nativeSubqueryPushdown(query, source, [...names])) return null;
+  const shape = nativeSQL.inspectSelect(query);
+  const create = new nativeSQL.Query({ select: {
+    ...shape,
+    expressions: Object.entries({ ...statistics, ...active.columns }).map(([name, expression]) =>
+      nativeSQL.native.alias(expression, nativeSQL.native.identifier(name, true).identifier)),
+    group_by: nativeSQL.native.groupBy([...columns.groupby, ...Object.keys(active.columns)].map(name => nativeSQL.column(name))).group_by,
+    having: null, qualify: null, order_by: null, windows: null, limit: null, offset: null, fetch: null,
+    distinct: false, distinct_on: null
+  } });
+  const select = query.setSelect(output).setGroupby(columns.groupby)
+    .setHaving(columns.having && nativeSQL.deepClone(columns.having, memo))
+    .setQualify(columns.qualify && nativeSQL.deepClone(columns.qualify, memo))
+    .setOrderby(columns.orderby.map(expression => nativeReplaceIndex(nativeSQL.deepClone(expression, memo), selected)));
+  const result = nativeSQL.inspectSelect(select);
+  result.windows = columns.windows?.map(definition => ({
+    ...definition,
+    spec: {
+      ...definition.spec,
+      partition_by: definition.spec.partition_by.map(expression => nativeSQL.deepClone(expression, memo)),
+      order_by: definition.spec.order_by.map(ordered => {
+        const expression = nativeSQL.deepClone({ ordered }, memo);
+        if (!('ordered' in expression)) throw new TypeError('Expected a native window ordering.');
+        return expression.ordered;
+      })
+    }
+  })) ?? null;
+  result.with = null;
+  result.where_clause = null;
+  result.sample = null;
+  result.from = null;
+  result.joins = [];
+  return new NativePreAggregateInfo(create, select, active, context, fallback, invalidate);
+}
+
+function nativeReplaceIndex(expression: SqlExpression, selected: nativeSQL.SelectProjection[]): SqlExpression {
+  if ('ordered' in expression) {
+    const reference = nativeSQL.resolvePositional(expression.ordered.this, selected);
+    return reference?.alias
+      ? { ordered: { ...expression.ordered, this: nativeSQL.column(reference.alias) } }
+      : expression;
+  }
+  const reference = nativeSQL.resolvePositional(expression, selected);
+  return reference?.alias ? nativeSQL.column(reference.alias) : expression;
+}
+
+export class NativePreAggregateInfo {
+  table?: NativeTable;
+  result: Promise<unknown> | null = null;
+  readonly skip = false;
+  private select: nativeSQL.Query | null = null;
+  private scalarStamp: string[] = [];
+  private readonly parameters: ParamLike[];
+
+  constructor(
+    readonly create: nativeSQL.Query,
+    private readonly output: nativeSQL.Query,
+    readonly active: NativeActiveColumnsResult,
+    private readonly context: NativeSqlContext,
+    private readonly fallback: (clause: SelectionClause<SqlExpression>) => nativeSQL.Query,
+    private readonly invalidate: (plan: NativePreAggregateInfo) => void
+  ) {
+    this.parameters = [...new Set([...nativeSQL.params(create), ...nativeSQL.params(output)])];
+  }
+
+  prepare(schema: string): string {
+    const execution = this.context.execution;
+    const snapshots = nativeSQL.snapshotAll([this.create, this.output, ...this.parameters.map(parameter => nativeSQL.asLiteral(parameter))]);
+    const [create, output] = snapshots;
+    const statements = nativeSQL.compileResolved([create], execution);
+    if (statements.length !== 1) throw new TypeError('Preaggregation creation requires one SELECT statement.');
+    const id = (fnv_hash(this.context.cacheKey(statements[0], execution)) >>> 0).toString(16);
+    this.table = nativeSQL.tableRef(schema, `preagg_${id}`)!;
+    this.select = new nativeSQL.Query(output).setFrom(this.table);
+    this.scalarStamp = snapshots.slice(2).map(expression => this.context.structuralKey(expression));
+    return nativeSQL.compileResolved([
+      nativeSQL.rootExpression(nativeSQL.createSchema(schema)),
+      nativeSQL.rootExpression(nativeSQL.createTable(this.table, new nativeSQL.Query(create), { temp: false }))
+    ], execution).join(';\n');
+  }
+
+  query(clause: AnyClause): nativeSQL.Query {
+    if (!isNativeClause(clause) || clause.context !== this.context) throw new TypeError('Clause owner does not match the native preaggregation plan.');
+    return nativeSQL.Query.from(nativeSQL.deferred(read => {
+      if (!this.select || this.result === null) return nativeSQL.subquery(this.fallback(clause));
+      const stamp = this.stamp(read);
+      if (stamp.some((value, index) => value !== this.scalarStamp[index])) {
+        this.result = null;
+        this.invalidate(this);
+        return nativeSQL.subquery(this.fallback(clause));
+      }
+      return nativeSQL.subquery(this.select.clone().where(this.active.predicate?.(clause) ?? []));
+    }, this.parameters));
+  }
+
+  private stamp(read: ParamReader): string[] {
+    return this.parameters.map(parameter => this.context.structuralKey(nativeSQL.asLiteral(read(parameter))));
+  }
+}
+
+function isNativeClient(client: AnyClient): client is MosaicClient<SqlExpression> {
+  return client.sqlOwner !== null;
+}
+
+function isLegacyClient(client: AnyClient): client is MosaicClient {
+  return client.sqlOwner === null;
+}
+
+function isNativeSelection(selection: AnySelection): selection is Selection<SqlExpression> {
+  return selection.owner !== null;
+}
+
+function isLegacySelection(selection: AnySelection): selection is Selection {
+  return selection.owner === null;
+}
+
+function isNativeClause(clause: AnyClause): clause is SelectionClause<SqlExpression> {
+  return clause.context !== undefined;
+}
+
+function isLegacyClause(clause: AnyClause): clause is SelectionClause {
+  return clause.context === undefined;
 }

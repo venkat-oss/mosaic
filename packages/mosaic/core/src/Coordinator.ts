@@ -103,7 +103,7 @@ export class Coordinator {
     this.databaseConnector(db);
     this.logger(logger);
     this.clear();
-    this.preaggregator = new PreAggregator(this, native ? { ...preagg, enabled: false } : preagg);
+    this.preaggregator = new PreAggregator(this, preagg);
   }
 
   /**
@@ -116,6 +116,7 @@ export class Coordinator {
   clear(options: { clients?: boolean; cache?: boolean } = {}) {
     const { clients = true, cache = true } = options;
     this.manager.clear();
+    this.preaggregator?.clear();
     if (clients) {
       this.filterGroups?.forEach(group => group.disconnect());
       this.filterGroups = new Map;
@@ -311,6 +312,7 @@ export class Coordinator {
     const { clients, filterGroups } = this;
     if (!clients?.has(client)) return;
     clients.delete(client);
+    this.preaggregator.entries.delete(client);
     client.coordinator = null;
 
     const group = filterGroups?.get(client.filterBy!);
@@ -321,7 +323,10 @@ export class Coordinator {
         filterGroups.delete(client.filterBy!);
       }
     }
-    if (!clients.size) this.nativeContext?.reset();
+    if (!clients.size) {
+      this.preaggregator.clear();
+      this.nativeContext?.reset();
+    }
   }
 }
 
@@ -373,15 +378,10 @@ function activateSelection(
   selection: Selection<SelectionExpression>,
   clause: SelectionClause<SelectionExpression>
 ): void {
-  if (mc.nativeContext) return;
-  if (!isLegacySelection(selection)) throw new TypeError('Native selection reached legacy optimization.');
   const { preaggregator, filterGroups } = mc;
   const { clients } = filterGroups.get(selection)!;
   for (const client of clients) {
     if (client.enabled) {
-      if (!isLegacyClient(client) || !isLegacyClause(clause)) {
-        throw new TypeError('Native values reached legacy optimization.');
-      }
       preaggregator.request(client, selection, clause);
     }
   }
@@ -410,17 +410,6 @@ function updateSelection(
     // if client is initializing, wait for it to complete
     if (!client.initialized) await client.pending;
 
-    if (mc.nativeContext) {
-      const filter = selection.predicate(client);
-      if (!filter) return;
-      const query = client.query(filter);
-      await (query ? mc.updateClient(client, query) : client.update());
-      return;
-    }
-    if (!isLegacySelection(selection) || !isLegacyClient(client)) {
-      throw new TypeError('Native values reached legacy optimization.');
-    }
-
     // check if we can handle selection update via preaggregation
     const active = selection.active;
     const info = preaggregator.request(client, selection, active);
@@ -446,16 +435,4 @@ function updateSelection(
     const query = client.query(filter);
     await (query ? mc.updateClient(client, query) : client.update());
   }));
-}
-
-function isLegacySelection(selection: Selection<SelectionExpression>): selection is Selection {
-  return selection.owner === null;
-}
-
-function isLegacyClient(client: MosaicClient<SelectionExpression>): client is MosaicClient {
-  return client.sqlOwner === null;
-}
-
-function isLegacyClause(clause: SelectionClause<SelectionExpression>): clause is SelectionClause {
-  return clause.context === undefined;
 }

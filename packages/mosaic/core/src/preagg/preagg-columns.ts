@@ -1,3 +1,7 @@
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import type { SqlExpression, SqlRoot } from '@uwdata/mosaic-sql/native';
+import { nativeBaseExpression, nativeBaseTable, nativeColumnPath, type NativeTable } from './lineage.js';
+import { NativeStatistics } from './sufficient-statistics.js';
 import { asNode, collectAggregates, isAggregateExpression, isColumnRef, isSelectQuery, rewrite, sql } from '@uwdata/mosaic-sql';
 import type { AggregateNode, ColumnRefNode, ExprNode, TableRefNode } from '@uwdata/mosaic-sql';
 import type { MosaicClient } from '../MosaicClient.js';
@@ -147,4 +151,135 @@ function analyzeExpression(
     // rewrite original expression to use preaggregates
     return rewrite(expr!, aggrs)!;
   }
+}
+
+
+export interface NativePreAggColumnsResult {
+  preagg: Record<string, SqlExpression>;
+  output: Record<string, SqlExpression>;
+  groupby: string[];
+  orderby: SqlExpression[];
+  having: SqlExpression | null;
+  qualify: SqlExpression | null;
+  source: NativeTable;
+  windows: ReturnType<typeof nativeSQL.inspectSelect>['windows'];
+}
+
+export function nativePreaggColumns(
+  client: MosaicClient<SqlExpression>,
+  key: (expression: SqlRoot) => string
+): NativePreAggColumnsResult | null {
+  if (!client.filterStable) return null;
+  const query = client.query();
+  if (!nativeSQL.isSelectQuery(query) || !nativeIndexable(query)) return null;
+  const source = nativeBaseTable(query);
+  if (!source) return null;
+  const selected = nativeSQL.inspectSelect(query);
+  const projections = nativeSQL.selectEntries(query);
+  if (projections.some(({ alias, expr }) => alias === undefined || nativeSQL.hasColumnExpansion(expr))) return null;
+  const preagg: Record<string, SqlExpression> = {};
+  const output: Record<string, SqlExpression> = {};
+  const groupby = new Map<string, string>();
+  const aggregates = new Map<SqlExpression, SqlExpression>();
+  const average = (expression: SqlExpression): SqlExpression => {
+    const base = nativeBaseExpression(query, expression);
+    if (!base) throw new Error('Unresolvable base expression.');
+    return nativeSQL.subquery(nativeSQL.Query.from(source).select({ mean: nativeSQL.avg(base) }));
+  };
+  const statistics = new NativeStatistics(preagg, average, key);
+  const analyze = (expression: SqlExpression): SqlExpression | undefined => {
+    const nodes = nativeSQL.collectAggregates(expression);
+    if (!nodes.length) return;
+    for (const node of nodes) {
+      if (aggregates.has(node)) continue;
+      const result = statistics.expression(node);
+      if (!result) throw new Error('Aggregate cannot be preaggregated.');
+      aggregates.set(node, result);
+    }
+    return nativeSQL.rewrite(expression, aggregates);
+  };
+  try {
+    for (const { alias, expr } of projections) {
+      if (!nativeSQL.collectAggregates(expr).length && !nativeHasWindow(expr)) {
+        if (nativeConstant(expr)) output[alias!] = expr;
+        else {
+          if (!selected.group_by?.expressions.length) return null;
+          preagg[alias!] = expr;
+          output[alias!] = nativeSQL.column(alias!);
+          groupby.set(alias!.toLowerCase(), alias!);
+        }
+      }
+    }
+    let index = 0;
+    const aliases = new Map(projections.map(({ alias, expr }) => [alias!.toLowerCase(), expr]));
+    for (const original of selected.group_by?.expressions ?? []) {
+      const name = nativeColumnPath(original)?.at(-1);
+      const expression = nativeSQL.resolvePositional(original, projections)?.expr
+        ?? (name === undefined ? undefined : aliases.get(name.toLowerCase())) ?? original;
+      const alias = name ?? nativeColumnPath(expression)?.at(-1) ?? `__groupby_${++index}`;
+      if (!groupby.has(alias.toLowerCase())) {
+        preagg[alias] = expression;
+        groupby.set(alias.toLowerCase(), alias);
+      }
+    }
+    for (const { alias, expr } of projections) {
+      const rewritten = analyze(expr);
+      if (rewritten || nativeHasWindow(expr)) output[alias!] = rewritten ?? expr;
+    }
+    const orderby = (selected.order_by?.expressions ?? []).map(ordered => {
+      const root = { ordered } satisfies SqlExpression;
+      return analyze(root) ?? root;
+    });
+    const having = selected.having ? analyze(selected.having.this) ?? selected.having.this : null;
+    const qualify = selected.qualify ? analyze(selected.qualify.this) ?? selected.qualify.this : null;
+    const windows = selected.windows?.map(definition => ({ ...definition, spec: {
+      ...definition.spec,
+      partition_by: definition.spec.partition_by.map(expression => analyze(expression) ?? expression),
+      order_by: definition.spec.order_by.map(ordered => {
+        const expression = analyze({ ordered }) ?? { ordered };
+        if (!('ordered' in expression)) throw new TypeError('Expected a native window ordering.');
+        return expression.ordered;
+      })
+    } })) ?? null;
+    if (!aggregates.size) return null;
+    return { preagg, output, groupby: [...groupby.values()], orderby, having, qualify, source, windows };
+  } catch {
+    return null;
+  }
+}
+
+export function nativeIndexable(input: SqlRoot): boolean {
+  let indexable = true;
+  nativeSQL.walk(input, node => {
+    const binding = nativeSQL.bindingOf(node);
+    if (binding && binding.kind !== 'scalar'
+      || 'group' in node && (node.group.grouping_sets != null || node.group.cube != null || node.group.rollup != null || node.group.all != null || node.group.totals != null)
+      || 'cube' in node || 'rollup' in node || 'grouping_sets' in node
+      || 'select' in node && (node.select.group_by?.all != null || node.select.group_by?.totals || node.select.with?.recursive)) {
+      indexable = false;
+      return -1;
+    }
+  });
+  return indexable;
+}
+
+function nativeHasWindow(input: SqlRoot): boolean {
+  let window = false;
+  nativeSQL.walk(input, node => {
+    if ('subquery' in node) return 1;
+    if ('window_function' in node) { window = true; return -1; }
+  });
+  return window;
+}
+
+function nativeConstant(input: SqlRoot): boolean {
+  let constant = true;
+  nativeSQL.walk(input, node => {
+    if ('column' in node || 'dot' in node || 'identifier' in node || 'star' in node || 'columns' in node
+      || 'subquery' in node || 'select' in node || 'union' in node || 'intersect' in node || 'except' in node) {
+      constant = false;
+      return -1;
+    }
+  });
+  return constant;
 }

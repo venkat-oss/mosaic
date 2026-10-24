@@ -2,13 +2,14 @@
 
 These packets implement the [target architecture](./index.md). P00 is complete
 on the isolated private Polyglot branch `mosaic-native-ast` at
-`f302b8d7aeb04baca547eb119d105118c70f83c6`. Its built SDK is distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-f302b8d7aeb04baca547eb119d105118c70f83c6); Polyglot source remains private.
-P01–P03 implement compiler loading, the reactive Slider slice, relational queries
-and native consolidation. Installed SQL/core consumers execute these paths
-against DuckDB and Arrow. Startup measurements are recorded in the architecture.
-Mosaic's default SQL runtime still uses its existing implementation. P04–P10
-remain to be completed, including preaggregation and final compiler retirement.
+`d8eedaa743419c95175e59be884b9e498b486c94`. Its built SDK is distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d8eedaa743419c95175e59be884b9e498b486c94); Polyglot source remains private.
+P01–P04 implement compiler loading, the reactive Slider slice, relational queries,
+consolidation, aggregates, windows and native DuckDB preaggregation. Installed
+SQL/core consumers execute these paths against DuckDB and Arrow. Startup
+measurements are recorded in the architecture. Mosaic's default SQL runtime still
+uses its existing implementation. P05–P10 remain, including plot consumers, the
+default switch, final compiler retirement and the PostgreSQL connector.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and
 deletion work. Use normal source changes and reviewable commits. Do not create a
@@ -80,8 +81,8 @@ commands are identified separately from targets that a packet must add.
 complete SDK artifact Mosaic will consume. Fix its compiler/AST gaps there;
 Mosaic must not retain an alternative AST/compiler to compensate for them.
 The inspected upstream revision is `00bba766a9361e660b4560324c564b257bddcb86`;
-the observed package is 0.13.4. The local fork is on `bazel-migration` at
-`330ffc7`, with package/core metadata 0.13.3. Reconcile relevant upstream compiler
+the observed package is 0.13.4. At planning time the local fork was on
+`bazel-migration` at `330ffc7`, with package/core metadata 0.13.3. Reconcile relevant upstream compiler
 changes while retaining its Bazel/CUE migration; do not assume identical sources.
 None currently supplies the required native compilation entry.
 
@@ -361,12 +362,20 @@ and `interactors/Highlight.js`.
    semantic variant expected by the compiler. First land the common native Mark
    query/parameter contract and its context-aware native selection producers;
    P06/P07 can consume that commit while the rest of this packet proceeds.
+   Resolve the coordinator's context before plot directives construct marks and
+   pass it through their constructors. Mark ownership is fixed at construction.
+   Include native field labels and the minimal DuckDB `queryFieldInfo` worker
+   needed by `Mark.prepare`; P07 extends its backend and Arrow metadata behavior.
 2. Replace `BinTransformNode` with an external delayed-expression binding. Resolve
    it after channel metadata and scale statistics exist, and again when those
    inputs change. Preserve its source-field/statistics association outside AST
    payloads. Query construction must not freeze the first observed extent. Native
    analysis is binding-aware and recomputes field/statistics-dependent plans when
    the identifier, source data or scale changes.
+   Resolve known plot bins into channel expressions after preparation and before
+   preaggregation analysis. Keep arbitrary delayed expressions non-indexable.
+   Reuse Mark initialization and query-update invalidation for parameter, source
+   and scale changes, rather than introducing another invalidation registry.
 3. Port Mark's parameter collection and aggregate/field analysis. Replace
    `get-field.js` legacy tags and `extent.js` class checks with native inspection.
    Move ConnectedMark's select access and Highlight's group access together with
@@ -400,6 +409,8 @@ tuple/quantified/collection native factories; plot `Grid2DMark.js`, `HexbinMark.
    shape, aggregation ordering, prefetch concurrency and Arrow column extraction.
    Add any currently implicit native tree factory defaults to the common factory
    module rather than duplicating its serde shapes in each mark.
+   Reuse P05's minimal UNNEST support and bin helpers; remove RasterTileMark's
+   duplicated SQL-template implementations of `bin2d` and `binLinear2d`.
 
 **Exercise:** existing `list`, `lambda`, `subscript`, `star`, `unnest`, `tuple`,
 `named-arg`, `quantified-op`, grid/raster/hexbin tests; execute nested-data queries

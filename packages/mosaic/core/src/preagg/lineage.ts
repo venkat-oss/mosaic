@@ -1,3 +1,5 @@
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import type { SqlExpression, SqlRoot } from '@uwdata/mosaic-sql/native';
 import { ColumnNameRefNode, ColumnsNode, FromClauseNode, isAggregateExpression, isColumnRef, isPivotQuery, isQuery, isSelectQuery, isSetOperation, isTableRef, PositionalRefNode, rewrite, ScalarSubqueryNode, StarNode, TableRefNode, walk, WindowNode, type ColumnRefNode, type ExprNode, type Query, type SelectQuery, type SQLNode } from '@uwdata/mosaic-sql';
 
 /** A query paired with the scope of CTEs visible to it. */
@@ -225,4 +227,212 @@ export function tableEquals(a: TableRefNode, b: TableRefNode): boolean {
 // DuckDB resolves identifiers case-insensitively, even when quoted
 export function nameEquals(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
+}
+
+
+export interface NativeBinding {
+  query: SqlExpression;
+  scope: NativeScope;
+  columns?: string[];
+}
+
+export type NativeScope = Map<string, NativeBinding>;
+export type NativeTable = ReturnType<typeof nativeSQL.native.table>;
+
+export function nativeQueryScope(input: SqlRoot, outer: NativeScope = new Map()): NativeScope {
+  const query = nativeSQL.rootExpression(input);
+  const clause = 'select' in query ? query.select.with : 'union' in query ? query.union.with
+    : 'intersect' in query ? query.intersect.with : 'except' in query ? query.except.with : null;
+  let scope = outer;
+  for (const cte of clause?.ctes ?? []) {
+    scope = new Map(scope).set(cte.alias.name.toLowerCase(), {
+      query: cte.this, scope, columns: cte.columns.map(column => column.name)
+    });
+  }
+  return scope;
+}
+
+export function nativeSetOperands(query: SqlExpression): SqlExpression[] | undefined {
+  const set = 'union' in query ? query.union : 'intersect' in query ? query.intersect
+    : 'except' in query ? query.except : undefined;
+  return set && !set.by_name ? [set.left, set.right] : undefined;
+}
+
+export function nativeTablePath(table: NativeTable): string[] {
+  return [table.table.catalog?.name, table.table.schema?.name, table.table.name.name]
+    .filter((name): name is string => name !== undefined);
+}
+
+export function nativeColumnPath(expression: SqlExpression): string[] | undefined {
+  if ('column' in expression) return [expression.column.table?.name, expression.column.name.name]
+    .filter((name): name is string => name !== undefined);
+  if ('dot' in expression) {
+    const prefix = nativeColumnPath(expression.dot.this);
+    return prefix && [...prefix, expression.dot.field.name];
+  }
+}
+
+export function nativeResolveRelation(node: SqlExpression, scope: NativeScope): NativeTable | NativeBinding | null {
+  if ('table_sample' in node) return node.table_sample.this ? nativeResolveRelation(node.table_sample.this, scope) : null;
+  if ('subquery' in node) return {
+    query: node.subquery.this, scope, columns: node.subquery.column_aliases.map(column => column.name)
+  };
+  if ('table' in node) {
+    const path = nativeTablePath(node);
+    const binding = path.length === 1 ? scope.get(path[0].toLowerCase()) : undefined;
+    if (binding && node.table.column_aliases.length) {
+      const columns = node.table.column_aliases.map(column => column.name);
+      return { ...binding, columns: columns.concat(binding.columns?.slice(columns.length) ?? []) };
+    }
+    return binding ?? node;
+  }
+  if ('select' in node || nativeSetOperands(node) || 'pivot' in node) return { query: node, scope };
+  return null;
+}
+
+export function nativeBaseTable(input: SqlRoot, outer: NativeScope = new Map()): NativeTable | null {
+  const query = nativeSQL.rootExpression(input);
+  const scope = nativeQueryScope(query, outer);
+  if ('subquery' in query) return nativeBaseTable(query.subquery.this, scope);
+  const relation = (node: SqlExpression): NativeTable | null => {
+    const resolved = nativeResolveRelation(node, scope);
+    return resolved && 'table' in resolved ? resolved : resolved ? nativeBaseTable(resolved.query, resolved.scope) : null;
+  };
+  const operands = nativeSetOperands(query);
+  const tables = 'select' in query
+    ? query.select.from?.expressions.length === 1 && !query.select.joins.length
+      ? [relation(query.select.from.expressions[0])] : [null]
+    : operands ? operands.map(operand => nativeBaseTable(operand, scope))
+      : 'pivot' in query ? [relation(query.pivot.this)] : [null];
+  const [table] = tables;
+  return table && tables.every(candidate => candidate && nativeTableEquals(table, candidate)) ? table : null;
+}
+
+export function nativeTableEquals(a: NativeTable, b: NativeTable): boolean {
+  const left = nativeTablePath(a);
+  const right = nativeTablePath(b);
+  return left.length === right.length && left.every((name, index) => nameEquals(name, right[index]));
+}
+
+export function nativeIsStar(expression: SqlExpression): boolean {
+  return 'star' in expression || nativeColumnPath(expression)?.at(-1) === '*';
+}
+
+export function nativeIsWildcard(expression: SqlExpression): boolean {
+  return nativeSQL.hasColumnExpansion(expression);
+}
+
+export function nativeStarExpression(
+  input: SqlRoot,
+  name: string,
+  relations?: (string[] | undefined)[]
+): SqlExpression | undefined {
+  const query = nativeSQL.rootExpression(input);
+  if (!('select' in query)) return;
+  for (const projection of query.select.expressions) {
+    const expression = 'alias' in projection ? projection.alias.this : projection;
+    if (!nativeIsStar(expression)) continue;
+    if (!('star' in expression)) {
+      const path = nativeColumnPath(expression);
+      if (!relations || relations.some(relation => relation && path && suffixEquals(path.slice(0, -1), relation))) {
+        return nativeSQL.column(name);
+      }
+      continue;
+    }
+    const star = expression.star;
+    if (star.table && relations && !relations.some(path => path && suffixEquals([star.table!.name], path))) continue;
+    const replaced = star.replace?.find(alias => nameEquals(alias.alias.name, name));
+    if (replaced) return replaced.this;
+    const renamed = star.rename?.find(([, target]) => nameEquals(target.name, name));
+    if (renamed) return nativeSQL.column(renamed[0].name);
+    if (star.except?.some(column => nameEquals(column.name, name))
+      || star.rename?.some(([source]) => nameEquals(source.name, name))) continue;
+    return nativeSQL.column(name);
+  }
+}
+
+export function nativeBaseExpression(
+  input: SqlRoot,
+  expression: SqlExpression,
+  outer: NativeScope = new Map()
+): SqlExpression | undefined {
+  const query = nativeSQL.rootExpression(input);
+  if (!('select' in query) || query.select.from?.expressions.length !== 1 || query.select.joins.length) return;
+  const resolved = nativeResolveRelation(query.select.from.expressions[0], nativeQueryScope(query, outer));
+  if (!resolved) return;
+  if ('table' in resolved) return expression;
+  const replacements = new Map<SqlExpression, SqlExpression>();
+  let supported = true;
+  nativeSQL.walk(expression, node => {
+    if ('subquery' in node) return 1;
+    if ('columns' in node || nativeColumnPath(node)?.at(-1)?.match(/^#\d+$/)) {
+      supported = false;
+      return -1;
+    }
+    const path = nativeColumnPath(node);
+    if (path) {
+      const value = nativeOutputExpression(resolved, path[path.length - 1]);
+      if (!value) { supported = false; return -1; }
+      replacements.set(node, value);
+      return 1;
+    }
+  });
+  return supported ? nativeSQL.rewrite(expression, replacements) : undefined;
+}
+
+function nativeOutputExpression(binding: NativeBinding, name: string): SqlExpression | undefined {
+  const { query, scope, columns } = binding;
+  if (columns?.length) {
+    const names = nativeOutputNames(query);
+    const index = names?.findIndex((column, index) => nameEquals(columns[index] ?? column, name)) ?? -1;
+    return index < 0 ? undefined : nativePositionalExpression(query, index, scope);
+  }
+  if ('select' in query) {
+    const clause = nativeSQL.selectEntries(query).find(projection => projection.alias && nameEquals(projection.alias, name));
+    return nativeSelectExpression(query, clause?.expr ?? nativeStarExpression(query, name), scope);
+  }
+  const names = nativeOutputNames(query);
+  const index = names?.findIndex(column => nameEquals(column, name)) ?? -1;
+  return index < 0 ? undefined : nativePositionalExpression(query, index, scope);
+}
+
+function nativeOutputNames(query: SqlExpression): string[] | undefined {
+  if ('subquery' in query) return nativeOutputNames(query.subquery.this)?.map((name, index) => query.subquery.column_aliases[index]?.name ?? name);
+  if ('select' in query) {
+    const projections = nativeSQL.selectEntries(query);
+    return projections.some(({ alias, expr }) => alias === undefined || nativeIsWildcard(expr))
+      ? undefined : projections.map(({ alias }) => alias!);
+  }
+  const operands = nativeSetOperands(query);
+  return operands ? nativeOutputNames(operands[0]) : undefined;
+}
+
+function nativePositionalExpression(query: SqlExpression, index: number, outer: NativeScope): SqlExpression | undefined {
+  if ('subquery' in query) return nativePositionalExpression(query.subquery.this, index, outer);
+  if ('select' in query) {
+    const projections = nativeSQL.selectEntries(query);
+    if (projections.some(({ expr }) => nativeIsWildcard(expr))) return;
+    return nativeSelectExpression(query, projections[index]?.expr, outer);
+  }
+  const operands = nativeSetOperands(query);
+  if (!operands) return;
+  const scope = nativeQueryScope(query, outer);
+  const expressions = operands.map(operand => nativePositionalExpression(operand, index, scope));
+  const [expression] = expressions;
+  const keys = new nativeSQL.StructuralKeyScope();
+  return expression && expressions.every(candidate => candidate && keys.key(candidate) === keys.key(expression))
+    ? expression : undefined;
+}
+
+function nativeSelectExpression(
+  query: SqlExpression,
+  expression: SqlExpression | undefined,
+  outer: NativeScope
+): SqlExpression | undefined {
+  if (!expression || nativeSQL.isAggregateExpression(expression)) return;
+  let window = false;
+  nativeSQL.walk(expression, node => {
+    if ('window_function' in node || 'window' in node || 'window_spec' in node) { window = true; return -1; }
+  });
+  return window ? undefined : nativeBaseExpression(query, expression, outer);
 }

@@ -1,18 +1,20 @@
 import type { ExprValue, SqlExpression, SqlExecutionContext, SqlValue, SqlRoot, Query } from '@uwdata/mosaic-sql/native';
 import {
-  asLiteral, asNode, between, compileBatch, createExecutionContext,
+  and, asLiteral, asNode, between, compileBatch, createExecutionContext,
   isNotDistinct, LegacyInputAdapter, or, StructuralKeyScope
 } from '@uwdata/mosaic-sql/native';
 import { isMosaicClient } from './MosaicClient.js';
 import { Selection, SelectionResolver } from './Selection.js';
 import type { SelectionOptions, SelectionExpressions, SelectionResolverOptions } from './Selection.js';
 import type { ClauseSource, SelectionClause } from './clause/SelectionClause.js';
-import type { DescribeQuery, ScaleOptions, SelectQuery } from '@uwdata/mosaic-sql';
+import type { DescribeQuery, ScaleDomain, ScaleOptions, SelectQuery } from '@uwdata/mosaic-sql';
 import type { IntervalOptions, IntervalMetadata } from './clause/IntervalClause.js';
 import type { PointOptions } from './clause/PointClause.js';
 
 export type NativeSelection = Selection<SqlExpression>;
 export type NativeSelectionClause = SelectionClause<SqlExpression>;
+type NativePointOptions = Omit<PointOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
+type NativeIntervalOptions = Omit<IntervalOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
 
 export class NativeSqlContext {
   private _execution: SqlExecutionContext;
@@ -93,7 +95,7 @@ export class NativeSqlContext {
     );
   }
 
-  point(field: ExprValue, value: unknown, { source, clients = isMosaicClient(source) ? new Set([source]) : undefined }: PointOptions): NativeSelectionClause {
+  point(field: ExprValue, value: unknown, { source, clients = isMosaicClient(source) ? new Set([source]) : undefined }: NativePointOptions): NativeSelectionClause {
     const node = asNode(field);
     return {
       context: this,
@@ -106,11 +108,24 @@ export class NativeSqlContext {
     };
   }
 
+  points(
+    fields: readonly ExprValue[],
+    value: readonly (readonly unknown[])[] | null | undefined,
+    { source, clients = isMosaicClient(source) ? new Set([source]) : undefined }: NativePointOptions
+  ): NativeSelectionClause {
+    const nodes = fields.map(asNode);
+    const predicate = value == null ? null : or(value.map(row => {
+      if (row.length !== nodes.length) throw new RangeError('Native points require one value per field.');
+      return and(row.map((item, index) => isNotDistinct(nodes[index], asLiteral(pointValue(item)))));
+    }));
+    return { context: this, meta: { type: 'point' }, source, clients, fields: nodes, value, predicate };
+  }
+
   interval(
     field: ExprValue,
-    value: [number, number] | null | undefined,
+    value: ScaleDomain | null | undefined,
     { source, clients = isMosaicClient(source) ? new Set([source]) : undefined, bin, pixelSize = 1, scale }:
-      IntervalOptions & { scale?: ScaleOptions }
+      NativeIntervalOptions & { scale?: ScaleOptions }
   ): NativeSelectionClause {
     const node = asNode(field);
     const meta: IntervalMetadata = { type: 'interval', scales: scale && [scale], bin, pixelSize };
@@ -122,6 +137,21 @@ export class NativeSqlContext {
       fields: [node],
       value,
       predicate: value == null ? null : between(node, value)
+    };
+  }
+
+  intervals(
+    fields: readonly ExprValue[],
+    value: readonly ScaleDomain[] | null | undefined,
+    { source, clients = isMosaicClient(source) ? new Set([source]) : undefined, bin, pixelSize = 1, scales = [] }:
+      NativeIntervalOptions & { scales?: ScaleOptions[] }
+  ): NativeSelectionClause {
+    const nodes = fields.map(asNode);
+    if (value && value.length !== nodes.length) throw new RangeError('Native intervals require one extent per field.');
+    const meta: IntervalMetadata = { type: 'interval', scales, bin, pixelSize };
+    return {
+      context: this, meta, source, clients, fields: nodes, value,
+      predicate: value == null ? null : and(nodes.map((node, index) => between(node, value[index])))
     };
   }
 

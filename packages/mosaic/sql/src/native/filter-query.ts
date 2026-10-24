@@ -132,6 +132,7 @@ export function filterPushdown(query: SqlRoot, table: string | SqlRoot, filter: 
     else if ('intersect' in expression) copy = { intersect: { ...expression.intersect } };
     else if ('except' in expression) copy = { except: { ...expression.except } };
     else if ('pivot' in expression) copy = { pivot: { ...expression.pivot } };
+    copyBinding(expression, copy);
     const statement = withData(copy);
     const shadows = new Set(inherited);
     const originalWith = statement?.with;

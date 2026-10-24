@@ -58,7 +58,7 @@ describe('native query coordination', () => {
       await selection.pending('value');
       expect(rows.at(-1)).toEqual([{ n: 4, total: 6 }]);
       expect(Array.from(await legacy.query(LegacyQuery.from(source).select({ n: legacyCount() })))).toEqual([{ n: 4 }]);
-      expect(coordinator.preaggregator.enabled).toBe(false);
+      expect(coordinator.preaggregator.enabled).toBe(true);
       expect(legacy.preaggregator.enabled).toBe(true);
     } finally {
       client.destroy();

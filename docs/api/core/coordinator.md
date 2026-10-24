@@ -23,11 +23,20 @@ Create a new Mosaic Coordinator to manage all database communication for clients
 * _timeout_: The query timeout in milliseconds (default none). A query that does not complete in time is rejected with a `TimeoutError`, and its connector request is aborted. The clock starts when the query is sent to the connector, not while it waits in the queue. The timeout applies to every query, including `exec` queries that load data or build pre-aggregated tables, so choose a value above the slowest of these. A timed-out `exec` query can still take effect in the database, and later queries wait until the connector stops or completes it.
 * _consolidate_ Boolean flag to enable/disable query consolidation (default `true`). Queries that expand `*` or `COLUMNS(...)` into multiple output columns execute separately, preserving their complete column sets. If extracting a consolidated result fails, every request in that group rejects.
 * _preagg_: Pre-aggregation options object. The _enabled_ flag (default `true`) determines if pre-aggregation optimizations should be used when possible. The _schema_ option (default `'mosaic'`) indicates the database schema in which materialized view tables should be created for pre-aggregated data.
-* _native_: Experimental `NativeSqlContext` for the [native Slider slice](/inputs/#native-slider-preview). Use a separate context and its selections for each coordinator. This path compiles native SQL expressions at submission; consolidation and pre-aggregation are enabled in later migration slices.
+* _native_: Experimental `NativeSqlContext` for the [native query path](/sql/#native-compiler-preview). Use a separate context and its selections for each coordinator. This path compiles native SQL expressions at submission and supports consolidation and DuckDB pre-aggregation.
 
-The native preview accepts native SELECT/DESCRIBE query handles for Arrow
-requests. Same-dialect raw SQL remains available for `exec` setup batches;
-portable raw statement input follows in P08.
+The native preview accepts result-producing native query handles for Arrow
+requests, including SELECT, DESCRIBE, sets and VALUES. Same-dialect raw SQL
+remains available for `exec` setup batches; portable raw statement input follows
+in P08.
+
+Native DuckDB pre-aggregation uses the configured writable scratch schema for
+compatible aggregate queries and point or interval selections. Scalar Params
+resolve when materialization is submitted. If a parameter changes before the
+materialized result is read, the request runs its original native query and the
+next update can rebuild the materialization. Unsupported plans and failed
+materializations also use the original native query. Changing selection fields,
+scale/bin settings or the execution context clears incompatible plans.
 
 ## Query cache
 
