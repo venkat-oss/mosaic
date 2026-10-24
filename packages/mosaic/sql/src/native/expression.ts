@@ -16,12 +16,20 @@ export function asNode(value: unknown): SqlExpression {
 }
 
 export function asLiteral(value: unknown): SqlExpression {
-  if (syntax.isExpressionValue(value)) return value;
-  if (isExpressionHandle(value)) return value.expression;
+  if (syntax.isExpressionValue(value)) return isQueryExpression(value) ? native.subquery(value) : value;
+  if (isExpressionHandle(value)) {
+    const expression = value.expression;
+    return isQueryExpression(expression) ? native.subquery(expression) : expression;
+  }
   if (isParamLike(value)) {
     return bind({ kind: 'scalar', parameters: [value], resolve: read => literalValue(read(value)) });
   }
   return literalValue(value);
+}
+
+export function isQueryExpression(expression: SqlExpression): boolean {
+  return 'select' in expression || 'union' in expression || 'intersect' in expression
+    || 'except' in expression || 'values' in expression || 'pivot' in expression;
 }
 
 export function literal(value: unknown): SqlExpression {
@@ -60,25 +68,33 @@ export function tableRef(...ids: (string | readonly string[])[]) {
   });
 }
 
-function tableIdentifier(table?: string | SqlExpression): ast.Identifier | null {
-  if (typeof table === 'string') return native.identifier(table, true).identifier;
-  if (table && 'table' in table) return table.table.alias ?? table.table.name;
-  if (table && 'identifier' in table) return table.identifier;
+function tableIdentifiers(table?: string | SqlExpression): ast.Identifier[] {
+  if (typeof table === 'string') return [native.identifier(table, true).identifier];
+  if (table && 'table' in table) return table.table.alias
+    ? [table.table.alias]
+    : [table.table.catalog, table.table.schema, table.table.name].filter((value): value is ast.Identifier => value != null);
+  if (table && 'identifier' in table) return [table.identifier];
   if (table) throw new TypeError('Column qualifiers require a table reference or name.');
-  return null;
+  return [];
 }
 
 export function column(name: string | ParamLike, table?: string | SqlExpression): SqlExpression {
-  const qualifier = tableIdentifier(table);
-  const create = (name: string) => name === '*'
-    ? native.star(qualifier ?? undefined)
-    : native.column(native.identifier(name, true).identifier, { table: qualifier });
+  const qualifiers = tableIdentifiers(table);
+  const create = (name: string): SqlExpression => {
+    if (name === '*' && qualifiers.length < 2) return native.star(qualifiers[0]);
+    const path = [...qualifiers, native.identifier(name, name !== '*').identifier];
+    if (path.length === 1) return native.column(path[0]);
+    let result: SqlExpression = native.column(path[1], { table: path[0] });
+    for (let i = 2; i < path.length; ++i) result = native.dot(result, path[i]);
+    return result;
+  };
   if (!isParamLike(name)) return create(name);
   return bind({
     kind: 'identifier',
     parameters: [name],
+    qualifier: qualifiers.map(value => value.name),
     resolve: read => create(String(read(name))),
-    field: read => ({ column: String(read(name)), table: qualifier?.name })
+    field: read => ({ column: String(read(name)), table: qualifiers.length ? qualifiers.map(value => value.name).join('.') : undefined })
   });
 }
 

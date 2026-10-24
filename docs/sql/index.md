@@ -8,7 +8,8 @@ These utilities are used throughout Mosaic packages to build structured queries 
 The temporary `@uwdata/mosaic-sql/native` entry exposes Polyglot's native
 expression data and Mosaic's compiler foundation during the [migration](../development/polyglot/).
 It requires Node.js 22 or later, or a browser with WebAssembly and ES2022 support.
-Its native Query facade supports the [reactive Slider slice](../inputs/#native-slider-preview)
+Its native Query facade supports [relational queries](../api/sql/queries#native-query-preview),
+consolidation and the [reactive Slider slice](../inputs/#native-slider-preview)
 while the normal SQL entry retains its existing implementation.
 
 ```js

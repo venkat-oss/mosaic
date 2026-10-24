@@ -1,5 +1,5 @@
 import { ast, native } from './runtime.js';
-import { mapTree, walk, type CloneMemo } from './tree.js';
+import { columnParts, mapTree, walk, type CloneMemo } from './tree.js';
 import type { ParamLike, ParamReader, SqlExpression, SqlRoot } from './types.js';
 
 const PREFIX = '__mosaic_binding_';
@@ -8,6 +8,7 @@ const metadata = new WeakMap<SqlExpression, SqlBinding>();
 export interface SqlBinding {
   readonly kind: 'scalar' | 'identifier' | 'deferred';
   readonly parameters: readonly ParamLike[];
+  readonly qualifier?: readonly string[];
   readonly resolve: (read: ParamReader) => SqlRoot;
   readonly field?: (read: ParamReader) => { column: string; table?: string };
 }
@@ -29,7 +30,7 @@ function bindingName(node: SqlExpression): string | undefined {
   }
 }
 
-function copyBinding(source: SqlExpression, target: SqlExpression) {
+export function copyBinding(source: SqlExpression, target: SqlExpression) {
   const binding = metadata.get(source);
   if (binding) metadata.set(target, binding);
 }
@@ -129,6 +130,70 @@ export function snapshotAll(inputs: readonly SqlRoot[]): SqlExpression[] {
   return new BindingScope().snapshotAll(inputs);
 }
 
+export function assertResolved(input: SqlRoot): void {
+  for (const node of walk(rootExpression(input))) {
+    const name = bindingName(node);
+    if (name) throw new Error(`Unresolved native SQL binding: ${name}`);
+  }
+}
+
+export class StructuralKeyScope {
+  private identities = new WeakMap<object, number>();
+  private sequence = 0;
+
+  private identity(value: object): number {
+    if (!this.identities.has(value)) this.identities.set(value, this.sequence++);
+    return this.identities.get(value)!;
+  }
+
+  key(input: SqlRoot): string {
+    const root = rootExpression(input);
+    const memo = new Map<object, string>();
+    const active = new Set<object>();
+    const pending: { value: object; visited: boolean }[] = [{ value: root, visited: false }];
+    const encode = (value: unknown): string => {
+      if (value && typeof value === 'object') return memo.get(value)!;
+      if (value === undefined) return 'undefined';
+      const result = JSON.stringify(value);
+      if (result === undefined) throw new TypeError('Native SQL keys require plain AST data.');
+      return result;
+    };
+    while (pending.length) {
+      const { value, visited } = pending.pop()!;
+      if (memo.has(value)) continue;
+      if (!visited) {
+        const binding = ast.isExpressionValue(value) ? metadata.get(value) : undefined;
+        if (binding) {
+          memo.set(value, JSON.stringify([
+            'binding', binding.kind, this.identity(binding), this.identity(binding.resolve),
+            binding.field ? this.identity(binding.field) : null, binding.qualifier,
+            binding.parameters.map(param => this.identity(param))
+          ]));
+          continue;
+        }
+        if (active.has(value)) throw new TypeError('Native SQL expressions must be acyclic.');
+        active.add(value);
+        pending.push({ value, visited: true });
+        for (const child of Object.values(value)) {
+          if (child && typeof child === 'object' && !memo.has(child)) pending.push({ value: child, visited: false });
+        }
+      } else {
+        active.delete(value);
+        const result = Array.isArray(value)
+          ? '[' + value.map(encode).join(',') + ']'
+          : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + encode(Reflect.get(value, key))).join(',') + '}';
+        memo.set(value, result);
+      }
+    }
+    return memo.get(root)!;
+  }
+
+  reset(): void {
+    this.identities = new WeakMap();
+    this.sequence = 0;
+  }
+}
+
 export function params(input: SqlRoot): ParamLike[] {
   const parameters = new Set<ParamLike>();
   for (const node of walk(rootExpression(input))) {
@@ -150,15 +215,29 @@ export function fields(input: SqlRoot): SqlField[] {
     if (!reads.has(param)) reads.set(param, param.value);
     return reads.get(param);
   };
-  for (const node of walk(rootExpression(input))) {
+  const pending: unknown[] = [rootExpression(input)];
+  const visited = new Set<object>();
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node || typeof node !== 'object' || visited.has(node)) continue;
+    visited.add(node);
+    if (!ast.isExpressionValue(node)) {
+      pending.push(...Object.values(node).reverse());
+      continue;
+    }
     const binding = metadata.get(node);
     if (binding?.field) {
       result.push({ node, ...binding.field(read) });
-    } else if ('column' in node) {
-      result.push({ node, column: node.column.name.name, table: node.column.table?.name });
+      continue;
     } else if (binding?.kind === 'deferred') {
       result.push(...fields(snapshot(node)));
+      continue;
     }
+    const parts = columnParts(node);
+    if ('column' in node && !node.column.name.quoted && /^#\d+$/.test(node.column.name.name)) {
+      result.push({ node, column: '*' });
+    } else if (parts) result.push({ node, column: parts[parts.length - 1], table: parts.length > 1 ? parts.slice(0, -1).join('.') : undefined });
+    else pending.push(...Object.values(node).reverse());
   }
   return result;
 }

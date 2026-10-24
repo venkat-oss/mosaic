@@ -116,10 +116,10 @@ export class LegacyInputAdapter {
       return node.alias ? native.alias(expression, native.identifier(node.alias, true).identifier) : expression;
     }
     if (node instanceof FromClauseNode) {
-      if (node.sample || node.columnNames?.length) throw new TypeError('Legacy sampled/subquery sources require native relational support.');
+      if (node.sample || node.columnNames?.length) throw new TypeError('Legacy sampled/subquery inputs are outside the native pilot adapter.');
       const expression = this.expression(node.expr);
       if (!node.alias) return expression;
-      if (!('table' in expression)) throw new TypeError('Legacy FROM aliases require a native table reference.');
+      if (!('table' in expression)) throw new TypeError('Legacy FROM aliases of non-table inputs are outside the native pilot adapter.');
       return native.table(expression.table.name, {
         ...expression.table, alias: native.identifier(node.alias, true).identifier, alias_explicit_as: true
       });
@@ -127,7 +127,7 @@ export class LegacyInputAdapter {
     if (node instanceof SelectQuery) return this.select(node);
     if (node instanceof DescribeQuery) return native.describe(this.expression(node.query));
     if (node instanceof VerbatimNode) return parseExpression(node.value);
-    throw new TypeError(`Legacy SQL input is not supported by this native slice: ${node.type}`);
+    throw new TypeError(`Legacy SQL input is outside the native pilot adapter: ${node.type}`);
   }
 
   private qualifier(table?: TableRefNode): SqlExpression | undefined {
@@ -164,7 +164,7 @@ export class LegacyInputAdapter {
   private select(node: SelectQuery): SqlExpression {
     if (node._with.length || node._sample || node._having.length || node._window.length
       || node._qualify.length || node._distinctOn.length || node._offset) {
-      throw new TypeError('Legacy query requires native relational or window support.');
+      throw new TypeError('Legacy complex queries are outside the native pilot adapter.');
     }
     const query = native.select(node._select.map(value => this.expression(value)), {
       from: node._from.length ? native.from(node._from.map(value => this.expression(value))).from : null,

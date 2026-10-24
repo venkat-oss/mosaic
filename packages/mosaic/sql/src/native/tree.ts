@@ -3,6 +3,17 @@ import type { SqlExpression } from './types.js';
 
 export type CloneMemo = Map<object, unknown>;
 
+export function columnParts(expression: SqlExpression): string[] | undefined {
+  if ('column' in expression) return expression.column.table
+    ? [expression.column.table.name, expression.column.name.name]
+    : [expression.column.name.name];
+  if ('star' in expression) return expression.star.table ? [expression.star.table.name, '*'] : ['*'];
+  if ('dot' in expression) {
+    const parts = columnParts(expression.dot.this);
+    return parts && [...parts, expression.dot.field.name];
+  }
+}
+
 export function mapTree(
   root: SqlExpression,
   replace: (node: SqlExpression) => SqlExpression | undefined,

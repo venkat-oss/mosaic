@@ -152,7 +152,7 @@ describe('native query coordination', () => {
     try {
       const metadata = await coordinator.query(Query.describe(Query.from(source).select('x value')));
       expect(Array.from(metadata)[0]).toMatchObject({ column_name: 'x value' });
-      await expect(coordinator.query(new Query(asLiteral(1)))).rejects.toThrow('SELECT or DESCRIBE');
+      await expect(coordinator.query(new Query(asLiteral(1)))).rejects.toThrow('result-producing query');
       await expect(coordinator.query('SELECT 1')).rejects.toThrow('structured query');
       await expect(coordinator.query(Query.from('missing table').select({ n: count() })))
         .rejects.toMatchObject({ sql: expect.stringContaining('missing table') });

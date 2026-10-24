@@ -1,5 +1,5 @@
 import type { ExtractionOptions } from '@uwdata/flechette';
-import { isQuery as isNativeQuery } from '@uwdata/mosaic-sql/native';
+import { isQuery as isNativeQuery, isResultQuery } from '@uwdata/mosaic-sql/native';
 import type { SqlExecutionContext } from '@uwdata/mosaic-sql/native';
 import type { NativeSqlContext } from './native-sql.js';
 import { QueryError } from './util/query-error.js';
@@ -75,7 +75,7 @@ export class QueryManager {
     this.pendingResults.push(result);
     if (request.type === 'exec') this.pendingExec = true;
 
-    this.submit(request, result).finally(() => {
+    this.submit(request, result, entry.prepare).finally(() => {
       // return from the queue all requests that are ready
       while (this.pendingResults.length && this.pendingResults[0].state !== QueryState.pending) {
         const result = this.pendingResults.shift()!;
@@ -105,7 +105,7 @@ export class QueryManager {
    * @param request The request.
    * @param result The query result.
    */
-  async submit(request: QueryRequest, result: QueryResult): Promise<void> {
+  async submit(request: QueryRequest, result: QueryResult, prepare?: () => string): Promise<void> {
     let sent: Promise<unknown> | undefined;
     let sql: string | undefined;
     let dispatched = false;
@@ -114,12 +114,12 @@ export class QueryManager {
     try {
       const { query, type, cache = false, options } = request;
       const generation = this._generation;
-      sql = this.sql(query, type, context, execution);
+      sql = prepare?.() ?? this.sql(query, type, context, execution);
       if (generation !== this._generation) {
         throw new DOMException('SQL execution context changed during compilation.', 'AbortError');
       }
       const key = execution
-        ? JSON.stringify([execution.backend, execution.sourceDialect, execution.targetDialect, execution.generation, sql])
+        ? context!.cacheKey(sql, execution)
         : sql;
       const ipc = this._ipc;
 
@@ -268,7 +268,8 @@ export class QueryManager {
       this._consolidate ??= consolidator(
         this.enqueue.bind(this),
         () => this.clientCache,
-        () => this._generation
+        () => this._generation,
+        () => this._nativeContext
       );
     }
     this._consolidating = flag;
@@ -283,7 +284,7 @@ export class QueryManager {
   request(request: QueryRequest, priority: number = Priority.Normal): QueryResult {
     const result = new QueryResult();
     const entry = { request, result };
-    if (!this._nativeContext && this._consolidate && this._consolidating) {
+    if (this._consolidate && this._consolidating) {
       this._consolidate.add(entry, priority);
     } else {
       this.enqueue(entry, priority);
@@ -291,7 +292,7 @@ export class QueryManager {
     return result;
   }
 
-  cancel(requests: QueryResult[]): void {
+  cancel(requests: readonly Promise<unknown>[]): void {
     const set = new Set(requests);
     if (set.size) {
       const remove = ({ result }: QueryEntry) => {
@@ -370,8 +371,8 @@ export class QueryManager {
     }
     const admitted = inputs.map(input => {
       if (isNativeQuery(input)) {
-        if (type === 'arrow' && !('select' in input.expression) && !('describe' in input.expression)) {
-          throw new TypeError('Native Arrow requests require a SELECT or DESCRIBE query.');
+        if (type === 'arrow' && !isResultQuery(input)) {
+          throw new TypeError('Native Arrow requests require a result-producing query.');
         }
         return input;
       }

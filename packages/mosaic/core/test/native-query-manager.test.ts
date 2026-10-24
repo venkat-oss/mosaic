@@ -1,9 +1,9 @@
 import { tableFromArrays, tableToIPC } from '@uwdata/flechette';
 import type { ArrowIPCBytes } from '../src/types.js';
 import type { ArrowQueryRequest, Connector, ConnectorQueryOptions, ExecQueryRequest } from '../src/connectors/Connector.js';
-import { asLiteral, column, count, gte, Query } from '@uwdata/mosaic-sql/native';
+import { add, asLiteral, column, count, gte, Query } from '@uwdata/mosaic-sql/native';
 import type { ParamLike } from '@uwdata/mosaic-sql';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NativeSqlContext } from '../src/native-sql.js';
 import { Param } from '../src/Param.js';
 import { QueryManager } from '../src/QueryManager.js';
@@ -38,7 +38,7 @@ function setup() {
   manager.nativeContext(native);
   manager.connector(connector);
   manager.cache(true);
-  manager.consolidate(true);
+  manager.consolidate(false);
   return { manager, connector, native };
 }
 
@@ -63,6 +63,33 @@ describe('native query submission', () => {
     expect(connector.calls[1].request.sql).toContain('7');
     connector.calls[1].resolve(bytes);
     await result;
+  });
+
+  it('snapshots consolidated queries after the held exec actually completes', async () => {
+    const { manager, connector } = setup();
+    manager.consolidate(true);
+    const parameter = Param.value(1);
+    const read = vi.spyOn(parameter, 'value', 'get');
+    const binding = asLiteral(parameter);
+    const block = manager.request({ type: 'exec', query: 'SELECT 1' });
+    const first = manager.request({ type: 'arrow', query: Query.select({ a: binding }), cache: true });
+    const second = manager.request({ type: 'arrow', query: Query.select({ b: add(binding, 1) }), cache: true });
+    await flush();
+    expect(connector.calls).toHaveLength(1);
+    expect(read).not.toHaveBeenCalled();
+    parameter.update(7);
+    await parameter.pending('value');
+    connector.calls[0].resolve(undefined);
+    await block;
+    await flush();
+    expect(connector.calls).toHaveLength(2);
+    expect(connector.calls[1].request.sql).toContain('7');
+    expect(read).toHaveBeenCalledTimes(1);
+    connector.calls[1].resolve(tableToIPC(tableFromArrays({ col0: [7], col1: [8] }), {})!);
+    const results = await Promise.all([first, second]);
+    expect(results.map(result => Array.from(result as Iterable<unknown>))).toEqual([[{ a: 7 }], [{ b: 8 }]]);
+    manager.clear();
+    read.mockRestore();
   });
 
   it('keeps the old exec barrier while replacing a connection and dropping old cache state', async () => {

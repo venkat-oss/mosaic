@@ -1,7 +1,7 @@
 import type { ExprValue, SqlExpression, SqlExecutionContext, SqlValue, SqlRoot, Query } from '@uwdata/mosaic-sql/native';
 import {
   asLiteral, asNode, between, compileBatch, createExecutionContext,
-  isNotDistinct, LegacyInputAdapter, or
+  isNotDistinct, LegacyInputAdapter, or, StructuralKeyScope
 } from '@uwdata/mosaic-sql/native';
 import { isMosaicClient } from './MosaicClient.js';
 import { Selection, SelectionResolver } from './Selection.js';
@@ -17,6 +17,7 @@ export type NativeSelectionClause = SelectionClause<SqlExpression>;
 export class NativeSqlContext {
   private _execution: SqlExecutionContext;
   private readonly input = new LegacyInputAdapter();
+  private readonly keys = new StructuralKeyScope();
   private _owner?: object;
   private _invalidate?: () => void;
   readonly expressions: SelectionExpressions<SqlExpression>;
@@ -60,6 +61,14 @@ export class NativeSqlContext {
 
   compileBatch(inputs: readonly (SqlRoot | string)[], execution = this._execution): string[] {
     return compileBatch(inputs, execution);
+  }
+
+  structuralKey(input: SqlRoot): string {
+    return this.keys.key(input);
+  }
+
+  cacheKey(sql: string, execution = this._execution): string {
+    return JSON.stringify([execution.backend, execution.sourceDialect, execution.targetDialect, execution.generation, sql]);
   }
 
   adoptClause(clause: SelectionClause): NativeSelectionClause {

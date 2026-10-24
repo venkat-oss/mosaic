@@ -2,13 +2,13 @@
 
 These packets implement the [target architecture](./index.md). P00 is complete
 on the isolated private Polyglot branch `mosaic-native-ast` at
-`b83718ff2c0a7bbd7413c7fd260b4e3372457e9f`. Its built SDK is distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f); Polyglot source remains private.
-P01 and P02 pass package, docs and browser checks, including a real Slider
-selection through native queries, DuckDB and Arrow. Startup measurements are
-recorded in the architecture. Mosaic's default SQL runtime still uses its existing
-implementation. P03 compiler prerequisites are prepared; relational queries and
-consolidation are next. P04–P10 remain to be completed.
+`f302b8d7aeb04baca547eb119d105118c70f83c6`. Its built SDK is distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-f302b8d7aeb04baca547eb119d105118c70f83c6); Polyglot source remains private.
+P01–P03 implement compiler loading, the reactive Slider slice, relational queries
+and native consolidation. Installed SQL/core consumers execute these paths
+against DuckDB and Arrow. Startup measurements are recorded in the architecture.
+Mosaic's default SQL runtime still uses its existing implementation. P04–P10
+remain to be completed, including preaggregation and final compiler retirement.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and
 deletion work. Use normal source changes and reviewable commits. Do not create a

@@ -178,3 +178,39 @@ A star is a column reference with the column name `*`, so `collectColumns` repor
 
 Like [`cast`](#cast), but returns `NULL` if the cast fails rather than raising an error.
 Maps to `TRY_CAST(expression AS type)`.
+
+## Native tree inspection and rewriting
+
+The temporary `@uwdata/mosaic-sql/native` entry exposes `SqlExpression`, an alias
+for Polyglot's native expression union. Query and aggregate handles expose their
+tree through `.expression`; use native helpers instead of legacy node classes or
+underscore-prefixed query fields.
+
+`walk(root, callback)` visits original JavaScript expression objects, passing the
+nearest expression parent as its second argument. Each shared node is visited
+once. A truthy callback result skips its descendants; a negative number stops the
+walk. `collect(root, predicate)` returns the original nodes that match.
+
+`rewrite(root, replacements)` returns a tree with replacements from a Map keyed
+by original expression identity. It preserves live bindings and leaves the
+input tree unchanged. `deepClone(root)` copies the tree with a shared memo and
+retains live binding metadata.
+
+``` js
+import { column, Query, rewrite } from '@uwdata/mosaic-sql/native';
+
+const amount = column('amount');
+const query = Query.from('sales').select({ value: amount });
+const adjusted = rewrite(query, new Map([[amount, column('adjusted_amount')]]));
+```
+
+`selectEntries(query)` returns `{ alias, expr }` projections whose expressions
+retain their original identity; an unaliased expression can have an undefined
+alias. `inspectSelect(query)` exposes the canonical SELECT payload for read-only
+inspection. `fields(root)` returns `{ node, column, table }` dependencies, and
+`params(root)` returns the original live Param objects. Inspecting fields can read
+a dynamic identifier's current value.
+
+`filterPushdown(query, table, filter)` returns a query with filtered base-table
+sources while respecting CTE shadowing and scalar subquery scope. The curried
+form `filterQuery(query, table)` returns a function that accepts the filter.

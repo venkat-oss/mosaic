@@ -14,8 +14,8 @@ reactivity and interactive optimizations. DuckDB remains the first fully support
 execution backend. PostgreSQL is the first additional execution target; other
 dialects remain compiler candidates until exercised against their databases.
 
-The experimental `/native` entry provides the P01 compiler foundation while the
-normal SQL entry retains its existing implementation. This example constructs a
+The temporary `/native` entry provides the compiler and migrated query path while
+the normal SQL entry retains its existing implementation. This example constructs a
 native expression tree and compiles it in the browser:
 
 <ClientOnly><NativeCompiler /></ClientOnly>
@@ -128,8 +128,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`c2f10771494482accd83a5641a555823d85cb129`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-c2f10771494482accd83a5641a555823d85cb129)
+`f302b8d7aeb04baca547eb119d105118c70f83c6`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-f302b8d7aeb04baca547eb119d105118c70f83c6)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -180,6 +180,11 @@ These choices preserve public authoring behavior while explicitly retiring the
 compiler extension API. They do not promise source compatibility for consumers
 that subclass `ExprNode` or mutate `_select` and other legacy fields. P01 documents
 the replacement extension API and migration examples before the first slice.
+
+`LegacyInputAdapter` admits existing field/predicate nodes and simple pilot
+SELECT/DESCRIBE queries. Native CTEs, sets, joins, samples and pivots are authored
+directly; complex legacy relational queries retain their existing execution path
+until their consumers migrate. P09 removes this bounded adapter.
 
 ## Raw SQL and compilation boundary
 
@@ -278,11 +283,13 @@ It never converts native queries back to legacy trees or renders/reparses genera
 SQL. Existing clients remain on the old path until their slice moves. Native
 failures do not retry through the old compiler.
 
-P02 introduces this boundary, each family adds only conversions it still needs,
-and P09 removes the boundary and every legacy representation. Native-only query
-paths may initially opt out of the legacy optimizations; P03/P04 must restore
-consolidation and preaggregation before the default switch. Do not disable them
-globally or leave the opt-out as the final behavior.
+P02 introduces this boundary; later families author native trees directly.
+P09 removes the boundary and every legacy SQL representation. P03 enables native
+consolidation using structural keys, a shared submission snapshot and captured
+SQL/context cache keys. Unsupported grouping shapes use the original native
+query. The existing consolidator branch still serves unmigrated clients and is
+deleted in P09. Native preaggregation remains P04 work and must be restored
+before the default switch.
 
 Per-slice packets identify code to delete immediately and shared code whose final
 owner is P09. Keep behavior tests; remove temporary comparisons and tests whose

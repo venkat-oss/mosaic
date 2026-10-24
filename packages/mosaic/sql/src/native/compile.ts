@@ -1,7 +1,7 @@
 import type { SqlExpression, SqlRoot } from './types.js';
 import type { CompileAstOptions, SqlExecutionContext, TranspileResult } from './runtime.js';
 import { compileAst } from './runtime.js';
-import { snapshotAll } from './bindings.js';
+import { assertResolved, snapshotAll } from './bindings.js';
 
 export type SqlCompileOptions = Omit<
   CompileAstOptions,
@@ -20,11 +20,12 @@ export class SqlCompilationError extends Error {
   }
 }
 
-function compileResolved(
+export function compileResolved(
   expressions: readonly SqlExpression[],
   context: SqlExecutionContext,
-  options: SqlCompileOptions
+  options: SqlCompileOptions = {}
 ): string[] {
+  expressions.forEach(assertResolved);
   const result = compileAst(expressions, {
     ...options,
     sourceDialect: context.sourceDialect,

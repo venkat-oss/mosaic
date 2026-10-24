@@ -1,6 +1,14 @@
 import type { Table } from '@uwdata/flechette';
 import type { ExprNode, MaybeArray, Query, SelectQuery } from '@uwdata/mosaic-sql';
 import { isAggregateExpression, isColumnRef, isDescribeQuery, isSelectQuery, walk } from '@uwdata/mosaic-sql';
+import {
+  bindingOf, compileResolved, hasColumnExpansion as hasNativeColumnExpansion,
+  inspectSelect, isAggregateExpression as isNativeAggregateExpression,
+  isSelectQuery as isNativeSelectQuery, Query as NativeQuery,
+  params, resolvePositional as resolveNativePositional, selectEntries, snapshotAll, walk as walkNative
+} from '@uwdata/mosaic-sql/native';
+import type { SelectProjection, SqlExpression } from '@uwdata/mosaic-sql/native';
+import type { NativeSqlContext } from './native-sql.js';
 import type { Cache, QueryEntry, QueryType } from './types.js';
 import { tableByteLength } from './util/decode-ipc.js';
 import { resolvePositional } from './util/positional.js';
@@ -11,12 +19,23 @@ interface GroupEntry {
   priority: number;
   index: number;
   removed?: boolean;
+  native?: NativeShape;
 }
 
 interface QueryGroup extends Array<GroupEntry> {
-  query?: Query;
+  query?: Query | NativeQuery;
   result?: QueryResult;
   maps?: Array<Array<[string, string]>>;
+  cacheKeys?: string[];
+  issued?: number;
+}
+
+interface NativeShape {
+  query: NativeQuery;
+  projections: SelectProjection[];
+  groupby: SqlExpression[];
+  key: string;
+  fullKey: string;
 }
 
 function wait(callback: () => void): unknown {
@@ -38,7 +57,8 @@ function wait(callback: () => void): unknown {
 export function consolidator(
   enqueue: (entry: QueryEntry, priority?: number) => void,
   cache: () => Cache,
-  generation: () => number = () => 0
+  generation: () => number = () => 0,
+  nativeContext: () => NativeSqlContext | null = () => null
 ) {
   let pending: GroupEntry[] = [];
   let id: unknown = 0;
@@ -46,13 +66,15 @@ export function consolidator(
 
   function run(): void {
     // group queries into bundles that can be consolidated
-    const groups = entryGroups(pending, cache());
+    const native = nativeContext();
+    const groups = native ? nativeEntryGroups(pending, native) : entryGroups(pending, cache());
     pending = [];
     id = 0;
 
     // build and issue consolidated queries
     for (const group of groups) {
-      consolidate(group, enqueue);
+      if (native) consolidateNative(group, enqueue, native, generation);
+      else consolidate(group, enqueue);
       if (group.maps) awaiting.add(group);
       processResults(group, cache, generation, awaiting);
     }
@@ -316,8 +338,9 @@ async function processResults(
       if (removed) return;
       const { request, result } = entry;
       const extract = extracts[index];
-      if (request.cache && issued === generation()) {
-        cache().set(String(request.query), extract, bytes);
+      if (request.cache && (group.issued ?? issued) === generation()) {
+        const key = isNativeSelectQuery(query) ? group.cacheKeys?.[index] : String(request.query);
+        if (key !== undefined) cache().set(key, extract, bytes);
       }
       result.fulfill(extract);
     });
@@ -356,4 +379,133 @@ function filterResult(data: Table, map: Array<[string, string]>): unknown[] {
     }
   }
   return result;
+}
+
+function nativeShape(query: QueryType | QueryType[], context: NativeSqlContext): NativeShape | undefined {
+  if (!isNativeSelectQuery(query)) return;
+  const select = inspectSelect(query);
+  if (select.where_clause || select.qualify || select.having || select.order_by
+    || select.distinct || select.distinct_on?.length || select.windows?.length
+    || select.group_by?.all != null || select.group_by?.totals) return;
+  if (select.group_by?.expressions.some(expression => params(expression).length || hasDynamicShape(expression) || hasGroupingOperation(expression))) return;
+  const projections = selectEntries(query);
+  if (projections.some(({ alias, expr }) => alias === undefined || hasNativeColumnExpansion(expr) || hasDynamicShape(expr))) return;
+  const aliases = new Map(projections.map(({ alias, expr }) => [alias, expr]));
+  const groupby = (select.group_by?.expressions ?? []).map(expression => {
+    const alias = 'column' in expression && !expression.column.table
+      ? aliases.get(expression.column.name.name)
+      : undefined;
+    return alias ?? resolveNativePositional(expression, projections)?.expr ?? expression;
+  });
+  const sorted = groupby.map(expression => ({ expression, key: context.structuralKey(expression) }))
+    .sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  const grouping = select.group_by
+    ? { ...select.group_by, expressions: sorted.map(({ expression }) => expression) }
+    : null;
+  const shape: SqlExpression = { select: { ...select, expressions: [], group_by: grouping } };
+  const aggregate = !groupby.length && projections.some(({ expr }) => isNativeAggregateExpression(expr));
+  return {
+    query,
+    projections,
+    groupby,
+    key: context.cacheKey(JSON.stringify([aggregate, context.structuralKey(shape)])),
+    fullKey: context.structuralKey(query)
+  };
+}
+
+function nativeEntryGroups(entries: GroupEntry[], context: NativeSqlContext): QueryGroup[] {
+  const groups: QueryGroup[] = [];
+  const grouped = new Map<string, QueryGroup>();
+  for (const item of entries) {
+    const { request } = item.entry;
+    let shape: NativeShape | undefined;
+    try {
+      shape = request.options && Object.keys(request.options).length
+        ? undefined
+        : nativeShape(request.query, context);
+    } catch (error) {
+      item.entry.result.reject(error);
+      continue;
+    }
+    if (!shape) {
+      groups.push([item]);
+      continue;
+    }
+    item.native = shape;
+    let group = grouped.get(shape.key);
+    if (!group) {
+      group = [];
+      grouped.set(shape.key, group);
+      groups.push(group);
+    }
+    group.push(item);
+  }
+  return groups;
+}
+
+function consolidateNative(
+  group: QueryGroup,
+  enqueue: (entry: QueryEntry, priority?: number) => void,
+  context: NativeSqlContext,
+  generation: () => number
+): void {
+  const first = group[0].native;
+  if (!first || group.length < 2 || group.every(item => item.native?.fullKey === first.fullKey)) {
+    for (const { entry, priority } of group) enqueue(entry, priority);
+    return;
+  }
+  const fields = new Map<string, [string, SqlExpression]>();
+  group.maps = group.map(item => item.native!.projections.map(({ alias, expr }) => {
+    const key = context.structuralKey(expr);
+    let field = fields.get(key);
+    if (!field) {
+      field = [`col${fields.size}`, expr];
+      fields.set(key, field);
+    }
+    return [field[0], alias!];
+  }));
+  const query = first.query.clone().setSelect([...fields.values()]);
+  if (first.groupby.length) query.setGroupby(first.groupby);
+  const originals = group.map(item => item.native!.query.clone());
+  group.query = query;
+  group.result = new QueryResult();
+  enqueue({
+    request: { type: 'arrow', cache: false, query },
+    result: group.result,
+    prepare() {
+      const execution = context.execution;
+      group.issued = generation();
+      const expressions = snapshotAll([...originals, query]);
+      const sql = expressions.map(expression => {
+        const statements = compileResolved([expression], execution);
+        if (statements.length !== 1) throw new TypeError('Consolidated Arrow queries require one result-producing statement.');
+        return statements[0];
+      });
+      group.cacheKeys = sql.slice(0, -1).map(statement => context.cacheKey(statement, execution));
+      return sql[sql.length - 1];
+    }
+  }, Math.min(...group.map(item => item.priority)));
+}
+
+function hasDynamicShape(expression: SqlExpression): boolean {
+  let dynamic = false;
+  walkNative(expression, node => {
+    const binding = bindingOf(node);
+    if (binding && binding.kind !== 'scalar') {
+      dynamic = true;
+      return -1;
+    }
+  });
+  return dynamic;
+}
+
+function hasGroupingOperation(expression: SqlExpression): boolean {
+  let grouping = false;
+  walkNative(expression, node => {
+    if ('group' in node || 'grouping_sets' in node || 'cube' in node || 'rollup' in node) {
+      grouping = true;
+      return -1;
+    }
+  });
+  return grouping;
 }

@@ -39,6 +39,47 @@ Query
 
 To learn more about the anatomy of a query, take a look at the [DuckDB Select statement documentation](https://duckdb.org/docs/sql/statements/select).
 
+## Native query preview
+
+The temporary `@uwdata/mosaic-sql/native` entry builds Polyglot expression trees.
+It supports CTEs, aliased relations, scalar subqueries, joins, set operations,
+distinct projections, sampling, pivots and positional references. The root SQL
+entry continues to use the existing implementation during the migration.
+
+``` js
+import {
+  Query, compile, createExecutionContext, cte, gt, sum
+} from '@uwdata/mosaic-sql/native';
+
+const totals = Query.from('sales')
+  .select('region', { total: sum('amount') })
+  .groupby('region');
+const query = Query.from('totals')
+  .with(cte('totals', totals))
+  .select('region', 'total')
+  .where(gt('total', 100));
+const [sql] = compile([query], createExecutionContext());
+```
+
+Builder methods edit the same query handle. Embedding a query in a CTE, FROM
+clause, scalar subquery or set operation retains its tree, so subsequent edits to
+that child are visible. Call `clone()` for independent clause containers;
+embedded expression and child-query references remain shared. Use
+[`deepClone`](./expressions#native-tree-inspection-and-rewriting) to copy the whole
+tree. Both operations retain live Param bindings. Compilation resolves those
+bindings into a submission snapshot.
+
+Native coordinators can consolidate compatible SELECT projections into one
+query and project the Arrow result back to each caller. Queries with filters,
+ordering, distinct projections, column expansion or dynamic projection shapes
+use the direct path. Native preaggregation is still pending.
+
+Use `compile` with an explicit execution context for target-specific SQL.
+Unsupported operations reject rather than producing SQL for another database.
+DuckDB positional columns, ASOF/POSITIONAL joins, BY NAME sets, pivots and
+query-level sampling currently reject for PostgreSQL. Native compilation support
+does not yet provide a Mosaic PostgreSQL connector.
+
 ## Query
 
 The top-level `Query` class, along with its concrete `SelectQuery` and `SetOperation` subclasses, provide structured representations of SQL queries.

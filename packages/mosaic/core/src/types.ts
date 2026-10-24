@@ -28,6 +28,7 @@ export interface QueryRequest {
 export interface QueryEntry {
   request: QueryRequest;
   result: QueryResult;
+  prepare?: () => string;
 }
 
 /** String indicating a JavaScript data type. */

@@ -170,7 +170,7 @@ export class Coordinator {
    * canceled if they are queued but have not yet been submitted.
    * @param requests An array of query result objects, such as those returned by the `query` method.
    */
-  cancel(requests: QueryResult[]) {
+  cancel(requests: readonly Promise<unknown>[]) {
     this.manager.cancel(requests);
   }
 
