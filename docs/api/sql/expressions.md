@@ -211,6 +211,19 @@ inspection. `fields(root)` returns `{ node, column, table }` dependencies, and
 `params(root)` returns the original live Param objects. Inspecting fields can read
 a dynamic identifier's current value.
 
+The native entry also provides `list`, `lambda`, `namedArg`, `subscript`, `slice`,
+`star`, `columns` and `all`. Lambda parameters are canonical identifiers, so they
+are excluded from free column dependencies. Stars retain qualified EXCLUDE and
+RENAME references; their REPLACE expressions retain live bindings and contribute
+field dependencies. `columns` array selectors report their named fields; regex
+and lambda selectors report a wildcard. Qualified stars resolve through their
+FROM/JOIN relation before compilation; ambiguous or missing relation bindings
+reject. PostgreSQL selectors that require schema expansion reject.
+
+`unqualify(expression)` rebases relational column references onto an output query
+scope, preserving live identifier bindings. M4 and hexbin use it when source
+fields become unqualified subquery output columns.
+
 `filterPushdown(query, table, filter)` returns a query with filtered base-table
 sources while respecting CTE shadowing and scalar subquery scope. The curried
 form `filterQuery(query, table)` returns a function that accepts the filter.

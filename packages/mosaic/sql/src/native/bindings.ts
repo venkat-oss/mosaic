@@ -256,6 +256,24 @@ export function fields(input: SqlRoot): SqlField[] {
       result.push(...fields(snapshot(node)));
       continue;
     }
+    if ('star' in node) {
+      const parts = columnParts(node);
+      result.push({ node, column: '*', table: parts && parts.length > 1 ? parts.slice(0, -1).join('.') : undefined });
+      pending.push(...(node.star.replace ?? []).slice().reverse());
+      continue;
+    }
+    if ('columns' in node) {
+      const selector = node.columns.this;
+      if ('array' in selector && selector.array.expressions.every(value => 'literal' in value && value.literal.literal_type === 'string')) {
+        for (const value of selector.array.expressions) {
+          if ('literal' in value && value.literal.literal_type === 'string') result.push({ node: value, column: value.literal.value });
+        }
+      } else {
+        if (!('star' in selector)) result.push({ node, column: '*' });
+        pending.push(selector);
+      }
+      continue;
+    }
     const parts = columnParts(node);
     if ('column' in node && !node.column.name.quoted && /^#\d+$/.test(node.column.name.name)) {
       result.push({ node, column: '*' });

@@ -13,6 +13,7 @@ export const sub = (left: ExprValue, right: ExprValue): SqlExpression => binary(
 export const mul = (left: ExprValue, right: ExprValue): SqlExpression => binary('mul', left, right);
 export const div = (left: ExprValue, right: ExprValue): SqlExpression => binary('div', left, right);
 export const mod = (left: ExprValue, right: ExprValue): SqlExpression => binary('mod', left, right);
+export const bitAnd = (left: ExprValue, right: ExprValue): SqlExpression => binary('bitwise_and', left, right);
 export const pow = (left: ExprValue, right: ExprValue): SqlExpression => native.scalarBinary('power', asNode(left), asNode(right));
 export const eq = (left: ExprValue, right: ExprValue): SqlExpression => binary('eq', left, right);
 export const neq = (left: ExprValue, right: ExprValue): SqlExpression => binary('neq', left, right);

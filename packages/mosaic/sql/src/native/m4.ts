@@ -18,7 +18,7 @@ function outputColumn(field: SqlRoot): SqlExpression {
   throw new TypeError('M4 groups require column references.');
 }
 
-function outputExpression(value: ExprValue): SqlExpression {
+export function unqualify(value: ExprValue): SqlExpression {
   const expression = asNode(value);
   const replacements = new Map<SqlExpression, SqlExpression>();
   walk(expression, node => {
@@ -33,7 +33,7 @@ function outputExpression(value: ExprValue): SqlExpression {
 
 export function m4(input: TableArg, bin: ExprValue, x: string, y: string, groups: SqlRoot[] = []): Query {
   const useCTE = typeof input !== 'string' && !Array.isArray(input) && isQueryExpression(rootExpression(input as SqlRoot));
-  const pixel = int32(floor(useCTE ? outputExpression(bin) : bin));
+  const pixel = int32(floor(useCTE ? unqualify(bin) : bin));
   const source = useCTE ? 'input' : input;
   const outputGroups = groups.map(outputColumn);
   const dimensions = useCTE ? outputGroups : groups;

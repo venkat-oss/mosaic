@@ -1,9 +1,8 @@
-/** @import { ExprNode } from '@uwdata/mosaic-sql' */
 import { interpolatorBarycentric, interpolateNearest, interpolatorRandomWalk } from '@observablehq/plot';
 import { toDataColumns } from '@uwdata/mosaic-core';
-import { Query, bin2d, binLinear2d, collectColumns, count, isAggregateExpression, isBetween, lt, lte, sum } from '@uwdata/mosaic-sql';
+import { inspectAggregate } from '@uwdata/mosaic-sql/native';
 import { Transient } from '../symbols.js';
-import { binExpr } from './util/bin-expr.js';
+import { binExpr, nativeBinExpr } from './util/bin-expr.js';
 import { dericheConfig, dericheConv2d } from './util/density.js';
 import { extentX, extentY, xyext } from './util/extent.js';
 import { grid2d } from './util/grid.js';
@@ -13,6 +12,9 @@ import { Mark } from './Mark.js';
 export const DENSITY = 'density';
 
 export class Grid2DMark extends Mark {
+  /** @type {ReturnType<typeof grid2d>} */
+  grids;
+
   constructor(type, source, options, sqlContext = null) {
     const {
       bandwidth = 0,
@@ -27,6 +29,10 @@ export class Grid2DMark extends Mark {
     const densityMap = createDensityMap(channels);
     super(type, source, channels, xyext, sqlContext);
     this.densityMap = densityMap;
+    /** @type {string[]} */
+    this.aggr = [];
+    /** @type {string[]} */
+    this.groupby = [];
 
     /** @type {number} */
     this.bandwidth = handleParam(bandwidth, value => {
@@ -78,70 +84,19 @@ export class Grid2DMark extends Mark {
   }
 
   query(filter = []) {
-    const { interpolate, pad, channels, densityMap } = this;
-    const [x0, x1] = this.extentX = extentX(this, filter);
-    const [y0, y1] = this.extentY = extentY(this, filter);
-    const [nx, ny] = this.bins = this.binDimensions();
-    const [x, bx] = binExpr(this, 'x', nx, [x0, x1], pad);
-    const [y, by] = binExpr(this, 'y', ny, [y0, y1], pad);
+    this.extentX = extentX(this, filter);
+    this.extentY = extentY(this, filter);
+    this.bins = this.binDimensions();
+    return this.gridQuery([this.extentX, this.extentY], filter);
+  }
 
-    // with padded bins, include the entire domain extent
-    // if the bins are flush, exclude the extent max
-    const bounds = pad
-      ? [isBetween(bx, [+x0, +x1]), isBetween(by, [+y0, +y1])]
-      : [lte(+x0, bx), lt(bx, +x1), lte(+y0, by), lt(by, +y1)];
-
-    const q = Query
-      .from(this.sourceTable())
-      .where(filter.concat(bounds));
-
-    /** @type {string[]} */
-    const groupby = this.groupby = [];
-    /** @type {Record<string, ExprNode>} */
-    const aggrMap = {};
-    for (const c of channels) {
-      if (Object.hasOwn(c, 'field')) {
-        const { as, channel, field } = c;
-        if (isAggregateExpression(field)) {
-          // include custom aggregate
-          aggrMap[channel] = field;
-          densityMap[channel] = true;
-        } else if (channel === 'weight') {
-          // compute weighted density
-          aggrMap[DENSITY] = sum(field);
-        } else if (channel !== 'x' && channel !== 'y') {
-          // add groupby field
-          q.select({ [as]: field });
-          groupby.push(as);
-        }
-      }
-    }
-    const aggr = this.aggr = Object.keys(aggrMap);
-
-    // check for incompatible encodings
-    if (aggrMap.density && aggr.length > 1) {
-      throw new Error('Weight option can not be used with custom aggregates.');
-    }
-
-    // if no aggregates, default to count density
-    if (!aggr.length) {
-      aggr.push(DENSITY);
-      aggrMap[DENSITY] = count();
-    }
-
-    // generate grid binning query
-    if (interpolate === 'linear') {
-      if (aggr.length > 1) {
-        throw new Error('Linear binning not applicable to multiple aggregates.');
-      }
-      if (!aggrMap[DENSITY]) {
-        throw new Error('Linear binning not applicable to custom aggregates.');
-      }
-      const weight = collectColumns(aggrMap[DENSITY])[0];
-      return binLinear2d(q, x, y, weight, nx, groupby);
-    } else {
-      return bin2d(q, x, y, aggrMap, nx, groupby);
-    }
+  /**
+   * @param {*} extent
+   * @param {*} [filter]
+   * @param {boolean | [boolean, boolean]} [includeMax]
+   */
+  gridQuery(extent, filter = [], includeMax = !!this.pad) {
+    return gridQuery(this, this.sql, extent, filter, includeMax);
   }
 
   /**
@@ -232,4 +187,75 @@ function maybeInterpolate(interpolate = 'none') {
       return interpolatorRandomWalk();
   }
   throw new Error(`invalid interpolate: ${interpolate}`);
+}
+
+function gridQuery(mark, sql, [[x0, x1], [y0, y1]], filter, includeMax) {
+  const { Query, bin2d, binLinear2d, count, isAggregateExpression, isBetween, lt, lte, sum } = sql;
+  const { interpolate, pad, densityMap } = mark;
+  const channels = mark.queryChannels();
+  const bin = mark.sqlOwner ? nativeBinExpr : binExpr;
+  const [nx, ny] = mark.bins;
+  const [x, bx] = bin(mark, 'x', nx, [x0, x1], pad);
+  const [y, by] = bin(mark, 'y', ny, [y0, y1], pad);
+
+  // with padded bins, include the entire domain extent
+  // if the bins are flush, exclude the extent max
+  const inclusive = Array.isArray(includeMax) ? includeMax : [includeMax, includeMax];
+  const boundsFor = (field, min, max, include) => include
+    ? [isBetween(field, [min, max])] : [lte(min, field), lt(field, max)];
+  const bounds = [...boundsFor(bx, +x0, +x1, inclusive[0]), ...boundsFor(by, +y0, +y1, inclusive[1])];
+
+  const q = (mark.sqlOwner
+    ? mark.sql.Query.from(mark.sql.from(mark.sourceTable()))
+    : Query.from({ source: mark.sourceTable() }))
+    .where(filter.concat(bounds));
+
+  /** @type {string[]} */
+  const groupby = mark.groupby = [];
+  /** @type {Record<string, any>} */
+  const aggrMap = {};
+  for (const c of channels) {
+    if (Object.hasOwn(c, 'field')) {
+      const { as, channel, field } = c;
+      if (isAggregateExpression(field)) {
+        // include custom aggregate
+        aggrMap[channel] = field;
+        densityMap[channel] = true;
+      } else if (channel === 'weight') {
+        // compute weighted density
+        aggrMap[DENSITY] = sum(field);
+      } else if (channel !== 'x' && channel !== 'y') {
+        // add groupby field
+        q.select({ [as]: field });
+        groupby.push(as);
+      }
+    }
+  }
+  const aggr = mark.aggr = Object.keys(aggrMap);
+
+  // check for incompatible encodings
+  if (aggrMap.density && aggr.length > 1) {
+    throw new Error('Weight option can not be used with custom aggregates.');
+  }
+
+  // if no aggregates, default to count density
+  if (!aggr.length) {
+    aggr.push(DENSITY);
+    aggrMap[DENSITY] = count();
+  }
+
+  // generate grid binning query
+  if (interpolate === 'linear') {
+    if (aggr.length > 1) {
+      throw new Error('Linear binning not applicable to multiple aggregates.');
+    }
+    if (!aggrMap[DENSITY]) {
+      throw new Error('Linear binning not applicable to custom aggregates.');
+    }
+    const density = aggrMap[DENSITY];
+    const weight = mark.sqlOwner ? inspectAggregate(density)?.args[0] : density.args[0];
+    return binLinear2d(q, x, y, weight, nx, groupby);
+  } else {
+    return bin2d(q, x, y, aggrMap, nx, groupby);
+  }
 }

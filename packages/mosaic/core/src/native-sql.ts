@@ -1,7 +1,7 @@
 import type { ExprValue, SqlExpression, SqlExecutionContext, SqlValue, SqlRoot, Query } from '@uwdata/mosaic-sql/native';
 import {
   and, asLiteral, asNode, between, compileBatch, createExecutionContext,
-  isNotDistinct, LegacyInputAdapter, or, StructuralKeyScope
+  isNotDistinct, LegacyInputAdapter, listHasAll, listHasAny, or, StructuralKeyScope
 } from '@uwdata/mosaic-sql/native';
 import { isMosaicClient } from './MosaicClient.js';
 import { Selection, SelectionResolver } from './Selection.js';
@@ -10,11 +10,13 @@ import type { ClauseSource, SelectionClause } from './clause/SelectionClause.js'
 import type { DescribeQuery, ScaleDomain, ScaleOptions, SelectQuery } from '@uwdata/mosaic-sql';
 import type { IntervalOptions, IntervalMetadata } from './clause/IntervalClause.js';
 import type { PointOptions } from './clause/PointClause.js';
+import type { ListMetadata, ListOptions } from './clause/ListClause.js';
 
 export type NativeSelection = Selection<SqlExpression>;
 export type NativeSelectionClause = SelectionClause<SqlExpression>;
 type NativePointOptions = Omit<PointOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
 type NativeIntervalOptions = Omit<IntervalOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
+type NativeListOptions = Omit<ListOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
 
 export class NativeSqlContext {
   private _execution: SqlExecutionContext;
@@ -119,6 +121,19 @@ export class NativeSqlContext {
       return and(row.map((item, index) => isNotDistinct(nodes[index], asLiteral(pointValue(item)))));
     }));
     return { context: this, meta: { type: 'point' }, source, clients, fields: nodes, value, predicate };
+  }
+
+  list(
+    field: ExprValue,
+    value: unknown,
+    { source, clients = isMosaicClient(source) ? new Set([source]) : undefined, listMatch = 'any' }: NativeListOptions
+  ): NativeSelectionClause {
+    const node = asNode(field);
+    const match = listMatch === 'all' ? listHasAll : listHasAny;
+    const predicate = value === undefined || Array.isArray(value) && !value.length ? null
+      : match(node, value === null ? null : (Array.isArray(value) ? value : [value]).map(pointValue));
+    const meta: ListMetadata = { type: 'list', match: listMatch };
+    return { context: this, meta, source, clients, fields: [node], value, predicate };
   }
 
   interval(

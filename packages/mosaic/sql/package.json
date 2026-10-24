@@ -36,6 +36,7 @@
     "test": "bazelisk test //packages/mosaic/sql:check"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "@uwdata/mosaic-duckdb": "workspace:^"
   },
   "imports": {
@@ -45,6 +46,6 @@
     }
   },
   "dependencies": {
-    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc/polyglot-sql-sdk-0.13.3-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc.tgz"
+    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz"
   }
 }

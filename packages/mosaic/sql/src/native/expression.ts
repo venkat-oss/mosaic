@@ -68,8 +68,9 @@ export function tableRef(...ids: (string | readonly string[])[]) {
   });
 }
 
-function tableIdentifiers(table?: string | SqlExpression): ast.Identifier[] {
+function tableIdentifiers(table?: string | readonly string[] | SqlExpression): ast.Identifier[] {
   if (typeof table === 'string') return [native.identifier(table, true).identifier];
+  if (Array.isArray(table)) return table.map(name => native.identifier(name, true).identifier);
   if (table && 'table' in table) return table.table.alias
     ? [table.table.alias]
     : [table.table.catalog, table.table.schema, table.table.name].filter((value): value is ast.Identifier => value != null);
@@ -78,10 +79,10 @@ function tableIdentifiers(table?: string | SqlExpression): ast.Identifier[] {
   return [];
 }
 
-export function column(name: string | ParamLike, table?: string | SqlExpression): SqlExpression {
+export function column(name: string | ParamLike, table?: string | readonly string[] | SqlExpression): SqlExpression {
   const qualifiers = tableIdentifiers(table);
   const create = (name: string): SqlExpression => {
-    if (name === '*' && qualifiers.length < 2) return native.star(qualifiers[0]);
+    if (name === '*') return native.star(qualifiers.length < 2 ? qualifiers[0] : tableRef(qualifiers.map(value => value.name)));
     const path = [...qualifiers, native.identifier(name, name !== '*').identifier];
     if (path.length === 1) return native.column(path[0]);
     let result: SqlExpression = native.column(path[1], { table: path[0] });

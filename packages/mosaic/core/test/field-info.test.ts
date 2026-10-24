@@ -47,7 +47,9 @@ describe('native queryFieldInfo', () => {
       CREATE TABLE "metadata schema"."metadata rows" AS
       SELECT * FROM (VALUES (1, 'a'), (2, 'a'), (NULL, 'b')) t("x value", label);
       CREATE TABLE "metadata schema".dates AS
-      SELECT * FROM (VALUES (DATE '2024-01-02'), (DATE '2024-03-04'), (NULL)) t(day)`);
+      SELECT * FROM (VALUES (DATE '2024-01-02'), (DATE '2024-03-04'), (NULL)) t(day);
+      CREATE TABLE "metadata schema".lists AS
+      SELECT * FROM (VALUES ([1,NULL,3]), ([]), (NULL)) t(items)`);
     mc = new QueryCoordinator(await NodeConnector.make(db), { native: new NativeSqlContext(), logger: null });
   });
   afterAll(async () => {
@@ -127,6 +129,17 @@ describe('native queryFieldInfo', () => {
     const sameSQL = nativeSQL.column('x value');
     const query = nativeSQL.Query.from(nativeSQL.from(table)).select({ value: first });
     await expect(queryFieldInfo(mc, [{ table, column: sameSQL }], { query })).rejects.toThrow('named projection');
+  });
+
+  it('describes expanded list elements and summarizes their output rows', async () => {
+    const table = ['metadata schema', 'lists'];
+    const column = nativeSQL.unnest('items');
+    const [info] = await queryFieldInfo(mc, [{ table, column, stats: ['count', 'nulls', 'min', 'max'] }]);
+    expect(info.column).toBe(column);
+    expect(info).toMatchObject({ sqlType: 'INTEGER', type: 'number', count: 2, nulls: 1, min: 1, max: 3 });
+    const empty = nativeSQL.Query.from(nativeSQL.from(table)).select('*').where(nativeSQL.literal(false));
+    const [zero] = await queryFieldInfo(mc, [{ table: empty, column, stats: ['count', 'nulls', 'min', 'max'] }]);
+    expect(zero).toMatchObject({ sqlType: 'INTEGER', type: 'number', count: 0, nulls: 0, min: null, max: null });
   });
 
   it('associates descriptor outputs by original projection position despite duplicate aliases', async () => {

@@ -66,9 +66,11 @@ parameters prepares new metadata and cancels obsolete queued data reads. Bin
 expressions reject compilation while their metadata is stale. Compatible brush
 updates use native DuckDB preaggregation and return Arrow results to SVG marks.
 The same context supports connected-line M4, weighted densities, regression and
-error bars. Continue importing SQL channel expressions from `/native`. Collections,
-spatial marks and specification/Python integration follow the
-[migration packets](/development/polyglot/work-packets).
+error bars, hexbin, grids, raster tiles. Continue importing
+SQL channel expressions from `/native`. Raster tiles use their plot's coordinator,
+cancel obsolete viewport reads and combine linear weights across tile boundaries.
+Spatial marks follow in the next packet. Expression, input and widget
+integration follows the [migration packets](/development/polyglot/work-packets).
 
 ## Plots
 

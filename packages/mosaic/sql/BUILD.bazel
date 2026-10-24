@@ -3,5 +3,6 @@ load("//build:javascript.bzl", "mosaic_javascript")
 mosaic_javascript(
     deps = [":node_modules/@polyglot-sql/sdk"],
     tests = True,
+    test_deps = [":node_modules/@types/node"],
     consumer_tests = ["//build:npm_consumer"],
 )

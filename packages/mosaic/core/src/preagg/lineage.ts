@@ -322,6 +322,13 @@ export function nativeIsWildcard(expression: SqlExpression): boolean {
   return nativeSQL.hasColumnExpansion(expression);
 }
 
+type NativeStarReference = NonNullable<ReturnType<typeof nativeSQL.native.star>['star']['table']>;
+
+function nativeStarPath(reference: NativeStarReference): string[] | undefined {
+  if ('name' in reference) return [reference.name];
+  return 'table' in reference ? nativeTablePath(reference) : nativeColumnPath(reference);
+}
+
 export function nativeStarExpression(
   input: SqlRoot,
   name: string,
@@ -329,25 +336,49 @@ export function nativeStarExpression(
 ): SqlExpression | undefined {
   const query = nativeSQL.rootExpression(input);
   if (!('select' in query)) return;
+  if (!relations) {
+    const sources = query.select.from?.expressions;
+    if (sources?.length !== 1 || query.select.joins.length) return;
+    const source = sources[0];
+    if (!nativeResolveRelation(source, new Map())) return;
+    relations = ['table' in source
+      ? source.table.alias ? [source.table.alias.name] : nativeTablePath(source)
+      : 'subquery' in source && source.subquery.alias ? [source.subquery.alias.name] : undefined];
+  }
   for (const projection of query.select.expressions) {
     const expression = 'alias' in projection ? projection.alias.this : projection;
     if (!nativeIsStar(expression)) continue;
     if (!('star' in expression)) {
       const path = nativeColumnPath(expression);
-      if (!relations || relations.some(relation => relation && path && suffixEquals(path.slice(0, -1), relation))) {
-        return nativeSQL.column(name);
+      const qualifier = path?.slice(0, -1);
+      if (qualifier && relations.some(relation => !qualifier.length || relation && suffixEquals(qualifier, relation))) {
+        return nativeSQL.column(name, qualifier);
       }
       continue;
     }
     const star = expression.star;
-    if (star.table && relations && !relations.some(path => path && suffixEquals([star.table!.name], path))) continue;
-    const replaced = star.replace?.find(alias => nameEquals(alias.alias.name, name));
-    if (replaced) return replaced.this;
-    const renamed = star.rename?.find(([, target]) => nameEquals(target.name, name));
-    if (renamed) return nativeSQL.column(renamed[0].name);
-    if (star.except?.some(column => nameEquals(column.name, name))
-      || star.rename?.some(([source]) => nameEquals(source.name, name))) continue;
-    return nativeSQL.column(name);
+    const qualifier = star.table && nativeStarPath(star.table);
+    if (star.table && !qualifier) continue;
+    for (const relation of relations) {
+      if (qualifier && (!relation || !suffixEquals(qualifier, relation))) continue;
+      const applies = (reference: NativeStarReference): boolean => {
+        const path = nativeStarPath(reference);
+        const binding = 'name' in reference ? undefined : nativeSQL.bindingOf(reference);
+        const prefix = path?.slice(0, -1) ?? binding?.qualifier;
+        return prefix === undefined ? !!binding : !prefix.length || !!relation && suffixEquals([...prefix], relation);
+      };
+      const replaced = star.replace?.find(alias => nameEquals(alias.alias.name, name));
+      if (replaced) return replaced.this;
+      const renamed = star.rename?.find(([, target]) => nameEquals(target.name, name));
+      if (renamed) {
+        if (!applies(renamed[0])) continue;
+        return 'name' in renamed[0] ? nativeSQL.column(renamed[0].name) : renamed[0];
+      }
+      const removed = [...(star.except ?? []), ...(star.rename?.map(([source]) => source) ?? [])]
+        .some(reference => applies(reference) && (!nativeStarPath(reference)
+          || nameEquals(nativeStarPath(reference)!.at(-1)!, name)));
+      if (!removed) return nativeSQL.column(name, qualifier ?? undefined);
+    }
   }
 }
 

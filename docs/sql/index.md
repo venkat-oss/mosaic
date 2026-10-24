@@ -71,6 +71,13 @@ contributes no density. M4 retains endpoints and extrema per pixel group. Line
 density uses a native exclusive range and UNNEST for rasterization. These helpers
 follow DuckDB semantics; unsupported cross-dialect conversions reject explicitly.
 
+For list-valued fields, a native context creates selection clauses with
+`native.list(field, value, { source, listMatch: 'any' })`. Use `listMatch: 'all'`
+to require every selected item. A scalar selection is wrapped as one list item;
+`undefined` and an empty list clear the filter. A scalar `null` remains SQL NULL,
+while `[null]` follows DuckDB's list-membership rules. Toggles on an unnested
+native mark use this same clause path.
+
 ## Query
 
 Use the `Query` class to build complete SQL queries.

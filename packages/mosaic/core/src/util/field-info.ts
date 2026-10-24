@@ -100,15 +100,17 @@ async function nativeFieldInfo(
     let desc: ColumnDescription | undefined;
     if (descriptions) {
       if (projection?.alias === undefined) throw new TypeError('Native metadata fields require a named projection in the descriptor query.');
-      const ordinal = descriptions.length === entries!.length;
-      desc = ordinal ? descriptions[index!] : descriptions.find(row => row.column_name === projection.alias);
+      if (descriptions.length !== entries!.length) throw new TypeError('Native metadata fields require one output column per requested projection.');
+      desc = descriptions[index!];
       if (projected) {
         source = query!;
-        value = ordinal ? nativeSQL.positionalRef(index! + 1) : nativeSQL.column(projection.alias);
+        value = nativeSQL.positionalRef(index! + 1);
       }
     } else {
       const descriptor = nativeSQL.Query.from(nativeSQL.from(table)).select({ __mosaic_field: expression });
-      [desc] = Array.from(await read(nativeSQL.Query.describe(descriptor)) as Iterable<ColumnDescription>);
+      const columns = Array.from(await read(nativeSQL.Query.describe(descriptor)) as Iterable<ColumnDescription>);
+      if (columns.length !== 1) throw new TypeError('Native metadata fields require one output column per requested projection.');
+      [desc] = columns;
       if (projected) {
         source = descriptor;
         value = nativeSQL.column('__mosaic_field');
@@ -133,7 +135,7 @@ function nativeProjectedStats(expression: nativeSQL.SqlExpression): boolean {
   let projected = nativeSQL.isAggregateExpression(expression);
   nativeSQL.walk(expression, node => {
     if ('subquery' in node || nativeSQL.isResultQuery(node)) return 1;
-    if ('window_function' in node) projected = true;
+    if ('window_function' in node || 'unnest' in node) projected = true;
   });
   return projected;
 }

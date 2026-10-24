@@ -7,7 +7,14 @@ export function columnParts(expression: SqlExpression): string[] | undefined {
   if ('column' in expression) return expression.column.table
     ? [expression.column.table.name, expression.column.name.name]
     : [expression.column.name.name];
-  if ('star' in expression) return expression.star.table ? [expression.star.table.name, '*'] : ['*'];
+  if ('star' in expression) {
+    const qualifier = expression.star.table;
+    if (!qualifier) return ['*'];
+    if ('name' in qualifier) return [qualifier.name, '*'];
+    if ('table' in qualifier) return [qualifier.table.catalog, qualifier.table.schema, qualifier.table.name]
+      .filter(value => value != null).map(value => value.name).concat('*');
+    return columnParts(qualifier)?.concat('*');
+  }
   if ('dot' in expression) {
     const parts = columnParts(expression.dot.this);
     return parts && [...parts, expression.dot.field.name];

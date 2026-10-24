@@ -62,6 +62,9 @@ authored projections. Aggregate statistics then summarize that query's output.
 Metadata for an empty relation still reports its schema. A sole `column: '*'`
 request returns the relation's columns by backend name.
 
+List expansion statistics summarize the expanded rows. An individual field
+request that expands into multiple columns rejects rather than guessing its output.
+
 ## query
 
 `client.query(filter)`

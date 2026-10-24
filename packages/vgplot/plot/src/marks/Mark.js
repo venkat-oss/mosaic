@@ -244,7 +244,9 @@ export class Mark extends MosaicClient {
         projected.push(entry);
         continue;
       }
-      const request = requests.get(field) ?? { table, column: field, stats: new Set, entries: [] };
+      const request = requests.get(field) ?? {
+        table, column: this.isUnnested(field) ? nativeSQL.unnest(field) : field, stats: new Set, entries: []
+      };
       if (info) ['min', 'max'].forEach(stat => request.stats.add(stat));
       this.reqs[entry.channel]?.forEach(stat => request.stats.add(stat));
       request.entries.push(entry);

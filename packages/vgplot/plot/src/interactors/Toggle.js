@@ -50,9 +50,10 @@ export class Toggle {
 
     // unnested fields use a list-membership predicate instead of point equality
     if (fields.length === 1 && mark.isUnnested(fields[0])) {
-      if (mark.sqlContext) throw new TypeError('Native list selection requires the collection query family.');
       const list = value?.length ? value.map(v => v[0]) : undefined;
-      return clauseList(fields[0], list, { ...opt, listMatch: this.listMatch });
+      return mark.sqlContext
+        ? mark.sqlContext.list(fields[0], list, { ...opt, listMatch: this.listMatch })
+        : clauseList(fields[0], list, { ...opt, listMatch: this.listMatch });
     }
 
     return mark.sqlContext ? mark.sqlContext.points(fields, value, opt) : clausePoints(fields, value, opt);

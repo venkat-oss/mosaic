@@ -128,8 +128,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc)
+`d75e21fccecd6d7362b263055d957ee711d318c9`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration

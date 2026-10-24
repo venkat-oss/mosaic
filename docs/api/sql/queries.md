@@ -77,7 +77,9 @@ retain their authored names.
 Native coordinators can consolidate compatible SELECT projections into one
 query and project the Arrow result back to each caller. Queries with filters,
 ordering, distinct projections, column expansion or dynamic projection shapes
-use the direct path. Native preaggregation is still pending.
+use the direct path. Native DuckDB preaggregation materializes supported aggregate
+queries and reuses them for compatible selection updates. Unsupported query shapes
+use the direct query path.
 
 Use `compile` with an explicit execution context for target-specific SQL.
 Unsupported operations reject rather than producing SQL for another database.

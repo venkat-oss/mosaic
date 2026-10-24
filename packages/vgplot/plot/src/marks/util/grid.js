@@ -77,12 +77,13 @@ export function grid1d(size, index, value, columns, groupby) {
  * @param {string[]} groupby The names of additional columns to group by.
  * @param {function} [interpolate] A grid interpolation function.
  *  By default sample values are directly copied to output grid arrays.
+ * @param {boolean} [accumulate=false] Sum samples sharing a cell.
  * @returns {{
  *  numRows: number;
  *  columns: { [key:string]: Arrayish }
  * }} Named column arrays of generated grid values.
  */
-export function grid2d(w, h, index, columns, aggregates, groupby, interpolate) {
+export function grid2d(w, h, index, columns, aggregates, groupby, interpolate, accumulate = false) {
   if (!index?.length) return { numRows: 0, columns: {} };
   const numRows = index.length;
   const size = w * h;
@@ -125,7 +126,8 @@ export function grid2d(w, h, index, columns, aggregates, groupby, interpolate) {
       const V = values[i];
       const G = result[name] = cells.map(() => array(size, V));
       for (let row = 0; row < numRows; ++row) {
-        G[group[row]][index[row]] = V[row];
+        const grid = G[group[row]];
+        grid[index[row]] = accumulate ? Number(grid[index[row]] ?? 0) + Number(V[row]) : V[row];
       }
     });
   }

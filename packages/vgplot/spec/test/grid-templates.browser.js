@@ -26,19 +26,24 @@ test('grid starter executes native interpolation', async ({page}) => {
   expect(result.before.painted).toBe(true);
 });
 
-for (const defect of ['tile','null']) test('grid preserves ' + defect + ' interpolation/rendering failure', async ({page}) => {
+test('raster tiles render through the spec runtime', async ({page}) => {
   await page.goto('/packages/vgplot/spec/test/visual-harness.html');
   const spec = JSON.parse(await readFile(resolve(directory, 'raster.json'), 'utf8'));
-  if (defect === 'tile') Object.assign(spec.plot[0], {mark:'rasterTile',origin:[0,0]});
-  else spec.plot[0].interpolate = null;
+  Object.assign(spec.plot[0], {mark:'rasterTile',origin:[0,0]});
   const result = await page.evaluate(renderGridStarter, {spec,code:'',mode:'ast',reactive:null});
-  if (defect === 'tile') {
-    expect(result.errors).toEqual([]);
-    expect(result.statuses).toEqual(['rejected']);
-    expect(result.failures).toEqual([{name:'TypeError',message:"Cannot read properties of undefined (reading '20')"}]);
-  } else {
-    expect(result.errors).toEqual([{name:'TypeError',message:"Cannot read properties of null (reading 'toLowerCase')"}]);
-    expect(result.statuses).toEqual(['fulfilled']);
-    expect(result.before.images).toBe(0);
-  }
+  expect(result.errors).toEqual([]);
+  expect(result.statuses).toEqual(['fulfilled']);
+  expect(result.before.images).toBe(1);
+  expect(result.before.painted).toBe(true);
+  expect(result.before.finite).toBe(true);
+});
+
+test('grid preserves null interpolation failure', async ({page}) => {
+  await page.goto('/packages/vgplot/spec/test/visual-harness.html');
+  const spec = JSON.parse(await readFile(resolve(directory, 'raster.json'), 'utf8'));
+  spec.plot[0].interpolate = null;
+  const result = await page.evaluate(renderGridStarter, {spec,code:'',mode:'ast',reactive:null});
+  expect(result.errors).toEqual([{name:'TypeError',message:"Cannot read properties of null (reading 'toLowerCase')"}]);
+  expect(result.statuses).toEqual(['fulfilled']);
+  expect(result.before.images).toBe(0);
 });

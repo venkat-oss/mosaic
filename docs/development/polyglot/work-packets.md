@@ -2,16 +2,16 @@
 
 These packets implement the [target architecture](./index.md). P00 is complete
 on the isolated private Polyglot branch `mosaic-native-ast` at
-`bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc`. Its built SDK is distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-bb9cf88fa0421fc0ac60b60ab60f4a9b169ac8cc); Polyglot source remains private.
-P01–P05 implement compiler loading, the reactive Slider slice, relational queries,
-consolidation, aggregates, windows, native DuckDB preaggregation and numeric,
-temporal and interactive plot queries. Installed
-SQL/core consumers execute these paths against DuckDB and Arrow. Startup
+`d75e21fccecd6d7362b263055d957ee711d318c9`. Its built SDK is distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9); Polyglot source remains private.
+P01–P06 implement compiler loading, the reactive Slider slice, relational queries,
+consolidation, aggregates, windows, native DuckDB preaggregation and plot,
+collection and grid/raster consumers. Installed SQL/core consumers execute
+these paths against DuckDB and Arrow. Startup
 measurements are recorded in the architecture. Mosaic's default SQL runtime still
-uses its existing implementation. Native histograms, connected-line M4, densities
-and statistical marks now execute through metadata, selection, Arrow and SVG.
-P06–P10 remain: collections, loading/spatial consumers, expression/spec/input/widget
+uses its existing implementation. Native plots execute histograms, connected-line
+M4, density, statistical, grid, raster queries through metadata,
+selection, Arrow and rendering. P07–P10 remain: loading/spatial consumers, expression/spec/input/widget
 integration, the default switch, compiler retirement and the PostgreSQL connector.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and

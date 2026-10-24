@@ -70,7 +70,10 @@ function isUnaliasedExpression(value: unknown): value is SqlExpression {
   const payload: unknown = Object.values(value)[0];
   return payload !== null && typeof payload === 'object'
     && !Array.isArray(payload) && !(payload instanceof Date) && !(payload instanceof RegExp)
-    && !syntax.isExpressionValue(payload) && !isExpressionHandle(payload) && !isParamLike(payload);
+    && !syntax.isExpressionValue(payload)
+    && !(isExpressionHandle(payload) && (Object.keys(payload).length === 1
+      || Object.getPrototypeOf(payload) !== Object.prototype && Object.getPrototypeOf(payload) !== null))
+    && !isParamLike(payload);
 }
 
 export class Query implements SqlExpressionHandle {
@@ -367,7 +370,10 @@ export class Query implements SqlExpressionHandle {
     const selected = this.selectData();
     const expressions = values.flat().filter(value => value != null).map(asNode);
     const combined = [...(selected.group_by?.expressions ?? []), ...expressions];
-    selected.group_by = combined.length ? native.groupBy(combined).group_by : null;
+    const isAll = (value: SqlExpression) => 'var' in value && value.var.this === 'ALL';
+    const all = selected.group_by?.all === true || combined.some(isAll);
+    if (all && combined.some(value => !isAll(value))) throw new TypeError('GROUP BY ALL cannot be combined with explicit grouping expressions.');
+    selected.group_by = all || combined.length ? native.groupBy(all ? [] : combined, { all: all ? true : selected.group_by?.all ?? null }).group_by : null;
     return this;
   }
 

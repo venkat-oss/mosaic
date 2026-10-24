@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+  <div id="grid"></div>
+  <div id="hexbin"></div>
+  <button id="filter">Filter</button>
+  <button id="zoom">Zoom</button>
+  <output id="mass"></output>
+  <script type="module">
+    import { Coordinator, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
+    import { mul, sum } from '@uwdata/mosaic-sql/native';
+    import { createAPIContext } from '@uwdata/vgplot';
+
+    window.nativeGridReady = (async () => {
+      const native = new NativeSqlContext();
+      const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
+        native, logger: null, cache: false, consolidate: false
+      });
+      const errors = [];
+      coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error.message) });
+      await coordinator.exec(`CREATE OR REPLACE TEMP TABLE native_browser_grid(x DOUBLE,y DOUBLE,value DOUBLE);
+        INSERT INTO native_browser_grid VALUES (0,0,1),(1,1,2),(2,2,3),(4,4,4)`);
+      const api = createAPIContext({ coordinator });
+      const selection = native.selection();
+      const element = api.plot(
+        api.rasterTile(api.from('native_browser_grid', { filterBy: selection }), {
+          x: 'x', y: 'y', fill: 'density', width: 5, height: 5,
+          weight: mul('value', 2), interpolate: 'linear', origin: [0, 0]
+        }), api.width(300), api.height(180), api.xDomain([0, 4]), api.yDomain([0, 4])
+      );
+      const hexbin = api.plot(
+        api.hexbin(api.from('native_browser_grid'), { x: 'x', y: 'y', fill: sum('value') }),
+        api.width(300), api.height(180), api.xDomain([0, 4]), api.yDomain([0, 4])
+      );
+      document.querySelector('#grid').append(element);
+      document.querySelector('#hexbin').append(hexbin);
+      const mark = element.value.marks[0];
+      const update = () => {
+        const grid = mark.grids0.columns.density[0];
+        document.querySelector('#mass').textContent = String(Array.from(grid).reduce((sum, value) => sum + Number(value), 0));
+      };
+      document.querySelector('#filter').onclick = async () => {
+        selection.update(native.interval('x', [0, 1], { source: document.querySelector('#filter') }));
+        await selection.pending('value');
+        update();
+      };
+      document.querySelector('#zoom').onclick = async () => {
+        selection.update(native.clear(document.querySelector('#filter')));
+        await selection.pending('value');
+        element.value.setAttribute('xDomain', [0, 2]);
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await mark.pending;
+        update();
+      };
+      await Promise.all([mark.pending, hexbin.value.marks[0].pending]);
+      update();
+      return { coordinator, mark, errors };
+    })();
+  </script>
+</body>
+</html>
