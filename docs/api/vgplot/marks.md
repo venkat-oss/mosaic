@@ -2,7 +2,7 @@
 title: Marks
 ---
 <script setup>
-import { withBase } from 'vitepress';
+  import { withBase } from 'vitepress';
   import { useLang } from '../../.vitepress/theme/useLang.js';
   const { language, setLanguage } = useLang();
 </script>
@@ -10,6 +10,7 @@ import { withBase } from 'vitepress';
 <LangToggle :model-value="language" aria-label="Marks documentation language" @update:model-value="setLanguage" />
 
 <template v-if="language === 'js'">
+
 
 # Marks
 
@@ -26,6 +27,7 @@ vg.plot(vg.dot(vg.from('data'), {x: 'x', y: 'y'}));
 Marks follow [Observable Plot](https://observablehq.com/plot/features/marks) semantics. Mark variants can imply different scale types; for example, `barY` uses an ordinal horizontal scale while `rectY` uses a continuous one.
 
 [Examples and target-specific authoring](../spec/common-marks#examples).
+
 
 ## Area
 
@@ -69,6 +71,7 @@ Variable aesthetic channels are supported: if the **fill** is defined as a chann
 
 [Options](#areay-options).
 
+
 ## Arrow
 
 ### arrow
@@ -78,6 +81,7 @@ Variable aesthetic channels are supported: if the **fill** is defined as a chann
 An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
 
 [Options](#arrow-options).
+
 
 ## Axis
 
@@ -156,6 +160,7 @@ For simplicity, and for consistent layout across plots, default axis margins are
 
 [Options](#axisfy-options).
 
+
 ## Bar
 
 ### barX
@@ -187,6 +192,7 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 If *x* is quantitative, use the rectY mark instead. If *y* is ordinal, use the cell mark instead.
 
 [Options](#bary-options).
+
 
 ## Cell
 
@@ -221,6 +227,7 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 
 [Options](#celly-options).
 
+
 ## Contour
 
 ### contour
@@ -230,6 +237,7 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 A contour mark that draws isolines to delineate regions above and below a particular continuous value. It is often used to convey densities as a height field. The special column name "density" can be used to map density values to the fill or stroke options.
 
 [Options](#contour-options).
+
 
 ## Delaunay
 
@@ -288,6 +296,18 @@ If **z** is specified, the input points are grouped by *z*, producing a separate
 
 [Options](#hull-options).
 
+
+## Dense Line
+
+### denseLine
+
+`denseLine(data, options)`
+
+A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
+
+[Options](#denseline-options).
+
+
 ## Density 1D
 
 ### densityX
@@ -312,6 +332,7 @@ Set the *type* property to use a different base mark type.
 
 [Options](#densityy-options).
 
+
 ## Density 2D
 
 ### density
@@ -324,15 +345,6 @@ Set the *type* property to use a different base mark type.
 
 [Options](#density-options).
 
-## Dense Line
-
-### denseLine
-
-`denseLine(data, options)`
-
-A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
-
-[Options](#denseline-options).
 
 ## Dot
 
@@ -388,6 +400,34 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 
 [Options](#hexagon-options).
 
+
+## Error Bar
+
+### errorbarX
+
+`errorbarX(data, options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbarx-options).
+
+### errorbarY
+
+`errorbarY(data, options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbary-options).
+
+
 ## Frame
 
 ### frame
@@ -397,6 +437,7 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 Draws a rectangle around the plot’s frame, or if an **anchor** is given, a line on the given side. Useful for visual separation of facets, or in conjunction with axes and grids to fill the frame’s background.
 
 [Options](#frame-options).
+
 
 ## Geo
 
@@ -427,6 +468,7 @@ A geo mark whose *data* is the outline of the sphere on the projection’s plane
 A geo mark whose *data* is a 10° global graticule. (For use with a spherical **projection** only.)
 
 [Options](#graticule-options).
+
 
 ## Grid
 
@@ -464,6 +506,7 @@ A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid 
 
 [Options](#gridfy-options).
 
+
 ## Heatmap
 
 ### heatmap
@@ -475,6 +518,7 @@ Like raster, but with default options for accurate density estimation via smooth
 
 [Options](#heatmap-options).
 
+
 ## Hexbin
 
 ### hexbin
@@ -484,6 +528,7 @@ Like raster, but with default options for accurate density estimation via smooth
 A hexbin mark that bins **x** and **y** data into a hexagonal grid and visualizes aggregate functions per bin (e.g., count for binned density). Aggregate functions can be used for fill, stroke, or r (radius) options.
 
 [Options](#hexbin-options).
+
 
 ## Hexgrid
 
@@ -498,6 +543,7 @@ Note that the **binWidth** option of the hexgrid mark should match that of the h
 
 [Options](#hexgrid-options).
 
+
 ## Image
 
 ### image
@@ -509,6 +555,7 @@ An image mark that draws images as in a scatterplot.
 If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
 
 [Options](#image-options).
+
 
 ## Line
 
@@ -543,20 +590,6 @@ Like line, except **y** defaults to the identity function and assumes that *data
 
 [Options](#liney-options).
 
-## Regression
-
-### regressionY
-
-`regressionY(data, options)`
-
-A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
-
-The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
-
-Multiple regressions can be produced by specifying a **z**, **fill**, or
-**stroke** channel.
-
-[Options](#regressiony-options).
 
 ## Link
 
@@ -570,6 +603,7 @@ If the plot uses a spherical **projection**, the default *auto* **curve** will r
 *linear* **curve**.
 
 [Options](#link-options).
+
 
 ## Raster
 
@@ -592,6 +626,7 @@ To create a smoothed density heatmap, use the heatmap mark, which is a raster ma
 An experimental raster mark which performs tiling and prefetching to support more scalable rasters upon panning the domain. Uses a tile size that matches with current width and height, and prefetches data from neighboring tile segments.
 
 [Options](#rastertile-options).
+
 
 ## Rect
 
@@ -626,6 +661,23 @@ Like rect, but if neither **y1** nor **y2** is specified, apply an implicit stac
 
 [Options](#recty-options).
 
+
+## Regression
+
+### regressionY
+
+`regressionY(data, options)`
+
+A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
+
+The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
+
+Multiple regressions can be produced by specifying a **z**, **fill**, or
+**stroke** channel.
+
+[Options](#regressiony-options).
+
+
 ## Rule
 
 ### ruleX
@@ -649,6 +701,7 @@ A vertically-positioned ruleY mark (a horizontal line, —). The **y** channel s
 The ruleY mark is often used to highlight specific *y* values. If *x* represents ordinal values, use a tickY mark instead.
 
 [Options](#ruley-options).
+
 
 ## Text
 
@@ -684,6 +737,7 @@ Like text, but **y** defaults to the identity function, assuming that
 
 [Options](#texty-options).
 
+
 ## Tick
 
 ### tickX
@@ -705,6 +759,7 @@ A vertically-positioned tickY mark (a horizontal line, —). The **y** channel s
 If *x* represents quantitative or temporal values, use a ruleY mark instead.
 
 [Options](#ticky-options).
+
 
 ## Vector
 
@@ -746,6 +801,7 @@ Like vector, but with default *options* suitable for drawing a spike map.
 
 [Options](#spike-options).
 
+
 ## Waffle
 
 ### waffleX
@@ -774,35 +830,11 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 
 [Options](#waffley-options).
 
-## Error Bar
-
-### errorbarX
-
-`errorbarX(data, options)`
-
-A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
-
-This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
-
-Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
-
-[Options](#errorbarx-options).
-
-### errorbarY
-
-`errorbarY(data, options)`
-
-A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
-
-This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
-
-Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
-
-[Options](#errorbary-options).
 
 </template>
 
 <template v-else-if="language === 'python'">
+
 
 # Marks
 
@@ -819,6 +851,7 @@ vg.plot(vg.mark('dot', vg.source('data'), x='x', y='y'));
 `vg.channels(**kwargs)` preserves channel keys and values. `vg.directive(key, value)` creates a plot directive. For source-backed marks, the data options `filter_by` → `filterBy`, `optimize` → `optimize` are attached to the data reference. See [Python helpers](../spec/common-marks#python-helpers) for signatures.
 
 [Examples and target-specific authoring](../spec/common-marks#examples).
+
 
 ## Area
 
@@ -862,6 +895,7 @@ Variable aesthetic channels are supported: if the **fill** is defined as a chann
 
 [Options](#areay-options).
 
+
 ## Arrow
 
 ### arrow
@@ -871,6 +905,7 @@ Variable aesthetic channels are supported: if the **fill** is defined as a chann
 An arrow mark, drawing (possibly swoopy) arrows connecting pairs of points.
 
 [Options](#arrow-options).
+
 
 ## Axis
 
@@ -949,6 +984,7 @@ For simplicity, and for consistent layout across plots, default axis margins are
 
 [Options](#axisfy-options).
 
+
 ## Bar
 
 ### bar_x
@@ -980,6 +1016,7 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 If *x* is quantitative, use the rectY mark instead. If *y* is ordinal, use the cell mark instead.
 
 [Options](#bary-options).
+
 
 ## Cell
 
@@ -1014,6 +1051,7 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 
 [Options](#celly-options).
 
+
 ## Contour
 
 ### contour
@@ -1023,6 +1061,7 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 A contour mark that draws isolines to delineate regions above and below a particular continuous value. It is often used to convey densities as a height field. The special column name "density" can be used to map density values to the fill or stroke options.
 
 [Options](#contour-options).
+
 
 ## Delaunay
 
@@ -1081,6 +1120,18 @@ If **z** is specified, the input points are grouped by *z*, producing a separate
 
 [Options](#hull-options).
 
+
+## Dense Line
+
+### dense_line
+
+`dense_line(data=None, **options)`
+
+A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
+
+[Options](#denseline-options).
+
+
 ## Density 1D
 
 ### density_x
@@ -1105,6 +1156,7 @@ Set the *type* property to use a different base mark type.
 
 [Options](#densityy-options).
 
+
 ## Density 2D
 
 ### density
@@ -1117,15 +1169,6 @@ Set the *type* property to use a different base mark type.
 
 [Options](#density-options).
 
-## Dense Line
-
-### dense_line
-
-`dense_line(data=None, **options)`
-
-A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
-
-[Options](#denseline-options).
 
 ## Dot
 
@@ -1181,6 +1224,34 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 
 [Options](#hexagon-options).
 
+
+## Error Bar
+
+### errorbar_x
+
+`errorbar_x(data=None, **options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbarx-options).
+
+### errorbar_y
+
+`errorbar_y(data=None, **options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbary-options).
+
+
 ## Frame
 
 ### frame
@@ -1190,6 +1261,7 @@ Like dot, except that the **symbol** option is set to *hexagon*.
 Draws a rectangle around the plot’s frame, or if an **anchor** is given, a line on the given side. Useful for visual separation of facets, or in conjunction with axes and grids to fill the frame’s background.
 
 [Options](#frame-options).
+
 
 ## Geo
 
@@ -1220,6 +1292,7 @@ A geo mark whose *data* is the outline of the sphere on the projection’s plane
 A geo mark whose *data* is a 10° global graticule. (For use with a spherical **projection** only.)
 
 [Options](#graticule-options).
+
 
 ## Grid
 
@@ -1257,6 +1330,7 @@ A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid 
 
 [Options](#gridfy-options).
 
+
 ## Heatmap
 
 ### heatmap
@@ -1268,6 +1342,7 @@ Like raster, but with default options for accurate density estimation via smooth
 
 [Options](#heatmap-options).
 
+
 ## Hexbin
 
 ### hexbin
@@ -1277,6 +1352,7 @@ Like raster, but with default options for accurate density estimation via smooth
 A hexbin mark that bins **x** and **y** data into a hexagonal grid and visualizes aggregate functions per bin (e.g., count for binned density). Aggregate functions can be used for fill, stroke, or r (radius) options.
 
 [Options](#hexbin-options).
+
 
 ## Hexgrid
 
@@ -1291,6 +1367,7 @@ Note that the **binWidth** option of the hexgrid mark should match that of the h
 
 [Options](#hexgrid-options).
 
+
 ## Image
 
 ### image
@@ -1302,6 +1379,7 @@ An image mark that draws images as in a scatterplot.
 If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
 
 [Options](#image-options).
+
 
 ## Line
 
@@ -1336,20 +1414,6 @@ Like line, except **y** defaults to the identity function and assumes that *data
 
 [Options](#liney-options).
 
-## Regression
-
-### regression_y
-
-`regression_y(data=None, **options)`
-
-A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
-
-The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
-
-Multiple regressions can be produced by specifying a **z**, **fill**, or
-**stroke** channel.
-
-[Options](#regressiony-options).
 
 ## Link
 
@@ -1363,6 +1427,7 @@ If the plot uses a spherical **projection**, the default *auto* **curve** will r
 *linear* **curve**.
 
 [Options](#link-options).
+
 
 ## Raster
 
@@ -1385,6 +1450,7 @@ To create a smoothed density heatmap, use the heatmap mark, which is a raster ma
 An experimental raster mark which performs tiling and prefetching to support more scalable rasters upon panning the domain. Uses a tile size that matches with current width and height, and prefetches data from neighboring tile segments.
 
 [Options](#rastertile-options).
+
 
 ## Rect
 
@@ -1419,6 +1485,23 @@ Like rect, but if neither **y1** nor **y2** is specified, apply an implicit stac
 
 [Options](#recty-options).
 
+
+## Regression
+
+### regression_y
+
+`regression_y(data=None, **options)`
+
+A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
+
+The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
+
+Multiple regressions can be produced by specifying a **z**, **fill**, or
+**stroke** channel.
+
+[Options](#regressiony-options).
+
+
 ## Rule
 
 ### rule_x
@@ -1442,6 +1525,7 @@ A vertically-positioned ruleY mark (a horizontal line, —). The **y** channel s
 The ruleY mark is often used to highlight specific *y* values. If *x* represents ordinal values, use a tickY mark instead.
 
 [Options](#ruley-options).
+
 
 ## Text
 
@@ -1477,6 +1561,7 @@ Like text, but **y** defaults to the identity function, assuming that
 
 [Options](#texty-options).
 
+
 ## Tick
 
 ### tick_x
@@ -1498,6 +1583,7 @@ A vertically-positioned tickY mark (a horizontal line, —). The **y** channel s
 If *x* represents quantitative or temporal values, use a ruleY mark instead.
 
 [Options](#ticky-options).
+
 
 ## Vector
 
@@ -1539,6 +1625,7 @@ Like vector, but with default *options* suitable for drawing a spike map.
 
 [Options](#spike-options).
 
+
 ## Waffle
 
 ### waffle_x
@@ -1567,35 +1654,211 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 
 [Options](#waffley-options).
 
-## Error Bar
-
-### errorbar_x
-
-`errorbar_x(data=None, **options)`
-
-A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
-
-This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
-
-Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
-
-[Options](#errorbarx-options).
-
-### errorbar_y
-
-`errorbar_y(data=None, **options)`
-
-A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
-
-This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
-
-Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
-
-[Options](#errorbary-options).
 
 </template>
 
 <LangError v-else :language="language" />
+
+
+## annotation mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### TextOptions options
+
+Options for the text mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`TextStyles`](../spec/common-marks#textstyles).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel specifying the text’s anchor point, typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel specifying the text’s anchor point, typically bound to the *y* scale.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into series.
+
+**text** (`ChannelValue`) — The text contents channel, possibly with line breaks (\n, \r\n, or \r). If not specified, defaults to the zero-based index [0, 1, 2, …].
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y**, along with
+**textAnchor** and **lineAnchor**, based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*, *bottom-left*), or the
+*middle* of the frame.
+
+**lineAnchor** (`'top' | 'middle' | 'bottom' | ParamRef`) — The line anchor controls how text is aligned (typically vertically) relative to its anchor point; it is one of *top*, *bottom*, or *middle*. If the frame anchor is *top*, *top-left*, or *top-right*, the default line anchor is *top*; if the frame anchor is *bottom*, *bottom-right*, or
+*bottom-left*, the default is *bottom*; otherwise it is *middle*.
+
+**rotate** (`ChannelValue | ParamRef`) — The rotation angle in degrees clockwise; a constant or a channel; defaults to 0°. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+
+### TextXOptions options
+
+Options for the textX mark.
+
+Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
+
+**y** (`ChannelValueIntervalSpec`) — The vertical position of the text’s anchor point, typically bound to the
+*y* scale.
+
+**interval** (`Interval | ParamRef`) — An interval (such as *day* or a number), to transform **y** values to the middle of the interval.
+
+### TextYOptions options
+
+Options for the textY mark.
+
+Extends [`Omit<TextOptions, 'x'>`](#textoptions-options).
+
+**x** (`ChannelValueIntervalSpec`) — The horizontal position of the text’s anchor point, typically bound to the
+*x* scale.
+
+**interval** (`Interval`) — An interval (such as *day* or a number), to transform **x** values to the middle of the interval.
+
+### Text options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextOptions`](#textoptions-options).
+
+
+### TextX options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextXOptions`](#textxoptions-options).
+
+
+### TextY options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextYOptions`](#textyoptions-options).
+
+
+### ImageOptions options
+
+Options for the image mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel specifying the image’s center; typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel specifying the image’s center; typically bound to the *y* scale.
+
+**width** (`ChannelValue | ParamRef`) — The image width in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive width are not drawn.
+
+**height** (`ChannelValue | ParamRef`) — The image height in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive height are not drawn.
+
+**r** (`ChannelValue | ParamRef`) — The image clip radius, for circular images. If null (default), images are not clipped; when a number, it is interpreted as a constant in pixels; otherwise it is interpreted as a channel, typically bound to the *r* scale. Also defaults **height** and **width** to twice its value.
+
+**rotate** (`ChannelValue | ParamRef`) — The rotation angle, in degrees clockwise. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+
+**src** (`ChannelValue | ParamRef`) — The required image URL (or relative path). If a string that starts with a dot, slash, or URL protocol (*e.g.*, “https:”) it is assumed to be a constant; otherwise it is interpreted as a channel.
+
+**preserveAspectRatio** (`string | ParamRef`) — The image [aspect ratio](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio); defaults to *xMidYMid meet*. To crop the image instead of scaling it to fit, use *xMidYMid slice*.
+
+**crossOrigin** (`string | ParamRef`) — The [cross-origin](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/crossorigin) behavior. See the [Plot.image notebook](https://observablehq.com/@observablehq/plot-image) for details.
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y** based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*,
+*bottom-left*), or the *middle* of the frame.
+
+**imageRendering** (`string | ParamRef`) — The [image-rendering attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/image-rendering); defaults to *auto* (bilinear). The option may be set to *pixelated* to disable bilinear interpolation for a sharper image; however, note that this is not supported in WebKit.
+
+### Image options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ImageOptions`](#imageoptions-options).
+
+
+### VectorOptions options
+
+Options for the vector mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position of the vector’s anchor point; an optional channel bound to the *x* scale. Default depends on the **frameAnchor**.
+
+**y** (`ChannelValueSpec`) — The vertical position of the vector’s anchor point; an optional channel bound to the *y* scale. Default depends on the **frameAnchor**.
+
+**r** (`number | ParamRef`) — The vector shape’s radius, such as half the width of the *arrow*’s head or the *spike*’s base; a constant number in pixels. Defaults to 3.5 pixels.
+
+**length** (`ChannelValueSpec`) — The vector’s length; either an optional channel bound to the *length* scale or a constant number in pixels. Defaults to 12 pixels.
+
+**rotate** (`ChannelValue`) — The vector’s orientation (rotation angle); either a constant number in degrees clockwise, or an optional channel (with no associated scale). Defaults to 0 degrees with the vector pointing up.
+
+**shape** (`VectorShape | ParamRef`) — The shape of the vector; a constant. Defaults to *arrow*.
+
+**anchor** (`'start' | 'middle' | 'end' | ParamRef`) — The vector’s position along its orientation relative to its anchor point; a constant. Assuming a default **rotate** angle of 0°, one of:
+
+- *start* - from [*x*, *y*] to [*x*, *y* - *l*]
+- *middle* (default) - from [*x*, *y* + *l* / 2] to [*x*, *y* - *l* / 2]
+- *end* - from [*x*, *y* + *l*] to [*x*, *y*]
+
+where [*x*, *y*] is the vector’s anchor point and *l* is the vector’s (possibly scaled) length in pixels.
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The vector’s frame anchor, to default **x** and **y** relative to the frame; a constant representing one of the frame corners (*top-left*,
+*top-right*, *bottom-right*, *bottom-left*), sides (*top*, *right*,
+*bottom*, *left*), or *middle* (default). Has no effect if both **x** and **y** are specified.
+
+### Vector options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### VectorX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### VectorY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### Spike options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### WaffleOptions options
+
+Options for the waffleX and waffleY mark.
+
+**multiple** (`number | ParamRef`) — The number of cells per row or column; defaults to undefined for automatic.
+
+**unit** (`number | ParamRef`) — The quantity each cell represents; defaults to 1.
+
+**gap** (`number | ParamRef`) — The gap in pixels between cells; defaults to 1.
+
+**round** (`boolean | ParamRef`) — If true, round to integers to avoid partial cells.
+
+### WaffleX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarXOptions`](#barxoptions-options), [`WaffleOptions`](#waffleoptions-options).
+
+
+### WaffleY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarYOptions`](#baryoptions-options), [`WaffleOptions`](#waffleoptions-options).
+
+
+### VectorShapeName options
+
+```ts
+type VectorShapeName = 'arrow' | 'spike';
+```
+
+### VectorShape options
+
+```ts
+type VectorShape = VectorShapeName;
+```
+
+**`vectorX`:** Known JavaScript limitation: vectorX dispatches to the misspelled vectoX runtime type and rendering raises TypeError. Declarative and Python APIs accept and serialize vectorX, but rendering uses the same JavaScript runtime.
+
+**`vector`:** **Specification vocabulary: VectorShapeName**
+
+The built-in vector shape implementations; one of:
+
+- *arrow* - a straight line with an open arrowhead at the end (↑)
+- *spike* - an isosceles triangle with a flat base (▲)
+
+**Specification vocabulary: VectorShape**
+
+How to draw a vector: either a named shape or a custom implementation.
+
+### annotation examples
+
+`multiline-text`: [json](/templates/marks/annotation/multiline-text.json) · [yaml](/templates/marks/annotation/multiline-text.yaml) · [js](/templates/marks/annotation/multiline-text.js) · <a :href="withBase('/templates/marks/annotation/multiline-text.py')" download>Python</a>.
+
 
 ## basic mark options
 
@@ -1968,6 +2231,7 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`TickYOptions`](#tickyopti
 
 `dot`: [json](/templates/marks/basic/dot.json) · [yaml](/templates/marks/basic/dot.yaml) · [js](/templates/marks/basic/dot.js) · <a :href="withBase('/templates/marks/basic/dot.py')" download>Python</a>.
 
+
 ## connected mark options
 
 Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
@@ -2149,204 +2413,240 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`LinkOptions`](#linkoption
 
 JavaScript-only `native-curve`: [js](/templates/marks/connected/native-curve.js).
 
-## annotation mark options
+
+## density1d mark options
 
 Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
 
-### TextOptions options
+### Density1DOptions options
 
-Options for the text mark.
+The Density1DOptions contract.
 
-Extends [`MarkOptions`](../spec/common-marks#markoptions), [`TextStyles`](../spec/common-marks#textstyles).
+**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels. Defaults to 20.
 
-**x** (`ChannelValueSpec`) — The horizontal position channel specifying the text’s anchor point, typically bound to the *x* scale.
+**bins** (`number | ParamRef`) — The number of bins over which to discretize the data prior to smoothing. Defaults to 1024.
 
-**y** (`ChannelValueSpec`) — The vertical position channel specifying the text’s anchor point, typically bound to the *y* scale.
+**normalize** (`boolean | 'max' | 'sum' | 'none' | ParamRef`) — Normalization method for density estimates. If `false` or `'none'` (the default), the density estimates are smoothed weighted counts. If `true` or `'sum'`, density estimates are divided by the sum of the total point mass. If `'max'`, estimates are divided by the maximum smoothed value.
 
-**z** (`ChannelValue`) — An optional ordinal channel for grouping data into series.
+### DensityAreaXOptions options
 
-**text** (`ChannelValue`) — The text contents channel, possibly with line breaks (\n, \r\n, or \r). If not specified, defaults to the zero-based index [0, 1, 2, …].
+The DensityAreaXOptions contract.
 
-**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y**, along with
-**textAnchor** and **lineAnchor**, based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*, *bottom-left*), or the
-*middle* of the frame.
+Extends [`Omit<AreaXOptions, 'x' | 'x1' | 'x2'>`](#areaxoptions-options).
 
-**lineAnchor** (`'top' | 'middle' | 'bottom' | ParamRef`) — The line anchor controls how text is aligned (typically vertically) relative to its anchor point; it is one of *top*, *bottom*, or *middle*. If the frame anchor is *top*, *top-left*, or *top-right*, the default line anchor is *top*; if the frame anchor is *bottom*, *bottom-right*, or
-*bottom-left*, the default is *bottom*; otherwise it is *middle*.
+**type** (`'areaX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
 
-**rotate** (`ChannelValue | ParamRef`) — The rotation angle in degrees clockwise; a constant or a channel; defaults to 0°. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
 
-### TextXOptions options
+### DensityAreaYOptions options
 
-Options for the textX mark.
+The DensityAreaYOptions contract.
 
-Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
+Extends [`Omit<AreaYOptions, 'y' | 'y1' | 'y2'>`](#areayoptions-options).
 
-**y** (`ChannelValueIntervalSpec`) — The vertical position of the text’s anchor point, typically bound to the
-*y* scale.
+**type** (`'areaY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
 
-**interval** (`Interval | ParamRef`) — An interval (such as *day* or a number), to transform **y** values to the middle of the interval.
+**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
 
-### TextYOptions options
+### DensityLineXOptions options
 
-Options for the textY mark.
+The DensityLineXOptions contract.
+
+Extends [`Omit<LineXOptions, 'x' | 'x1' | 'x2'>`](#linexoptions-options).
+
+**type** (`'lineX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+### DensityLineYOptions options
+
+The DensityLineYOptions contract.
+
+Extends [`Omit<LineYOptions, 'y' | 'y1' | 'y2'>`](#lineyoptions-options).
+
+**type** (`'lineY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+### DensityDotXOptions options
+
+The DensityDotXOptions contract.
+
+Extends [`Omit<DotOptions, 'x'>`](#dotoptions-options).
+
+**type** (`'dotX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+### DensityDotYOptions options
+
+The DensityDotYOptions contract.
+
+Extends [`Omit<DotOptions, 'y'>`](#dotoptions-options).
+
+**type** (`'dot' | 'dotY' | 'circle' | 'hexagon'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+### DensityTextXOptions options
+
+The DensityTextXOptions contract.
 
 Extends [`Omit<TextOptions, 'x'>`](#textoptions-options).
 
-**x** (`ChannelValueIntervalSpec`) — The horizontal position of the text’s anchor point, typically bound to the
-*x* scale.
+**type** (`'textX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
 
-**interval** (`Interval`) — An interval (such as *day* or a number), to transform **x** values to the middle of the interval.
+### DensityTextYOptions options
 
-### Text options
+The DensityTextYOptions contract.
 
-Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextOptions`](#textoptions-options).
+Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
 
+**type** (`'text' | 'textY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
 
-### TextX options
+### DensityXBase options
 
-Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextXOptions`](#textxoptions-options).
+The DensityXBase contract.
 
-
-### TextY options
-
-Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextYOptions`](#textyoptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
 
 
-### ImageOptions options
+### DensityYBase options
 
-Options for the image mark.
+The DensityYBase contract.
 
-Extends [`MarkOptions`](../spec/common-marks#markoptions).
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
 
-**x** (`ChannelValueSpec`) — The horizontal position channel specifying the image’s center; typically bound to the *x* scale.
 
-**y** (`ChannelValueSpec`) — The vertical position channel specifying the image’s center; typically bound to the *y* scale.
+### DensityX options
 
-**width** (`ChannelValue | ParamRef`) — The image width in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive width are not drawn.
+Combines [`DensityXBase`](#densityxbase-options) with [`DensityAreaXOptions`](#densityareaxoptions-options), [`DensityLineXOptions`](#densitylinexoptions-options), [`DensityDotXOptions`](#densitydotxoptions-options), [`DensityTextXOptions`](#densitytextxoptions-options).
 
-**height** (`ChannelValue | ParamRef`) — The image height in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive height are not drawn.
+### DensityY options
 
-**r** (`ChannelValue | ParamRef`) — The image clip radius, for circular images. If null (default), images are not clipped; when a number, it is interpreted as a constant in pixels; otherwise it is interpreted as a channel, typically bound to the *r* scale. Also defaults **height** and **width** to twice its value.
+Combines [`DensityYBase`](#densityybase-options) with [`DensityAreaYOptions`](#densityareayoptions-options), [`DensityLineYOptions`](#densitylineyoptions-options), [`DensityDotYOptions`](#densitydotyoptions-options), [`DensityTextYOptions`](#densitytextyoptions-options).
 
-**rotate** (`ChannelValue | ParamRef`) — The rotation angle, in degrees clockwise. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+**`densityX`, `densityY`:** Density wrappers always construct areaX or areaY. An explicit type is interpreted as a queried column, causing a missing-column error. Use densityY without type for the supported declarative form; native densityX must also omit type.
 
-**src** (`ChannelValue | ParamRef`) — The required image URL (or relative path). If a string that starts with a dot, slash, or URL protocol (*e.g.*, “https:”) it is assumed to be a constant; otherwise it is interpreted as a channel.
+**`densityX`, `densityY`:** Density rendering requires a SQL-backed data source. Inline arrays remain admitted by the general declarative data type, but the retained density query engine rejects them. Native weight channels retain separate authoring applicability.
 
-**preserveAspectRatio** (`string | ParamRef`) — The image [aspect ratio](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio); defaults to *xMidYMid meet*. To crop the image instead of scaling it to fit, use *xMidYMid slice*.
+### density1d examples
 
-**crossOrigin** (`string | ParamRef`) — The [cross-origin](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/crossorigin) behavior. See the [Plot.image notebook](https://observablehq.com/@observablehq/plot-image) for details.
+`densityY`: [json](/templates/marks/density1d/densityY.json) · [yaml](/templates/marks/density1d/densityY.yaml) · [js](/templates/marks/density1d/densityY.js) · <a :href="withBase('/templates/marks/density1d/densityY.py')" download>Python</a>.
 
-**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y** based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*,
-*bottom-left*), or the *middle* of the frame.
+
+## grid mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### Grid2DOptions options
+
+Options for grid2d marks.
+
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale. Domain values are binned into a grid with *width* horizontal bins.
+
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale. Domain values are binned into a grid with *height* vertical bins.
+
+**width** (`number | ParamRef`) — The width (number of columns) of the grid, in actual pixels.
+
+**height** (`number | ParamRef`) — The height (number of rows) of the grid, in actual pixels.
+
+**pixelSize** (`number | ParamRef`) — The effective screen size of a raster pixel, used to determine the height and width of the raster from the frame’s dimensions; defaults to 1.
+
+**pad** (`number | ParamRef`) — The bin padding, one of 1 (default) to include extra padding for the final bin, or 0 to make the bins flush with the maximum domain value.
+
+**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels.
+
+**interpolate** (`GridInterpolate | null | ParamRef`) — The spatial interpolation method; one of:
+
+- *none* - do not perform interpolation (the default), maps samples to single bins
+- *linear* - apply proportional linear interpolation across adjacent bins
+- *nearest* - assign each pixel to the closest sample’s value (Voronoi diagram)
+- *barycentric* - apply barycentric interpolation over the Delaunay triangulation
+- *random-walk* - apply a random walk from each pixel, stopping when near a sample
+
+### RasterOptions options
+
+Options for the raster mark.
+
+Extends [`Grid2DOptions`](#grid2doptions-options), [`Omit<MarkOptions, 'fill' | 'fillOpacity'>`](../spec/common-marks#markoptions).
 
 **imageRendering** (`string | ParamRef`) — The [image-rendering attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/image-rendering); defaults to *auto* (bilinear). The option may be set to *pixelated* to disable bilinear interpolation for a sharper image; however, note that this is not supported in WebKit.
 
-### Image options
+**fill** (`ChannelValueSpec | ParamRef`) — The fill, typically bound to the *color* scale. Can be specified as a constant or a channel based on the input data.  Use the special value `"density"` to map computed density values to pixel colors. Use an aggregate expression to instead visualize an aggregate value per raster bin. If fill is set to a constant color or to a non-aggregate field, opacity will be used to convey densities. If a non-aggregate (group by) field is provided, multiple rasters are created with a unique categorical color per layer.
 
-Extends [`MarkData`](../spec/common-marks#markdata), [`ImageOptions`](#imageoptions-options).
+**fillOpacity** (`ChannelValueSpec | ParamRef`) — The opacity, typically bound to the *opacity* scale. Can be specified as a constant or a channel based on the input data. Use the special value `"density"` to map computed density values to opacity. Use an aggregate expression to instead visualize an aggregate value per raster bin.
 
+### Raster options
 
-### VectorOptions options
-
-Options for the vector mark.
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions).
-
-**x** (`ChannelValueSpec`) — The horizontal position of the vector’s anchor point; an optional channel bound to the *x* scale. Default depends on the **frameAnchor**.
-
-**y** (`ChannelValueSpec`) — The vertical position of the vector’s anchor point; an optional channel bound to the *y* scale. Default depends on the **frameAnchor**.
-
-**r** (`number | ParamRef`) — The vector shape’s radius, such as half the width of the *arrow*’s head or the *spike*’s base; a constant number in pixels. Defaults to 3.5 pixels.
-
-**length** (`ChannelValueSpec`) — The vector’s length; either an optional channel bound to the *length* scale or a constant number in pixels. Defaults to 12 pixels.
-
-**rotate** (`ChannelValue`) — The vector’s orientation (rotation angle); either a constant number in degrees clockwise, or an optional channel (with no associated scale). Defaults to 0 degrees with the vector pointing up.
-
-**shape** (`VectorShape | ParamRef`) — The shape of the vector; a constant. Defaults to *arrow*.
-
-**anchor** (`'start' | 'middle' | 'end' | ParamRef`) — The vector’s position along its orientation relative to its anchor point; a constant. Assuming a default **rotate** angle of 0°, one of:
-
-- *start* - from [*x*, *y*] to [*x*, *y* - *l*]
-- *middle* (default) - from [*x*, *y* + *l* / 2] to [*x*, *y* - *l* / 2]
-- *end* - from [*x*, *y* + *l*] to [*x*, *y*]
-
-where [*x*, *y*] is the vector’s anchor point and *l* is the vector’s (possibly scaled) length in pixels.
-
-**frameAnchor** (`FrameAnchor | ParamRef`) — The vector’s frame anchor, to default **x** and **y** relative to the frame; a constant representing one of the frame corners (*top-left*,
-*top-right*, *bottom-right*, *bottom-left*), sides (*top*, *right*,
-*bottom*, *left*), or *middle* (default). Has no effect if both **x** and **y** are specified.
-
-### Vector options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
 
 
-### VectorX options
+### Heatmap options
 
-Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
-
-
-### VectorY options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
 
 
-### Spike options
+### RasterTile options
 
-Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
 
+**origin** (`[number, number] | ParamRef`) — The coordinates of the tile origin in the **x** and **y** data domains. Defaults to [0, 0].
 
-### WaffleOptions options
+### ContourOptions options
 
-Options for the waffleX and waffleY mark.
+The ContourOptions contract.
 
-**multiple** (`number | ParamRef`) — The number of cells per row or column; defaults to undefined for automatic.
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Grid2DOptions`](#grid2doptions-options).
 
-**unit** (`number | ParamRef`) — The quantity each cell represents; defaults to 1.
+**thresholds** (`number | Array<number> | ParamRef`) — The number of contour thresholds to subdivide the domain into discrete level sets; defaults to 10. One of:
 
-**gap** (`number | ParamRef`) — The gap in pixels between cells; defaults to 1.
+- a count representing the desired number of bins
+- an array of *n* threshold values for *n* - 1 bins
 
-**round** (`boolean | ParamRef`) — If true, round to integers to avoid partial cells.
+### Contour options
 
-### WaffleX options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`BarXOptions`](#barxoptions-options), [`WaffleOptions`](#waffleoptions-options).
-
-
-### WaffleY options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`BarYOptions`](#baryoptions-options), [`WaffleOptions`](#waffleoptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`ContourOptions`](#contouroptions-options).
 
 
-### VectorShapeName options
+### DenseLineOptions options
+
+The DenseLineOptions contract.
+
+Extends [`RasterOptions`](#rasteroptions-options).
+
+**normalize** (`boolean | ParamRef`) — Flag to perform approximate arc length normalization of line segments to prevent artifacts due to overcounting steep lines. Defaults to `true`.
+
+**z** (`ChannelValue`) — A ordinal channel for grouping data into series to be drawn as separate lines.
+
+### DenseLine options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DenseLineOptions`](#denselineoptions-options).
+
+
+### Density2DOptions options
+
+The Density2DOptions contract.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Omit<DotOptions, 'x' | 'y'>`](#dotoptions-options), [`TextStyles`](../spec/common-marks#textstyles), [`Grid2DOptions`](#grid2doptions-options).
+
+**type** (`'dot' | 'circle' | 'hexagon' | 'cell' | 'text' | ParamRef`) — The basic mark type to use to render 2D density values. Defaults to a dot mark; cell and text marks are also supported.
+
+### Density options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density2DOptions`](#density2doptions-options).
+
+
+### GridInterpolate options
 
 ```ts
-type VectorShapeName = 'arrow' | 'spike';
+type GridInterpolate = 'none' | 'linear' | 'nearest' | 'barycentric' | 'random-walk';
 ```
 
-### VectorShape options
+**`rasterTile`:** rasterTile fails on multi-pixel grids; use raster or heatmap. Tile queries use the global coordinator even inside a local API context.
 
-```ts
-type VectorShape = VectorShapeName;
-```
+**`density`:** Density cells use ordinal domains; set pad=1 so endpoint grid positions fall inside those domains.
 
-**`vectorX`:** Known JavaScript limitation: vectorX dispatches to the misspelled vectoX runtime type and rendering raises TypeError. Declarative and Python APIs accept and serialize vectorX, but rendering uses the same JavaScript runtime.
+**`density`, `denseLine`, `contour`, `heatmap`, `raster`, `rasterTile`:** Null interpolation fails during rendering. Use none to disable interpolation.
 
-**`vector`:** **Specification vocabulary: VectorShapeName**
+### grid examples
 
-The built-in vector shape implementations; one of:
+`raster`: [json](/templates/marks/grid/raster.json) · [yaml](/templates/marks/grid/raster.yaml) · [js](/templates/marks/grid/raster.js) · <a :href="withBase('/templates/marks/grid/raster.py')" download>Python</a>.
 
-- *arrow* - a straight line with an open arrowhead at the end (↑)
-- *spike* - an isosceles triangle with a flat base (▲)
+JavaScript-only `native-interpolator`: [js](/templates/marks/grid/native-interpolator.js).
 
-**Specification vocabulary: VectorShape**
-
-How to draw a vector: either a named shape or a custom implementation.
-
-### annotation examples
-
-`multiline-text`: [json](/templates/marks/annotation/multiline-text.json) · [yaml](/templates/marks/annotation/multiline-text.yaml) · [js](/templates/marks/annotation/multiline-text.js) · <a :href="withBase('/templates/marks/annotation/multiline-text.py')" download>Python</a>.
 
 ## guides mark options
 
@@ -2553,237 +2853,91 @@ type AxisScaleOptions = Pick<ScaleOptions, 'tickSize' | 'tickPadding' | 'tickFor
 
 JavaScript-only `native-formatter`: [js](/templates/marks/guides/native-formatter.js).
 
-## density1d mark options
+
+## spatial mark options
 
 Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
 
-### Density1DOptions options
+### GeoOptions options
 
-The Density1DOptions contract.
+Options for the geo mark.
 
-**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels. Defaults to 20.
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
 
-**bins** (`number | ParamRef`) — The number of bins over which to discretize the data prior to smoothing. Defaults to 1024.
+**geometry** (`ChannelValue`) — A required channel for the geometry to render; defaults to identity, assuming *data* is a GeoJSON object or an iterable of GeoJSON objects.
 
-**normalize** (`boolean | 'max' | 'sum' | 'none' | ParamRef`) — Normalization method for density estimates. If `false` or `'none'` (the default), the density estimates are smoothed weighted counts. If `true` or `'sum'`, density estimates are divided by the sum of the total point mass. If `'max'`, estimates are divided by the maximum smoothed value.
+**r** (`ChannelValueSpec | ParamRef`) — The size of Point and MultiPoint geometries, defaulting to a constant 3 pixels. If **r** is a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel and the effective radius is controlled by the *r* scale, which defaults to a *sqrt* scale such that the visual area of a point is proportional to its associated value.
 
-### DensityAreaXOptions options
+If **r** is a channel, geometries will be sorted by descending radius by default, to limit occlusion; use the **sort** transform to control render order. Geometries with a nonpositive radius are not drawn.
 
-The DensityAreaXOptions contract.
+### Geo options
 
-Extends [`Omit<AreaXOptions, 'x' | 'x1' | 'x2'>`](#areaxoptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`GeoOptions`](#geooptions-options).
 
-**type** (`'areaX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
 
-**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
+### Sphere options
 
-### DensityAreaYOptions options
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
 
-The DensityAreaYOptions contract.
 
-Extends [`Omit<AreaYOptions, 'y' | 'y1' | 'y2'>`](#areayoptions-options).
+### Graticule options
 
-**type** (`'areaY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
 
-**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
 
-### DensityLineXOptions options
+### DelaunayOptions options
 
-The DensityLineXOptions contract.
+Options for the Delaunay marks.
 
-Extends [`Omit<LineXOptions, 'x' | 'x1' | 'x2'>`](#linexoptions-options).
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`CurveOptions`](../spec/common-marks#curveoptions).
 
-**type** (`'lineX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale.
 
-### DensityLineYOptions options
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale.
 
-The DensityLineYOptions contract.
+**z** (`ChannelValue`) — An optional ordinal channel for grouping to produce multiple (possibly overlapping) triangulations.
 
-Extends [`Omit<LineYOptions, 'y' | 'y1' | 'y2'>`](#lineyoptions-options).
+### DelaunayLink options
 
-**type** (`'lineY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
 
-### DensityDotXOptions options
 
-The DensityDotXOptions contract.
+### DelaunayMesh options
 
-Extends [`Omit<DotOptions, 'x'>`](#dotoptions-options).
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
 
-**type** (`'dotX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
 
-### DensityDotYOptions options
+### Hull options
 
-The DensityDotYOptions contract.
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
 
-Extends [`Omit<DotOptions, 'y'>`](#dotoptions-options).
 
-**type** (`'dot' | 'dotY' | 'circle' | 'hexagon'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+### Voronoi options
 
-### DensityTextXOptions options
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
 
-The DensityTextXOptions contract.
 
-Extends [`Omit<TextOptions, 'x'>`](#textoptions-options).
+### VoronoiMesh options
 
-**type** (`'textX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
 
-### DensityTextYOptions options
 
-The DensityTextYOptions contract.
+**`geo`, `sphere`, `graticule`, `voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Geo and topology wire specifications require data; sphere and graticule reject it. Python signatures keep data=None for all spatial marks.
 
-Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
+**`geo`:** Provide an explicit geometry column for local rows. Queried geo marks otherwise select `st_asgeojson(geom)`; a null first geometry prevents later strings from being decoded. Use the geojson transform for an explicit GEOMETRY channel and load DuckDB spatial before querying spatial tables.
 
-**type** (`'text' | 'textY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+**`geo`:** Raw FeatureCollection data fails during rendering. Arrays of GeoJSON objects also need an explicit geometry channel. Geometry accessors and projection initializers are JavaScript-only.
 
-### DensityXBase options
+**`sphere`, `graticule`:** Sphere and graticule take an options object without data in JavaScript. Use a spherical projection; serializing a supplied Python data argument is outside their wire contract.
 
-The DensityXBase contract.
+**`voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Observable Plot computes topology from x/y positions; z separates groups. Mesh variants do not support fill.
 
-Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
+### spatial examples
 
+`geo-polygons`: [json](/templates/marks/spatial/geo-polygons.json) · [yaml](/templates/marks/spatial/geo-polygons.yaml) · [js](/templates/marks/spatial/geo-polygons.js) · <a :href="withBase('/templates/marks/spatial/geo-polygons.py')" download>Python</a>.
 
-### DensityYBase options
+JavaScript-only `native-projection-initializer`: [js](/templates/marks/spatial/native-projection-initializer.js).
 
-The DensityYBase contract.
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
-
-
-### DensityX options
-
-Combines [`DensityXBase`](#densityxbase-options) with [`DensityAreaXOptions`](#densityareaxoptions-options), [`DensityLineXOptions`](#densitylinexoptions-options), [`DensityDotXOptions`](#densitydotxoptions-options), [`DensityTextXOptions`](#densitytextxoptions-options).
-
-### DensityY options
-
-Combines [`DensityYBase`](#densityybase-options) with [`DensityAreaYOptions`](#densityareayoptions-options), [`DensityLineYOptions`](#densitylineyoptions-options), [`DensityDotYOptions`](#densitydotyoptions-options), [`DensityTextYOptions`](#densitytextyoptions-options).
-
-**`densityX`, `densityY`:** Density wrappers always construct areaX or areaY. An explicit type is interpreted as a queried column, causing a missing-column error. Use densityY without type for the supported declarative form; native densityX must also omit type.
-
-**`densityX`, `densityY`:** Density rendering requires a SQL-backed data source. Inline arrays remain admitted by the general declarative data type, but the retained density query engine rejects them. Native weight channels retain separate authoring applicability.
-
-### density1d examples
-
-`densityY`: [json](/templates/marks/density1d/densityY.json) · [yaml](/templates/marks/density1d/densityY.yaml) · [js](/templates/marks/density1d/densityY.js) · <a :href="withBase('/templates/marks/density1d/densityY.py')" download>Python</a>.
-
-## grid mark options
-
-Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
-
-### Grid2DOptions options
-
-Options for grid2d marks.
-
-**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale. Domain values are binned into a grid with *width* horizontal bins.
-
-**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale. Domain values are binned into a grid with *height* vertical bins.
-
-**width** (`number | ParamRef`) — The width (number of columns) of the grid, in actual pixels.
-
-**height** (`number | ParamRef`) — The height (number of rows) of the grid, in actual pixels.
-
-**pixelSize** (`number | ParamRef`) — The effective screen size of a raster pixel, used to determine the height and width of the raster from the frame’s dimensions; defaults to 1.
-
-**pad** (`number | ParamRef`) — The bin padding, one of 1 (default) to include extra padding for the final bin, or 0 to make the bins flush with the maximum domain value.
-
-**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels.
-
-**interpolate** (`GridInterpolate | null | ParamRef`) — The spatial interpolation method; one of:
-
-- *none* - do not perform interpolation (the default), maps samples to single bins
-- *linear* - apply proportional linear interpolation across adjacent bins
-- *nearest* - assign each pixel to the closest sample’s value (Voronoi diagram)
-- *barycentric* - apply barycentric interpolation over the Delaunay triangulation
-- *random-walk* - apply a random walk from each pixel, stopping when near a sample
-
-### RasterOptions options
-
-Options for the raster mark.
-
-Extends [`Grid2DOptions`](#grid2doptions-options), [`Omit<MarkOptions, 'fill' | 'fillOpacity'>`](../spec/common-marks#markoptions).
-
-**imageRendering** (`string | ParamRef`) — The [image-rendering attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/image-rendering); defaults to *auto* (bilinear). The option may be set to *pixelated* to disable bilinear interpolation for a sharper image; however, note that this is not supported in WebKit.
-
-**fill** (`ChannelValueSpec | ParamRef`) — The fill, typically bound to the *color* scale. Can be specified as a constant or a channel based on the input data.  Use the special value `"density"` to map computed density values to pixel colors. Use an aggregate expression to instead visualize an aggregate value per raster bin. If fill is set to a constant color or to a non-aggregate field, opacity will be used to convey densities. If a non-aggregate (group by) field is provided, multiple rasters are created with a unique categorical color per layer.
-
-**fillOpacity** (`ChannelValueSpec | ParamRef`) — The opacity, typically bound to the *opacity* scale. Can be specified as a constant or a channel based on the input data. Use the special value `"density"` to map computed density values to opacity. Use an aggregate expression to instead visualize an aggregate value per raster bin.
-
-### Raster options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
-
-
-### Heatmap options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
-
-
-### RasterTile options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
-
-**origin** (`[number, number] | ParamRef`) — The coordinates of the tile origin in the **x** and **y** data domains. Defaults to [0, 0].
-
-### ContourOptions options
-
-The ContourOptions contract.
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Grid2DOptions`](#grid2doptions-options).
-
-**thresholds** (`number | Array<number> | ParamRef`) — The number of contour thresholds to subdivide the domain into discrete level sets; defaults to 10. One of:
-
-- a count representing the desired number of bins
-- an array of *n* threshold values for *n* - 1 bins
-
-### Contour options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`ContourOptions`](#contouroptions-options).
-
-
-### DenseLineOptions options
-
-The DenseLineOptions contract.
-
-Extends [`RasterOptions`](#rasteroptions-options).
-
-**normalize** (`boolean | ParamRef`) — Flag to perform approximate arc length normalization of line segments to prevent artifacts due to overcounting steep lines. Defaults to `true`.
-
-**z** (`ChannelValue`) — A ordinal channel for grouping data into series to be drawn as separate lines.
-
-### DenseLine options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DenseLineOptions`](#denselineoptions-options).
-
-
-### Density2DOptions options
-
-The Density2DOptions contract.
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Omit<DotOptions, 'x' | 'y'>`](#dotoptions-options), [`TextStyles`](../spec/common-marks#textstyles), [`Grid2DOptions`](#grid2doptions-options).
-
-**type** (`'dot' | 'circle' | 'hexagon' | 'cell' | 'text' | ParamRef`) — The basic mark type to use to render 2D density values. Defaults to a dot mark; cell and text marks are also supported.
-
-### Density options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`Density2DOptions`](#density2doptions-options).
-
-
-### GridInterpolate options
-
-```ts
-type GridInterpolate = 'none' | 'linear' | 'nearest' | 'barycentric' | 'random-walk';
-```
-
-**`rasterTile`:** rasterTile fails on multi-pixel grids; use raster or heatmap. Tile queries use the global coordinator even inside a local API context.
-
-**`density`:** Density cells use ordinal domains; set pad=1 so endpoint grid positions fall inside those domains.
-
-**`density`, `denseLine`, `contour`, `heatmap`, `raster`, `rasterTile`:** Null interpolation fails during rendering. Use none to disable interpolation.
-
-### grid examples
-
-`raster`: [json](/templates/marks/grid/raster.json) · [yaml](/templates/marks/grid/raster.yaml) · [js](/templates/marks/grid/raster.js) · <a :href="withBase('/templates/marks/grid/raster.py')" download>Python</a>.
-
-JavaScript-only `native-interpolator`: [js](/templates/marks/grid/native-interpolator.js).
 
 ## statistical mark options
 
@@ -2889,87 +3043,3 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`ErrorBarYOptions`](#error
 ### statistical examples
 
 `regressionY`: [json](/templates/marks/statistical/regressionY.json) · [yaml](/templates/marks/statistical/regressionY.yaml) · [js](/templates/marks/statistical/regressionY.js) · <a :href="withBase('/templates/marks/statistical/regressionY.py')" download>Python</a>.
-
-## spatial mark options
-
-Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
-
-### GeoOptions options
-
-Options for the geo mark.
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions).
-
-**geometry** (`ChannelValue`) — A required channel for the geometry to render; defaults to identity, assuming *data* is a GeoJSON object or an iterable of GeoJSON objects.
-
-**r** (`ChannelValueSpec | ParamRef`) — The size of Point and MultiPoint geometries, defaulting to a constant 3 pixels. If **r** is a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel and the effective radius is controlled by the *r* scale, which defaults to a *sqrt* scale such that the visual area of a point is proportional to its associated value.
-
-If **r** is a channel, geometries will be sorted by descending radius by default, to limit occlusion; use the **sort** transform to control render order. Geometries with a nonpositive radius are not drawn.
-
-### Geo options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`GeoOptions`](#geooptions-options).
-
-
-### Sphere options
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions).
-
-
-### Graticule options
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions).
-
-
-### DelaunayOptions options
-
-Options for the Delaunay marks.
-
-Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions), [`CurveOptions`](../spec/common-marks#curveoptions).
-
-**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale.
-
-**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale.
-
-**z** (`ChannelValue`) — An optional ordinal channel for grouping to produce multiple (possibly overlapping) triangulations.
-
-### DelaunayLink options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
-
-
-### DelaunayMesh options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
-
-
-### Hull options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
-
-
-### Voronoi options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
-
-
-### VoronoiMesh options
-
-Extends [`MarkData`](../spec/common-marks#markdata), [`DelaunayOptions`](#delaunayoptions-options).
-
-
-**`geo`, `sphere`, `graticule`, `voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Geo and topology wire specifications require data; sphere and graticule reject it. Python signatures keep data=None for all spatial marks.
-
-**`geo`:** Provide an explicit geometry column for local rows. Queried geo marks otherwise select `st_asgeojson(geom)`; a null first geometry prevents later strings from being decoded. Use the geojson transform for an explicit GEOMETRY channel and load DuckDB spatial before querying spatial tables.
-
-**`geo`:** Raw FeatureCollection data fails during rendering. Arrays of GeoJSON objects also need an explicit geometry channel. Geometry accessors and projection initializers are JavaScript-only.
-
-**`sphere`, `graticule`:** Sphere and graticule take an options object without data in JavaScript. Use a spherical projection; serializing a supplied Python data argument is outside their wire contract.
-
-**`voronoi`, `voronoiMesh`, `delaunayLink`, `delaunayMesh`, `hull`:** Observable Plot computes topology from x/y positions; z separates groups. Mesh variants do not support fill.
-
-### spatial examples
-
-`geo-polygons`: [json](/templates/marks/spatial/geo-polygons.json) · [yaml](/templates/marks/spatial/geo-polygons.yaml) · [js](/templates/marks/spatial/geo-polygons.js) · <a :href="withBase('/templates/marks/spatial/geo-polygons.py')" download>Python</a>.
-
-JavaScript-only `native-projection-initializer`: [js](/templates/marks/spatial/native-projection-initializer.js).

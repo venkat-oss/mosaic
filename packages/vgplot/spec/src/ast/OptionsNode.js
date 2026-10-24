@@ -36,7 +36,7 @@ export class OptionsNode extends ASTNode {
     const { options } = this;
     const opt = [];
     for (const key in options) {
-      opt.push(`${key}: ${options[key].codegen(ctx)}`);
+      opt.push(`${ctx.propertyKey(key)}: ${options[key].codegen(ctx)}`);
     }
     return opt.length ? `{${ctx.maybeLineWrap(opt)}}` : '';
   }

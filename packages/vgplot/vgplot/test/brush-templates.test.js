@@ -22,7 +22,7 @@ globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.win
 globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 for (const dimension of ['width', 'height'])
   Object.defineProperty(dom.window.SVGElement.prototype, dimension, { get() { return { baseVal: { value: Number(this.getAttribute(dimension)) } }; }, configurable: true });
-const schema = JSON.parse(await readFile(resolve(workspace, 'packages/vgplot/spec/dist/mosaic-schema.json'), 'utf8'));
+const schema = JSON.parse(await readFile(resolve(workspace, 'packages/vgplot/spec/src/generated/mosaic-schema.json'), 'utf8'));
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true });
 addFormats.default(ajv);
 const validate = ajv.compile(schema);

@@ -1,5 +1,5 @@
-load(":cue.bzl", "cue_binary")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
+load(":cue.bzl", "cue_binary")
 
 exports_files(["duckdb.bzl", "cue.bzl", "javascript.bzl", "examples.bzl"] + glob(["backends-*.patch"]))
 
@@ -44,6 +44,12 @@ js_binary(
     entry_point = "example-builder.mjs",
     data = ["//:node_modules/vite"],
     patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "api_sources",
+    srcs = ["api-sync.mjs"],
     visibility = ["//visibility:public"],
 )
 
@@ -114,6 +120,58 @@ js_test(
     visibility = ["//visibility:public"],
 )
 
+cue_binary(
+    name = "cue",
+    visibility = ["//visibility:public"],
+)
 
+js_test(
+    name = "cue_format",
+    entry_point = "cue-format.mjs",
+    args = ["$(rlocationpath :cue)"],
+    data = [":cue", "//api:sources", "//api/catalog:sources"],
+    copy_data_to_bin = False,
+    visibility = ["//visibility:public"],
+)
 
-cue_binary(name = "cue", visibility = ["//visibility:public"])
+js_binary(
+    name = "api_format",
+    entry_point = "api-format.mjs",
+    data = ["api-sync.mjs"],
+)
+
+js_run_binary(
+    name = "api_generated",
+    tool = ":api_format",
+    srcs = ["//api:projection", ":cue", "//build/python:ruff", "//:pyproject.toml"],
+    args = [
+        "$(execpath //api:projection)",
+        "$(RULEDIR)/api-files",
+        "$(execpath :cue)",
+        "$(execpath //build/python:ruff)",
+        "$(execpath //:pyproject.toml)",
+    ],
+    out_dirs = ["api-files"],
+    copy_srcs_to_bin = False,
+    patch_node_fs = False,
+    mnemonic = "APIFormat",
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "api_sync",
+    entry_point = "api-sync.mjs",
+    args = ["$(rlocationpath :api_generated)"],
+    data = [":api_generated"],
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "api_check",
+    entry_point = "api-sync.mjs",
+    copy_data_to_bin = False,
+    args = ["--check", "$(rlocationpath :api_generated)", "$(rlocationpath //api:generated.json)"],
+    data = [":api_generated", "//:api_mirrors", "//api:generated.json"],
+    visibility = ["//visibility:public"],
+)

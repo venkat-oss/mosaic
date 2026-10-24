@@ -1,15 +1,23 @@
-import { SQLExpression } from './Expression.js';
-import { IntervalTransform } from './Interval.js';
 import { ParamRef } from './Param.js';
+import { IntervalTransform } from './Interval.js';
+import { SQLExpression } from './Expression.js';
+
+
 /**
  * A field argument to a data transform.
  */
 export type TransformField = string | ParamRef | SQLExpression | Transform;
+
+
 /**
  * Window frame exclusion modes.
  */
 export type FrameExclude = 'CURRENT ROW' | 'GROUP' | 'TIES' | 'NO OTHERS';
+
+
 export type FrameValue = number | IntervalTransform | null;
+
+
 /**
  * Window transform options.
  */
@@ -26,29 +34,32 @@ export interface WindowOptions {
 
   exclude?: Uppercase<FrameExclude> | Lowercase<FrameExclude>;
 }
-/**
- * Aggregate transform options.
- */
-export interface AggregateOptions {
-  distinct?: boolean;
-}
+
+
 /**
  * A zero argument transform signature.
  */
 type Nullary = null | [];
+
+
 /**
  * A single argument transform signature.
  */
 type Unary<T> = T | [T];
+
+
 /**
  * A two argument transform signature; both arguments are required.
  */
 type Binary<T> = [T, T];
-type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null];
+
+
 /**
  * Binning interval names.
  */
 export type BinInterval = 'date' | 'number' | 'millisecond' | 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
+
+
 /**
  * A bin transform.
  */
@@ -88,6 +99,8 @@ export interface Bin {
    */
   offset?: number;
 }
+
+
 /**
  * A column transform.
  */
@@ -97,6 +110,8 @@ export interface Column {
    */
   column: Unary<string | ParamRef>;
 }
+
+
 /**
  * A dateMonth transform.
  */
@@ -106,6 +121,8 @@ export interface DateMonth {
    */
   dateMonth: Unary<TransformField | Date>;
 }
+
+
 /**
  * A dateMonthDay transform.
  */
@@ -115,6 +132,8 @@ export interface DateMonthDay {
    */
   dateMonthDay: Unary<TransformField | Date>;
 }
+
+
 /**
  * A dateDay transform.
  */
@@ -124,6 +143,8 @@ export interface DateDay {
    */
   dateDay: Unary<TransformField | Date>;
 }
+
+
 /**
  * A centroid transform.
  */
@@ -133,6 +154,8 @@ export interface Centroid {
    */
   centroid: Unary<TransformField>;
 }
+
+
 /**
  * A centroidX transform.
  */
@@ -142,6 +165,8 @@ export interface CentroidX {
    */
   centroidX: Unary<TransformField>;
 }
+
+
 /**
  * A centroidY transform.
  */
@@ -151,6 +176,8 @@ export interface CentroidY {
    */
   centroidY: Unary<TransformField>;
 }
+
+
 /**
  * A geojson transform.
  */
@@ -160,6 +187,16 @@ export interface GeoJSON {
    */
   geojson: Unary<TransformField>;
 }
+
+
+/**
+ * Aggregate transform options.
+ */
+export interface AggregateOptions {
+  distinct?: boolean;
+}
+
+
 /**
  * An argmax aggregate transform.
  */
@@ -169,6 +206,8 @@ export interface Argmax extends AggregateOptions, WindowOptions {
    */
   argmax: Binary<TransformField>;
 }
+
+
 /**
  * An argmin aggregate transform.
  */
@@ -178,6 +217,8 @@ export interface Argmin extends AggregateOptions, WindowOptions {
    */
   argmin: Binary<TransformField>;
 }
+
+
 /**
  * An avg (average, or mean) aggregate transform.
  */
@@ -187,6 +228,8 @@ export interface Avg extends AggregateOptions, WindowOptions {
    */
   avg: Unary<TransformField>;
 }
+
+
 /**
  * A count aggregate transform.
  */
@@ -196,6 +239,8 @@ export interface Count extends AggregateOptions, WindowOptions {
    */
   count: Nullary | Unary<TransformField>;
 }
+
+
 /**
  * A sample covariance aggregate transform.
  */
@@ -205,6 +250,8 @@ export interface Covariance extends AggregateOptions, WindowOptions {
    */
   covariance: Binary<TransformField>;
 }
+
+
 /**
  * A population covariance aggregate transform.
  */
@@ -214,6 +261,8 @@ export interface CovarPop extends AggregateOptions, WindowOptions {
    */
   covarPop: Binary<TransformField>;
 }
+
+
 /**
  * A first aggregate transform.
  */
@@ -223,6 +272,8 @@ export interface First extends AggregateOptions, WindowOptions {
    */
   first: Unary<TransformField>;
 }
+
+
 /**
  * A geometric mean aggregate transform.
  */
@@ -232,6 +283,8 @@ export interface Geomean extends AggregateOptions, WindowOptions {
    */
   geomean: Unary<TransformField>;
 }
+
+
 /**
  * A last aggregate transform.
  */
@@ -241,6 +294,8 @@ export interface Last extends AggregateOptions, WindowOptions {
    */
   last: Unary<TransformField>;
 }
+
+
 /**
  * A max aggregate transform.
  */
@@ -250,6 +305,8 @@ export interface Max extends AggregateOptions, WindowOptions {
    */
   max: Unary<TransformField>;
 }
+
+
 /**
  * A min aggregate transform.
  */
@@ -259,6 +316,8 @@ export interface Min extends AggregateOptions, WindowOptions {
    */
   min: Unary<TransformField>;
 }
+
+
 /**
  * A median aggregate transform.
  */
@@ -268,6 +327,8 @@ export interface Median extends AggregateOptions, WindowOptions {
    */
   median: Unary<TransformField>;
 }
+
+
 /**
  * A mode aggregate transform.
  */
@@ -277,6 +338,8 @@ export interface Mode extends AggregateOptions, WindowOptions {
    */
   mode: Unary<TransformField>;
 }
+
+
 /**
  * A product aggregate transform.
  */
@@ -286,6 +349,8 @@ export interface Product extends AggregateOptions, WindowOptions {
    */
   product: Unary<TransformField>;
 }
+
+
 /**
  * A quantile aggregate transform.
  */
@@ -295,6 +360,8 @@ export interface Quantile extends AggregateOptions, WindowOptions {
    */
   quantile: [expr: TransformField, p: TransformField | number];
 }
+
+
 /**
  * A sample standard deviation aggregate transform.
  */
@@ -304,6 +371,8 @@ export interface Stddev extends AggregateOptions, WindowOptions {
    */
   stddev: Unary<TransformField>;
 }
+
+
 /**
  * A population standard deviation aggregate transform.
  */
@@ -313,6 +382,8 @@ export interface StddevPop extends AggregateOptions, WindowOptions {
    */
   stddevPop: Unary<TransformField>;
 }
+
+
 /**
  * A sum aggregate transform.
  */
@@ -322,6 +393,8 @@ export interface Sum extends AggregateOptions, WindowOptions {
    */
   sum: Unary<TransformField>;
 }
+
+
 /**
  * A sample variance aggregate transform.
  */
@@ -331,6 +404,8 @@ export interface Variance extends AggregateOptions, WindowOptions {
    */
   variance: Unary<TransformField>;
 }
+
+
 /**
  * A population variance aggregate transform.
  */
@@ -340,6 +415,11 @@ export interface VarPop extends AggregateOptions, WindowOptions {
    */
   varPop: Unary<TransformField>;
 }
+
+
+type ArgLagLead = TransformField | [expr: TransformField, offset?: TransformField | number, defaultValue?: TransformField | number | boolean | Date | null];
+
+
 /**
  * A row_number window transform.
  */
@@ -349,6 +429,8 @@ export interface RowNumber extends WindowOptions {
    */
   row_number: Nullary;
 }
+
+
 /**
  * A rank window transform.
  */
@@ -358,6 +440,8 @@ export interface Rank extends WindowOptions {
    */
   rank: Nullary;
 }
+
+
 /**
  * A dense_rank window transform.
  */
@@ -367,6 +451,8 @@ export interface DenseRank extends WindowOptions {
    */
   dense_rank: Nullary;
 }
+
+
 /**
  * A percent_rank window transform.
  */
@@ -376,6 +462,8 @@ export interface PercentRank extends WindowOptions {
    */
   percent_rank: Nullary;
 }
+
+
 /**
  * A cume_dist window transform.
  */
@@ -385,6 +473,8 @@ export interface CumeDist extends WindowOptions {
    */
   cume_dist: Nullary;
 }
+
+
 /**
  * An ntile window transform.
  */
@@ -394,6 +484,8 @@ export interface NTile extends WindowOptions {
    */
   ntile: Unary<TransformField>;
 }
+
+
 /**
  * A lag window transform.
  */
@@ -403,6 +495,8 @@ export interface Lag extends WindowOptions {
    */
   lag: ArgLagLead;
 }
+
+
 /**
  * A lead window transform.
  */
@@ -412,6 +506,8 @@ export interface Lead extends WindowOptions {
    */
   lead: ArgLagLead;
 }
+
+
 /**
  * A first_value window transform.
  */
@@ -421,6 +517,8 @@ export interface FirstValue extends WindowOptions {
    */
   first_value: Unary<TransformField>;
 }
+
+
 /**
  * A last_value window transform.
  */
@@ -430,6 +528,8 @@ export interface LastValue extends WindowOptions {
    */
   last_value: Unary<TransformField>;
 }
+
+
 /**
  * An nth_value window transform.
  */
@@ -439,7 +539,6 @@ export interface NthValue extends WindowOptions {
    */
   nth_value: [expr: TransformField, nth: TransformField | number];
 }
-
 /** A data transform that maps one column value to another. */
 export type ColumnTransform =
   | Bin
@@ -462,8 +561,6 @@ export type AggregateTransform =
   | Min
   | First
   | Last
-  | Max
-  | Min
   | Median
   | Mode
   | Product
@@ -472,8 +569,7 @@ export type AggregateTransform =
   | StddevPop
   | Sum
   | Variance
-  | VarPop
-  ;
+  | VarPop;
 
 /** A window transform that operates over a sorted domain. */
 export type WindowTransform =
@@ -483,17 +579,14 @@ export type WindowTransform =
   | PercentRank
   | CumeDist
   | NTile
-  | Rank
   | Lag
   | Lead
   | FirstValue
   | LastValue
-  | NthValue
-  ;
+  | NthValue;
 
 /** A data transform. */
 export type Transform =
   | ColumnTransform
   | AggregateTransform
-  | WindowTransform
-  ;
+  | WindowTransform;

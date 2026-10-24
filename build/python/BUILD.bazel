@@ -43,6 +43,7 @@ wheel_binary(
             "--no-cache",
             "--config",
             "$(rlocationpath //:pyproject.toml)",
+            "templates",
         ] + ["$(rlocationpath " + source + ")" for source in glob(["*.py"])],
         data = glob(["*.py"]) + [":ruff", "//:pyproject.toml", "//:templates"],
         deps = ["@rules_python//python/runfiles"],

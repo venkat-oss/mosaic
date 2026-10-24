@@ -1,4 +1,4 @@
-import { chmodSync, cpSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, copyFileSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -22,10 +22,10 @@ try {
   copyFileSync(join(source, 'vite.config.js'), join(workspace, 'vite.config.js'));
   copyFileSync(join(source, 'package.json'), join(workspace, 'package.json'));
   for (const name of ['node_modules', 'data', 'templates']) {
-    if (existsSync(join(source, name))) symlinkSync(join(source, name), join(workspace, name), 'dir');
+    symlinkSync(join(source, name), join(workspace, name), 'dir');
   }
   for (const name of ['data', 'templates']) {
-    if (existsSync(join(workspace, name))) symlinkSync('../../' + name, join(docs, 'public', name), 'dir');
+    symlinkSync('../../' + name, join(docs, 'public', name), 'dir');
   }
   if (mode === 'dev') {
     const live = process.env.BUILD_WORKSPACE_DIRECTORY;

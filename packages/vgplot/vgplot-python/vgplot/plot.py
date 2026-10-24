@@ -12,12 +12,9 @@ from . import (
     _source_runtime,
     _table_api,
 )
-from ._generated import brush_interactors as _brush_interactors
 from ._generated import layouts as _layouts
-from ._generated import legends as _legends
-from ._generated import navigation_interactors as _navigation_interactors
 from ._generated import plot_attributes as _plot_attributes
-from ._generated import point_interactors as _point_interactors
+from ._generated.interactors import *  # noqa: F403
 from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -26,6 +23,23 @@ from .util import camelize
 if TYPE_CHECKING:
     from vgplot._types import MarkData
     from vgplot.spec import View
+
+
+input = _input_api.input
+option = _input_api.option
+slider = _input_api.slider
+select = _input_api.select
+checkbox = _input_api.checkbox
+menu = _input_api.menu
+search = _input_api.search
+table_input = _table_api.table_input
+FromRef = _source_runtime.FromRef
+source = _source_api.source
+hconcat = _layouts.hconcat
+hspace = _layouts.hspace
+vconcat = _layouts.vconcat
+vspace = _layouts.vspace
+margins = _plot_attributes.margins
 
 
 @dataclass
@@ -123,6 +137,11 @@ def plot(
     return View(root, **kwargs)
 
 
+_mark_runtime.bind_annotations(globals(), vars(_mark_api), _mark_api._RETURN_TYPES)
+directive = _mark_api.directive
+mark = _mark_api.mark
+
+
 def _encode_component(
     item: Any,
     param_names: dict[int, str] | None,
@@ -149,62 +168,3 @@ def _encode_component(
         }
         return {"plot": marks, **rest}
     return encode_value(item, param_names, data_names)
-
-
-_INPUT_ALIASES = {"bind": "as", "source": "from"}
-
-
-hconcat = _layouts.hconcat
-hspace = _layouts.hspace
-vconcat = _layouts.vconcat
-vspace = _layouts.vspace
-
-source = _source_api.source
-
-FromRef = _source_runtime.FromRef
-
-checkbox = _input_api.checkbox
-input = _input_api.input
-menu = _input_api.menu
-option = _input_api.option
-search = _input_api.search
-select = _input_api.select
-slider = _input_api.slider
-
-table_input = _table_api.table_input
-
-directive = _mark_api.directive
-mark = _mark_api.mark
-
-
-_mark_runtime.bind_annotations(globals(), vars(_mark_api), _mark_api._RETURN_TYPES)
-
-color_legend = _legends.color_legend
-opacity_legend = _legends.opacity_legend
-symbol_legend = _legends.symbol_legend
-
-margins = _plot_attributes.margins
-
-highlight = _point_interactors.highlight
-nearest = _point_interactors.nearest
-nearest_x = _point_interactors.nearest_x
-nearest_y = _point_interactors.nearest_y
-toggle = _point_interactors.toggle
-toggle_color = _point_interactors.toggle_color
-toggle_x = _point_interactors.toggle_x
-toggle_y = _point_interactors.toggle_y
-toggle_z = _point_interactors.toggle_z
-
-brush = _brush_interactors.brush
-interval_x = _brush_interactors.interval_x
-interval_xy = _brush_interactors.interval_xy
-interval_y = _brush_interactors.interval_y
-region = _brush_interactors.region
-sort = _brush_interactors.sort
-
-pan = _navigation_interactors.pan
-pan_x = _navigation_interactors.pan_x
-pan_y = _navigation_interactors.pan_y
-pan_zoom = _navigation_interactors.pan_zoom
-pan_zoom_x = _navigation_interactors.pan_zoom_x
-pan_zoom_y = _navigation_interactors.pan_zoom_y

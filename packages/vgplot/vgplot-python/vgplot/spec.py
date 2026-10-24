@@ -4,6 +4,7 @@ import inspect
 import json
 from typing import TYPE_CHECKING, Any
 
+from ._spec_contracts import VIEW_KEYS as _VIEW_KEYS
 from .data import DataDef, is_frame
 from .params import _ParamBase
 from .plot import _encode_component
@@ -270,9 +271,6 @@ class View:
             frame = frame.f_back
         locals_ = dict(frame.f_locals) if frame is not None else {}
         return self._build_spec(locals_)._repr_mimebundle_(**kwargs)
-
-
-_VIEW_KEYS = {"plot", "vconcat", "hconcat", "hspace", "vspace", "input"}
 
 
 def spec(

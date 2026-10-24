@@ -2,7 +2,7 @@
 title: Interactors
 ---
 <script setup>
-import { withBase } from 'vitepress';
+  import { withBase } from 'vitepress';
   import { useLang } from '../../.vitepress/theme/useLang.js';
   const { language, setLanguage } = useLang();
 </script>
@@ -11,6 +11,7 @@ import { withBase } from 'vitepress';
 
 <template v-if="language === 'js'">
 
+
 # Interactors
 
 Interactors imbue plots with interactive behavior, such as selecting or highlighting values, and panning or zooming the display.
@@ -18,83 +19,16 @@ Interactors imbue plots with interactive behavior, such as selecting or highligh
 To determine which fields (database columns) an interactor should select, an interactor defaults to looking at the corresponding encoding channels for the most recently added mark.
 Alternatively, interactors accept options that explicitly indicate which data fields should be selected.
 
-## toggle
 
-### toggle
+## highlight
 
-`toggle(options)`
+### highlight
 
-Select individual values.
+`highlight(options)`
 
-[Options](#toggle-options).
+Highlight selected marks by deemphasizing the others.
 
-### toggleX
-
-`toggleX(options)`
-
-Select individual values in the `x` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglex-options).
-
-### toggleY
-
-`toggleY(options)`
-
-Select individual values in the `y` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#toggley-options).
-
-### toggleZ
-
-`toggleZ(options)`
-
-Select individual values in the `z` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglez-options).
-
-### toggleColor
-
-`toggleColor(options)`
-
-Select individual values in the `color` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglecolor-options).
-
-## nearest
-
-### nearest
-
-`nearest(options)`
-
-Select values from the mark closest to the pointer.
-
-[Options](#nearest-options).
-
-### nearestX
-
-`nearestX(options)`
-
-Select values from the mark closest to the pointer *x* location.
-
-[Options](#nearestx-options).
-
-### nearestY
-
-`nearestY(options)`
-
-Select values from the mark closest to the pointer *y* location.
-
-[Options](#nearesty-options).
-
-## region
-
-### region
-
-`region(options)`
-
-Select aspects of individual marks within a 2D range.
-
-[Options](#region-options).
+[Options](#highlight-options).
 
 ## interval
 
@@ -121,6 +55,32 @@ Select a continuous 1D interval selection over the `y` scale domain.
 Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
 [Options](#intervalxy-options).
+
+## nearest
+
+### nearest
+
+`nearest(options)`
+
+Select values from the mark closest to the pointer.
+
+[Options](#nearest-options).
+
+### nearestX
+
+`nearestX(options)`
+
+Select values from the mark closest to the pointer *x* location.
+
+[Options](#nearestx-options).
+
+### nearestY
+
+`nearestY(options)`
+
+Select values from the mark closest to the pointer *y* location.
+
+[Options](#nearesty-options).
 
 ## pan & zoom
 
@@ -172,19 +132,62 @@ Pan and zoom a plot along the `y` scale only.
 
 [Options](#panzoomy-options).
 
-## highlight
+## region
 
-### highlight
+### region
 
-`highlight(options)`
+`region(options)`
 
-Highlight selected marks by deemphasizing the others.
+Select aspects of individual marks within a 2D range.
 
-[Options](#highlight-options).
+[Options](#region-options).
+
+## toggle
+
+### toggle
+
+`toggle(options)`
+
+Select individual values.
+
+[Options](#toggle-options).
+
+### toggleX
+
+`toggleX(options)`
+
+Select individual values in the `x` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglex-options).
+
+### toggleY
+
+`toggleY(options)`
+
+Select individual values in the `y` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#toggley-options).
+
+### toggleZ
+
+`toggleZ(options)`
+
+Select individual values in the `z` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglez-options).
+
+### toggleColor
+
+`toggleColor(options)`
+
+Select individual values in the `color` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglecolor-options).
 
 </template>
 
 <template v-else-if="language === 'python'">
+
 
 # Interactors
 
@@ -193,83 +196,16 @@ Interactors imbue plots with interactive behavior, such as selecting or highligh
 To determine which fields (database columns) an interactor should select, an interactor defaults to looking at the corresponding encoding channels for the most recently added mark.
 Alternatively, interactors accept options that explicitly indicate which data fields should be selected.
 
-## toggle
 
-### toggle
+## highlight
 
-`toggle(bind=None, channels=None, peers=None)`
+### highlight
 
-Select individual values.
+`highlight(by=None, channels=None, **kwargs)`
 
-[Options](#toggle-options).
+Highlight selected marks by deemphasizing the others.
 
-### toggle_x
-
-`toggle_x(bind=None, peers=None)`
-
-Select individual values in the `x` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglex-options).
-
-### toggle_y
-
-`toggle_y(bind=None, peers=None)`
-
-Select individual values in the `y` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#toggley-options).
-
-### toggle_z
-
-`toggle_z(bind=None, peers=None)`
-
-Select individual values in the `z` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglez-options).
-
-### toggle_color
-
-`toggle_color(bind=None, peers=None)`
-
-Select individual values in the `color` scale domain. Clicking or touching a mark toggles its selection status.
-
-[Options](#togglecolor-options).
-
-## nearest
-
-### nearest
-
-`nearest(bind=None, field=None, channels=None)`
-
-Select values from the mark closest to the pointer.
-
-[Options](#nearest-options).
-
-### nearest_x
-
-`nearest_x(bind=None, field=None, channels=None)`
-
-Select values from the mark closest to the pointer *x* location.
-
-[Options](#nearestx-options).
-
-### nearest_y
-
-`nearest_y(bind=None, field=None, channels=None)`
-
-Select values from the mark closest to the pointer *y* location.
-
-[Options](#nearesty-options).
-
-## region
-
-### region
-
-`region(bind=None, channels=None, peers=None, brush=None)`
-
-Select aspects of individual marks within a 2D range.
-
-[Options](#region-options).
+[Options](#highlight-options).
 
 ## interval
 
@@ -296,6 +232,32 @@ Select a continuous 1D interval selection over the `y` scale domain.
 Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
 [Options](#intervalxy-options).
+
+## nearest
+
+### nearest
+
+`nearest(bind=None, field=None, channels=None)`
+
+Select values from the mark closest to the pointer.
+
+[Options](#nearest-options).
+
+### nearest_x
+
+`nearest_x(bind=None, field=None, channels=None)`
+
+Select values from the mark closest to the pointer *x* location.
+
+[Options](#nearestx-options).
+
+### nearest_y
+
+`nearest_y(bind=None, field=None, channels=None)`
+
+Select values from the mark closest to the pointer *y* location.
+
+[Options](#nearesty-options).
 
 ## pan & zoom
 
@@ -347,111 +309,62 @@ Pan and zoom a plot along the `y` scale only.
 
 [Options](#panzoomy-options).
 
-## highlight
+## region
 
-### highlight
+### region
 
-`highlight(by=None, channels=None, **kwargs)`
+`region(bind=None, channels=None, peers=None, brush=None)`
 
-Highlight selected marks by deemphasizing the others.
+Select aspects of individual marks within a 2D range.
 
-[Options](#highlight-options).
+[Options](#region-options).
+
+## toggle
+
+### toggle
+
+`toggle(bind=None, channels=None, peers=None)`
+
+Select individual values.
+
+[Options](#toggle-options).
+
+### toggle_x
+
+`toggle_x(bind=None, peers=None)`
+
+Select individual values in the `x` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglex-options).
+
+### toggle_y
+
+`toggle_y(bind=None, peers=None)`
+
+Select individual values in the `y` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#toggley-options).
+
+### toggle_z
+
+`toggle_z(bind=None, peers=None)`
+
+Select individual values in the `z` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglez-options).
+
+### toggle_color
+
+`toggle_color(bind=None, peers=None)`
+
+Select individual values in the `color` scale domain. Clicking or touching a mark toggles its selection status.
+
+[Options](#togglecolor-options).
 
 </template>
 
 <LangError v-else :language="language" />
 
-## point options
-
-Options use wire names; Python arguments use the names shown in their signatures.
-
-### ToggleOptions options
-
-**as** (`ParamRef`) — The output selection. A clause of the form `(field = value1) OR (field = value2) ...` is added for the currently selected values.
-
-**peers** (`boolean`) — A flag indicating if peer (sibling) marks are excluded when cross-filtering (default `true`). If set, peer marks will not be filtered by this interactor's selection in cross-filtering setups.
-
-### Toggle options
-
-Extends [`ToggleOptions`](#toggleoptions-options).
-
-**channels** (`Array<string>`) — The encoding channels over which to select values. For a selected mark, selection clauses will cover the backing data fields for each channel.
-
-### ToggleX options
-
-Extends [`ToggleOptions`](#toggleoptions-options).
-
-
-### ToggleY options
-
-Extends [`ToggleOptions`](#toggleoptions-options).
-
-
-### ToggleZ options
-
-Extends [`ToggleOptions`](#toggleoptions-options).
-
-
-### ToggleColor options
-
-Extends [`ToggleOptions`](#toggleoptions-options).
-
-
-### NearestOptions options
-
-**as** (`ParamRef`) — The output selection. A clause of the form `field = value` is added for the currently nearest value.
-
-**channels** (`Array<string>`) — The encoding channels whose domain values should be selected. For example, a setting of `['color']` selects the data value backing the color channel, whereas `['x', 'z']` selects both x and z channel domain values. If unspecified, the selected channels default to match the current pointer settings: a `nearestX` interactor selects the `['x']` channels, while a `nearest` interactor selects the `['x', 'y']` channels.
-
-**fields** (`Array<string>`) — The fields (database column names) to use in generated selection clause predicates. If unspecified, the fields backing the selected *channels* in the first valid prior mark definition are used by default.
-
-**maxRadius** (`number`) — The maximum radius of a nearest selection (default 40). Marks with (x, y) coordinates outside this radius will not be selected as nearest points.
-
-### Nearest options
-
-Extends [`NearestOptions`](#nearestoptions-options).
-
-
-### NearestX options
-
-Extends [`NearestOptions`](#nearestoptions-options).
-
-
-### NearestY options
-
-Extends [`NearestOptions`](#nearestoptions-options).
-
-
-### Highlight options
-
-**by** (`ParamRef`) — The input selection. Unselected marks are deemphasized.
-
-**opacity** (`number`) — The overall opacity of deemphasized marks. By default the opacity is set to 0.2.
-
-**fillOpacity** (`number`) — The fill opacity of deemphasized marks. By default the fill opacity is unchanged.
-
-**strokeOpacity** (`number`) — The stroke opacity of deemphasized marks. By default the stroke opacity is unchanged.
-
-**fill** (`string`) — The fill color of deemphasized marks. By default the fill is unchanged.
-
-**stroke** (`string`) — The stroke color of deemphasized marks. By default the stroke is unchanged.
-
-**toggle:** Interactors attach to the last preceding mark. Toggle aliases force x, y, z or color; color resolves color, fill, then stroke. Fields are inferred from encodings. Click again to clear; shift/meta-click combines values. Compound channels produce tuples. Native listMatch and unnest options are outside the wire format.
-
-**nearest:** nearest, nearestX and nearestY force xy, x and y pointers. Fields default to the preceding mark; maxRadius defaults to 40. Python’s singular field argument is ignored by native inference and rejected by wire validation; fixed wrappers also reject fields, max_radius and extra kwargs. Use populated data with empty:true for an initially empty selection. Pointerleave clears a Selection but retains a plain Param value.
-
-**highlight:** Highlight queries its Selection against the last mark’s data and dims unselected SVG elements, defaulting to opacity 0.2. Use queried data for active predicates. Clearing restores prior attributes, including literal null attributes. Python accepts channels and camelized extra kwargs, omits None, and lets select override the default; channels is not a wire property.
-
-### point examples
-
-`toggle-filter-peers`: [json](/templates/interactors/point/toggle-filter-peers.json) · [yaml](/templates/interactors/point/toggle-filter-peers.yaml) · [js](/templates/interactors/point/toggle-filter-peers.js) · <a :href="withBase('/templates/interactors/point/toggle-filter-peers.py')" download>Python</a>.
-
-
-[Selection parameters](../core/selection).
-
-### Python brush and sort helpers
-
-`brush(**kwargs)` converts snake_case keys to camelCase; `sort(**kwargs)` preserves keys. Both omit `None` and preserve other values. Use brush for brush styling and sort for mark ordering.
 
 ## brush options
 
@@ -539,6 +452,12 @@ Extends [`RegionOptions`](#regionoptions-options).
 
 [Selection parameters](../core/selection).
 
+
+### Python brush and sort helpers
+
+`brush(**kwargs)` converts snake_case keys to camelCase; `sort(**kwargs)` preserves keys. Both omit `None` and preserve other values. Use brush for brush styling and sort for mark ordering.
+
+
 ## Navigation options
 
 Drag to pan and scroll to zoom. Each directive attaches to the last preceding mark. Fields default to that mark's x and y channels. The interactor updates plot domains through selections; pass the same selections to other plots to link their domains. Selection clauses retain their source and all sibling marks as clients, and can also drive filters. An external selection update changes all listening plots. Domains are initialized by plot attributes; the selection receives its interval after a drag or wheel update. The axis-specific wrappers disable the other axis, and pan wrappers disable zoom after caller options. Omitting options creates independent selections for that interactor.
@@ -589,6 +508,95 @@ Native JavaScript accepts zoom, panx and pany booleans or numeric extents. These
 ### navigation examples
 
 `linked-x-domains`: [json](/templates/interactors/navigation/linked-x-domains.json) · [yaml](/templates/interactors/navigation/linked-x-domains.yaml) · [js](/templates/interactors/navigation/linked-x-domains.js) · <a :href="withBase('/templates/interactors/navigation/linked-x-domains.py')" download>Python</a>.
+
+
+[Selection parameters](../core/selection).
+
+
+## point options
+
+Options use wire names; Python arguments use the names shown in their signatures.
+
+### ToggleOptions options
+
+**as** (`ParamRef`) — The output selection. A clause of the form `(field = value1) OR (field = value2) ...` is added for the currently selected values.
+
+**peers** (`boolean`) — A flag indicating if peer (sibling) marks are excluded when cross-filtering (default `true`). If set, peer marks will not be filtered by this interactor's selection in cross-filtering setups.
+
+### Toggle options
+
+Extends [`ToggleOptions`](#toggleoptions-options).
+
+**channels** (`Array<string>`) — The encoding channels over which to select values. For a selected mark, selection clauses will cover the backing data fields for each channel.
+
+### ToggleX options
+
+Extends [`ToggleOptions`](#toggleoptions-options).
+
+
+### ToggleY options
+
+Extends [`ToggleOptions`](#toggleoptions-options).
+
+
+### ToggleZ options
+
+Extends [`ToggleOptions`](#toggleoptions-options).
+
+
+### ToggleColor options
+
+Extends [`ToggleOptions`](#toggleoptions-options).
+
+
+### NearestOptions options
+
+**as** (`ParamRef`) — The output selection. A clause of the form `field = value` is added for the currently nearest value.
+
+**channels** (`Array<string>`) — The encoding channels whose domain values should be selected. For example, a setting of `['color']` selects the data value backing the color channel, whereas `['x', 'z']` selects both x and z channel domain values. If unspecified, the selected channels default to match the current pointer settings: a `nearestX` interactor selects the `['x']` channels, while a `nearest` interactor selects the `['x', 'y']` channels.
+
+**fields** (`Array<string>`) — The fields (database column names) to use in generated selection clause predicates. If unspecified, the fields backing the selected *channels* in the first valid prior mark definition are used by default.
+
+**maxRadius** (`number`) — The maximum radius of a nearest selection (default 40). Marks with (x, y) coordinates outside this radius will not be selected as nearest points.
+
+### Nearest options
+
+Extends [`NearestOptions`](#nearestoptions-options).
+
+
+### NearestX options
+
+Extends [`NearestOptions`](#nearestoptions-options).
+
+
+### NearestY options
+
+Extends [`NearestOptions`](#nearestoptions-options).
+
+
+### Highlight options
+
+**by** (`ParamRef`) — The input selection. Unselected marks are deemphasized.
+
+**opacity** (`number`) — The overall opacity of deemphasized marks. By default the opacity is set to 0.2.
+
+**fillOpacity** (`number`) — The fill opacity of deemphasized marks. By default the fill opacity is unchanged.
+
+**strokeOpacity** (`number`) — The stroke opacity of deemphasized marks. By default the stroke opacity is unchanged.
+
+**fill** (`string`) — The fill color of deemphasized marks. By default the fill is unchanged.
+
+**stroke** (`string`) — The stroke color of deemphasized marks. By default the stroke is unchanged.
+
+**toggle:** Interactors attach to the last preceding mark. Toggle aliases force x, y, z or color; color resolves color, fill, then stroke. Fields are inferred from encodings. Click again to clear; shift/meta-click combines values. Compound channels produce tuples. Native listMatch and unnest options are outside the wire format.
+
+**nearest:** nearest, nearestX and nearestY force xy, x and y pointers. Fields default to the preceding mark; maxRadius defaults to 40. Python’s singular field argument is ignored by native inference and rejected by wire validation; fixed wrappers also reject fields, max_radius and extra kwargs. Use populated data with empty:true for an initially empty selection. Pointerleave clears a Selection but retains a plain Param value.
+
+**highlight:** Highlight queries its Selection against the last mark’s data and dims unselected SVG elements, defaulting to opacity 0.2. Use queried data for active predicates. Clearing restores prior attributes, including literal null attributes. Python accepts channels and camelized extra kwargs, omits None, and lets select override the default; channels is not a wire property.
+
+### point examples
+
+`toggle-filter-peers`: [json](/templates/interactors/point/toggle-filter-peers.json) · [yaml](/templates/interactors/point/toggle-filter-peers.yaml) · [js](/templates/interactors/point/toggle-filter-peers.js) · <a :href="withBase('/templates/interactors/point/toggle-filter-peers.py')" download>Python</a>.
 
 
 [Selection parameters](../core/selection).

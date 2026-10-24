@@ -1,0 +1,91 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
+
+js_library(
+    name = "support",
+    srcs = ["bootstrap.mjs"] + glob(["util/**", "fixtures/**"]),
+    deps = ["//:workspace_metadata", "//build:api_sources"],
+    testonly = True,
+)
+
+
+_RUNTIME = [
+    "basic-mark-consumers.test.js", "basic-mark-runtime.test.js",
+    "common-mark-compatibility.test.js",
+    "connected-mark-consumers.test.js", "connected-mark-render.test.js", "connected-mark-runtime.test.js",
+    "guide-mark-consumers.test.js", "guide-mark-runtime.test.js", "spatial-mark-consumers.test.js",
+    "statistical-mark-consumers.test.js", "statistical-mark-query.test.js", "statistical-mark-render.test.js",
+]
+_SCHEMA = [
+    "root-spec.test.js", "annotation-wire.test.js", "density1d-wire.test.js", "grid-wire.test.js",
+    "connected-marks-wire.test.js", "spec-admission.test.js",
+    "brush-interactors.test.js", "navigation-interactors.test.js", "point-interactors.test.js",
+]
+_TSC = ["brush-interactors.test.js", "connected-marks-types.test.js", "statistical-marks-types.test.js", "point-interactors.test.js", "column.test.js"]
+_PYTHON = ["basic-mark-consumers.test.js", "connected-mark-consumers.test.js", "spatial-mark-consumers.test.js"]
+_AST = ["guide-mark-ir.test.js", "spec-reference.test.js"]
+_MARKDOWN = ["guide-mark-docs.test.js", "spatial-mark-docs.test.js"]
+
+js_library(
+    name = "runtime",
+    deps = [
+        "//:node_modules/@uwdata/mosaic-core", "//:node_modules/@uwdata/mosaic-plot", "//:node_modules/@uwdata/mosaic-sql",
+        "//:node_modules/@uwdata/mosaic-spec", "//:node_modules/d3", "//:node_modules/jsdom",
+        "//packages/server/duckdb:sources", "//packages/vgplot/vgplot:sources",
+        "//packages/vgplot/vgplot:test_support", "//packages/vgplot/spec:ast_sources",
+    ],
+    testonly = True,
+)
+
+js_library(
+    name = "schema_tools",
+    deps = ["//:node_modules/ajv", "//:node_modules/ajv-formats", "//:node_modules/yaml"],
+    testonly = True,
+)
+
+js_library(name = "typescript_api", deps = ["//:node_modules/typescript"], testonly = True)
+js_library(name = "markdown", deps = ["//:node_modules/vitepress"], testonly = True)
+js_library(name = "public_types", deps = ["//:node_modules/@uwdata/mosaic-spec"], testonly = True)
+
+[
+    js_library(
+        name = source.removesuffix(".test.js") + "_source",
+        srcs = [source],
+        deps = [":support"] + ([":runtime", ":schema_tools"] if source in _RUNTIME else []) + ([":schema_tools"] if source in _SCHEMA else []) + ([":typescript_api"] if source in _AST else []) + ([":markdown"] if source in _MARKDOWN else []) + ([":public_types"] if source in _TSC else []),
+        testonly = True,
+    )
+    for source in glob(["*.test.js"])
+]
+
+[
+    js_test(
+        name = source.removesuffix(".test.js"),
+        entry_point = "bootstrap.mjs",
+        args = ["$(rlocationpath :" + source.removesuffix(".test.js") + "_source)"],
+        data = [
+            ":" + source.removesuffix(".test.js") + "_source",
+            "//:api_mirrors",
+            "//:tsconfig.base.json",
+            "//api:sources",
+            "//api/catalog:sources",
+            "//build:cue",
+            "//packages/vgplot/spec:schema",
+        ] + (["//:tsc"] if source in _TSC else []) + (["//packages/vgplot/vgplot-python:python"] if source in _PYTHON else []) + ({
+            "connected-marks-types.test.js": ["//packages/vgplot/spec:test/connected-marks.types.ts"],
+            "statistical-marks-types.test.js": ["//packages/vgplot/spec:test/statistical-marks.types.ts"],
+        }).get(source, []),
+        env = {
+            "CUE_BIN": "$(rlocationpath //build:cue)",
+        } | ({"TSC_BIN": "$(rlocationpath //:tsc)"} if source in _TSC else {}) | ({"PYTHON_BIN": "$(rlocationpath //packages/vgplot/vgplot-python:python)"} if source in _PYTHON else {}),
+        copy_data_to_bin = False,
+        size = "large",
+        tags = ["requires-network"] if source in _RUNTIME else [],
+        visibility = ["//visibility:public"],
+    )
+    for source in glob(["*.test.js"])
+]
+
+test_suite(
+    name = "tests",
+    tests = [":" + source.removesuffix(".test.js") for source in glob(["*.test.js"])],
+    visibility = ["//visibility:public"],
+)

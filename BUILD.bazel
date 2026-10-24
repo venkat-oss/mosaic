@@ -69,7 +69,7 @@ typescript_bin.tsc_binary(
 
 filegroup(
     name = "python_test_data",
-    srcs = ["pyproject.toml", "//specs:fixtures", "//specs:yaml"] + glob(["templates/**"], allow_empty = True),
+    srcs = ["pyproject.toml", "//specs:fixtures", "//specs:yaml"] + glob(["templates/**"]),
     visibility = ["//visibility:public"],
 )
 
@@ -81,7 +81,7 @@ filegroup(
 
 filegroup(
     name = "templates",
-    srcs = glob(["templates/**"], allow_empty = True),
+    srcs = glob(["templates/**"]),
     visibility = ["//visibility:public"],
 )
 
@@ -109,6 +109,25 @@ js_library(
     visibility = ["//visibility:public"],
 )
 
+filegroup(
+    name = "api_mirrors",
+    srcs = glob(["templates/**"]) + [
+        "//packages/server:protocol.json",
+        "//docs:api_sources",
+        "//packages/vgplot/inputs:api_sources",
+        "//packages/vgplot/plot:api_sources",
+        "//packages/vgplot/spec:api_sources",
+        "//packages/vgplot/vgplot:api_sources",
+        "//packages/vgplot/vgplot-python:api_sources",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "generate",
+    actual = "//build:api_sync",
+)
+
 alias(
     name = "examples",
     actual = "//bin:examples_sync",
@@ -117,6 +136,11 @@ alias(
 test_suite(
     name = "examples_check",
     tests = ["//bin:examples_check", "//specs:typescript_typecheck_test", "//specs:python"],
+)
+
+test_suite(
+    name = "api_check",
+    tests = ["//build:api_check", "//build:cue_format"],
 )
 
 _JAVASCRIPT_PACKAGES = [
@@ -163,6 +187,9 @@ filegroup(
 test_suite(
     name = "node_checks",
     tests = [package + ":check" for package in _JAVASCRIPT_PACKAGES] + [
+        ":api_check",
+        ":examples_check",
+        "//bin/test:tests",
         "//packages/vgplot/widget:javascript_types_typecheck_test",
         "//packages/vgplot/widget:javascript_lint",
         "//packages/server:protocol_node",
@@ -212,6 +239,7 @@ test_suite(
         "//packages/vgplot/spec:browser_lint",
         "//packages/server/duckdb-server-go:lint",
         "//packages/server/duckdb-server-rust:format_test",
+        "//build:cue_format",
         "//build/python:check",
         "//dev:lint",
         "//specs:lint",

@@ -47,7 +47,7 @@ export class PlotNode extends ASTNode {
     ctx.indent();
     const entries = [
       ...children.map(c => c.codegen(ctx)),
-      ...(ctx.plotDefaults?.length ? [`${ctx.tab()}...defaultAttributes`] : []),
+      ...(ctx.plotDefaults?.length ? [`${ctx.tab()}...${ctx.defaultAttrsVar}`] : []),
       ...attributes.map(a => a.codegen(ctx))
     ].join(',\n');
     ctx.undent();

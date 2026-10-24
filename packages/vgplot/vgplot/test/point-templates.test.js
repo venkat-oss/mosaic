@@ -23,7 +23,7 @@ for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGE
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
 globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 async function ready(element, errors) { const plot = element['value']; const results = await Promise.allSettled(plot.marks.map(mark => mark.pending)); assert.deepEqual(errors, []); await plot.render(); return results; }
-const schema = JSON.parse(await readFile(resolve(workspace, 'packages/vgplot/spec/dist/mosaic-schema.json'), 'utf8'));
+const schema = JSON.parse(await readFile(resolve(workspace, 'packages/vgplot/spec/src/generated/mosaic-schema.json'), 'utf8'));
 const ajv = new Ajv({ allowUnionTypes: true, allErrors: true });
 addFormats.default(ajv);
 const validate = ajv.compile(schema);

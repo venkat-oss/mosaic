@@ -1,13 +1,10 @@
+import { INTERACTOR_NAMES } from '../generated/interactors.js';
 import {
   attributeDirectives,
-  interactorDirectives,
   legendDirectives,
   markDirectives
 } from '@uwdata/vgplot';
 
-/**
- * Generate an object of lookup maps for vgplot components.
- */
 export function plotNames({
   attributes = plotAttributeNames(),
   interactors = plotInteractorNames(),
@@ -18,7 +15,6 @@ export function plotNames({
 }
 
 /**
- * Names of attribute directive functions.
  * @returns {Set<string>}
  */
 export function plotAttributeNames(overrides = []) {
@@ -29,18 +25,16 @@ export function plotAttributeNames(overrides = []) {
 }
 
 /**
- * Names interactor directive functions.
  * @returns {Set<string>}
  */
 export function plotInteractorNames(overrides = []) {
   return new Set([
-    ...Object.keys(interactorDirectives),
+    ...INTERACTOR_NAMES,
     ...overrides
   ]);
 }
 
 /**
- * Names of legend directive functions.
  * @returns {Set<string>}
  */
 export function plotLegendNames(overrides = []) {
@@ -51,7 +45,6 @@ export function plotLegendNames(overrides = []) {
 }
 
 /**
- * Names of mark directive functions.
  * @returns {Set<string>}
  */
 export function plotMarkNames(overrides = []) {

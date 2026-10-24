@@ -61,7 +61,7 @@ js_library(
 
 copy_file(
     name = "schema",
-    src = "//docs:public/schema/v0.34.0.json",
+    src = "src/generated/mosaic-schema.json",
     out = "dist/mosaic-schema.json",
     allow_symlink = True,
     visibility = ["//visibility:public"],

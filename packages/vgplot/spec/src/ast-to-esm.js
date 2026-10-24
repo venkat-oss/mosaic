@@ -1,6 +1,6 @@
 /** @import { SpecNode } from './ast/SpecNode.js' */
 import { resolveExtensions } from './config/extensions.js';
-import { error, isArray, isObject, isString, toArray, toParamRef } from './util.js';
+import { error, isArray, isObject, isString, toArray } from './util.js';
 
 /**
  * Generate ESM code for a Mosaic spec AST.
@@ -22,6 +22,8 @@ export function astToESM(ast, options = {}) {
   const { root, data, params, plotDefaults } = ast;
   const { preamble, ...ctxOptions } = options;
   const ctx = new CodegenContext({ plotDefaults, ...ctxOptions });
+
+  for (const name of Object.keys(params)) ctx.paramRef(name);
 
   // generate package imports
   const importsCode = [];
@@ -71,7 +73,7 @@ export function astToESM(ast, options = {}) {
   // generate params / selections
   const paramCode = [];
   for (const [key, value] of Object.entries(params)) {
-    paramCode.push(`const ${toParamRef(key)} = ${value.codegen(ctx)};`);
+    paramCode.push(`const ${ctx.paramRef(key)} = ${value.codegen(ctx)};`);
   }
 
   // generate default attributes
@@ -79,7 +81,7 @@ export function astToESM(ast, options = {}) {
   const defaultList = plotDefaults;
   if (defaultList.length) {
     defaultCode = [
-      'const defaultAttributes = [',
+      `const ${ctx.defaultAttrsVar} = [`,
       defaultList.map(a => '  ' + a.codegen(ctx)).join(',\n'),
       '];'
     ];
@@ -136,6 +138,33 @@ export class CodegenContext {
     this.imports = imports;
     this.baseURL = baseURL;
     this.depth = depth;
+    this.paramNames = new Map();
+    this.usedNames = new Set(namespace.match(/[A-Za-z_$][\w$]*/g));
+    for (const methods of imports.values()) {
+      for (const method of toArray(methods).flatMap(method => method.split(','))) {
+        const binding = method.split(/\bas\b/).at(-1).trim();
+        if (/^[A-Za-z_$][\w$]*$/.test(binding)) this.usedNames.add(binding);
+      }
+    }
+    this.defaultAttrsVar = this.allocate('defaultAttributes');
+  }
+
+  allocate(base) {
+    let identifier = base;
+    for (let suffix = 2; this.usedNames.has(identifier); ++suffix) identifier = base + suffix;
+    this.usedNames.add(identifier);
+    return identifier;
+  }
+
+  paramRef(name) {
+    if (!this.paramNames.has(name)) {
+      this.paramNames.set(name, this.allocate('$' + name.replace(/[^A-Za-z0-9_$]/g, '_')));
+    }
+    return this.paramNames.get(name);
+  }
+
+  propertyKey(name) {
+    return name === '__proto__' ? `[${JSON.stringify(name)}]` : maybeQuote(name);
   }
 
   addImport(pkg, method) {
@@ -173,7 +202,7 @@ export class CodegenContext {
       return `[${this.maybeLineWrap(items)}]`;
     } else if (isObject(value)) {
       const props = Object.entries(value)
-        .map(([k, v]) => `${maybeQuote(k)}: ${this.stringify(v)}`);
+        .map(([k, v]) => `${this.propertyKey(k)}: ${this.stringify(v)}`);
       return `{${this.maybeLineWrap(props)}}`;
     } else {
       return JSON.stringify(value);
@@ -199,7 +228,7 @@ export class CodegenContext {
 }
 
 function maybeQuote(str) {
-  return /^[A-Za-z_$]\w*/.test(str) ? str : JSON.stringify(str);
+  return /^[A-Za-z_$][\w$]*$/.test(str) ? str : JSON.stringify(str);
 }
 
 function maybeNewline(entry) {

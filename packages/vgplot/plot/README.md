@@ -6,5 +6,5 @@ A Mosaic-powered grammar of graphics based on [Observable Plot](https://github.c
 
 The `mosaic-plot` package is included as part of the [vgplot](https://github.com/uwdata/mosaic/tree/main/packages/vgplot/vgplot) API.
 
-From a repository checkout, run `bazelisk test //packages/vgplot/plot:check` for runtime/DOM tests, real DuckDB grid queries, test typechecking and lint. Build the publishable package with `bazelisk build //packages/vgplot/plot:tarball`; its `pkg.tgz` is under `bazel-bin/packages/vgplot/plot/`. Compilation consumes the committed API sources.
+From a repository checkout, run `bazelisk test //packages/vgplot/plot:check` for runtime/DOM tests, real DuckDB grid queries, test typechecking and lint. Build the publishable package with `bazelisk build //packages/vgplot/plot:tarball`; its `pkg.tgz` is under `bazel-bin/packages/vgplot/plot/`. Compilation consumes the committed CUE-generated API sources.
 

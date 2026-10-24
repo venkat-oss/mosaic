@@ -1,4 +1,6 @@
 import { ParamRef } from './Param.js';
+
+
 /**
  * A menu input component.
  */
@@ -53,6 +55,8 @@ export interface Menu {
    */
   value?: any;
 }
+
+
 /**
  * A search input component.
  */
@@ -101,6 +105,8 @@ export interface Search {
    */
   label?: string;
 }
+
+
 /**
  * A slider input component.
  */
@@ -170,6 +176,8 @@ export interface Slider {
    */
   width?: number;
 }
+
+
 /**
  * A table grid view component.
  */

@@ -1,0 +1,89 @@
+{
+  "config": {
+    "extensions": []
+  },
+  "data": {
+    "dashboard_rows": {
+      "type": "table",
+      "query": "SELECT * FROM (VALUES (1,10,'A'),(2,12,'B'),(3,15,'A'),(4,18,'B'),(5,14,'C'),(6,20,'C')) AS t(day,value,category)"
+    }
+  },
+  "params": {
+    "brush": {
+      "select": "crossfilter"
+    },
+    "offset": 0
+  },
+  "plotDefaults": {
+    "width": 360,
+    "height": 220
+  },
+  "vconcat": [
+    {
+      "input": "slider",
+      "as": "$offset",
+      "label": "Vertical offset",
+      "min": -5,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "hconcat": [
+        {
+          "plot": [
+            {
+              "mark": "dot",
+              "data": {
+                "from": "dashboard_rows",
+                "filterBy": "$brush"
+              },
+              "x": "day",
+              "y": {
+                "sql": "value + $offset"
+              },
+              "fill": "category"
+            },
+            {
+              "select": "intervalX",
+              "as": "$brush"
+            },
+            {
+              "legend": "color"
+            }
+          ],
+          "xLabel": "Day",
+          "yLabel": "Value + offset"
+        },
+        {
+          "plot": [
+            {
+              "mark": "barY",
+              "data": {
+                "from": "dashboard_rows",
+                "filterBy": "$brush"
+              },
+              "x": "category",
+              "y": {
+                "count": ""
+              },
+              "fill": "category"
+            }
+          ],
+          "xLabel": "Category",
+          "yLabel": "Selected rows"
+        }
+      ]
+    },
+    {
+      "input": "table",
+      "from": "dashboard_rows",
+      "columns": [
+        "day",
+        "value",
+        "category"
+      ],
+      "filterBy": "$brush",
+      "rowBatch": 10
+    }
+  ]
+}

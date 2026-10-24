@@ -79,6 +79,8 @@ export default defineConfig({
           { text: 'Mosaic Inputs', link: '/inputs/' },
           { text: 'Mosaic vgplot', link: '/vgplot/' },
           { text: 'Mosaic Spec', link: '/spec/' },
+          { text: 'Specification Generation', link: '/spec-generation/' },
+          { text: 'Bazel Build', link: '/development/build' },
           { text: 'Mosaic Server', link: '/server/' },
           { text: 'Jupyter Widget', link: '/jupyter/' },
           { text: 'Web Clients', link: '/web-clients/' }
@@ -108,6 +110,8 @@ export default defineConfig({
             { text: 'Mosaic Inputs', link: '/inputs/' },
             { text: 'Mosaic vgplot', link: '/vgplot/' },
             { text: 'Mosaic Spec', link: '/spec/' },
+            { text: 'Specification Generation', link: '/spec-generation/' },
+            { text: 'Bazel Build', link: '/development/build' },
             { text: 'Mosaic Server', link: '/server/' },
             { text: 'Jupyter Widget', link: '/jupyter/' },
             { text: 'Web Clients', link: '/web-clients/' }
@@ -246,7 +250,8 @@ export default defineConfig({
             { text: 'Menu', link: '/api/inputs/menu' },
             { text: 'Search', link: '/api/inputs/search' },
             { text: 'Slider', link: '/api/inputs/slider' },
-            { text: 'Table', link: '/api/inputs/table' }
+            { text: 'Table', link: '/api/inputs/table' },
+            { text: 'Python Authoring', link: '/api/inputs/authoring' }
           ]
         },
         {
@@ -267,6 +272,11 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'Specification Format', link: '/api/spec/format' },
+            { text: 'Value Contracts', link: '/api/spec/values' },
+            { text: 'Parameters and Selection Definitions', link: '/api/spec/params' },
+            { text: 'Data and Sources', link: '/api/spec/data' },
+            { text: 'Transform Contracts', link: '/api/spec/transforms' },
+            { text: 'Common Mark Contracts', link: '/api/spec/common-marks' },
             { text: 'Parser & Generators', link: '/api/spec/parser-generators' }
           ]
         },
@@ -275,7 +285,8 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'DuckDB API', link: '/api/duckdb/duckdb' },
-            { text: 'Data Server', link: '/api/duckdb/data-server' }
+            { text: 'Data Server', link: '/api/duckdb/data-server' },
+            { text: 'Server Protocol', link: '/api/duckdb/server-protocol' }
           ]
         },
       ]

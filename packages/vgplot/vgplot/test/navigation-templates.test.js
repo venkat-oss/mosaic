@@ -18,7 +18,7 @@ const dom = new JSDOM('<!DOCTYPE html>', {pretendToBeVisual: true});
 for (const key of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'SVGElement']) globalThis[key] = dom.window[key];
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
 globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
-const schema = JSON.parse(await readFile(resolve(root, 'packages/vgplot/spec/dist/mosaic-schema.json'), 'utf8'));
+const schema = JSON.parse(await readFile(resolve(root, 'packages/vgplot/spec/src/generated/mosaic-schema.json'), 'utf8'));
 const ajv = new Ajv({allowUnionTypes: true, allErrors: true});
 addFormats.default(ajv);
 const validate = ajv.compile(schema);

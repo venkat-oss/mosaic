@@ -1,0 +1,32 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_projection", "cue_sources")
+
+exports_files(["generated.json"])
+
+cue_sources(
+    name = "sources",
+    instances = [":package"],
+    visibility = ["//visibility:public"],
+)
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "api",
+    deps = [
+        "//api/catalog:package",
+        "//api/compose:package",
+        "//api/model:package",
+        "//api/spec:package",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cue_projection(
+    name = "projection",
+    instance = ":package",
+    srcs = ["//build/cue:families"],
+    expression = "{artifacts: files, inventory: manifest, nativeInputs: nativeChecks}",
+    visibility = ["//visibility:public"],
+)

@@ -26,6 +26,7 @@ Mosaic API Reference.
 - [Search](/api/inputs/search)
 - [Slider](/api/inputs/slider)
 - [Table](/api/inputs/table)
+- [Python Authoring](/api/inputs/authoring)
 
 ## Mosaic vgplot
 
@@ -40,9 +41,15 @@ Mosaic API Reference.
 ## Mosaic Spec
 
 - [Specification Format](/api/spec/format)
+- [Value Contracts](/api/spec/values)
+- [Parameters and Selection Definitions](/api/spec/params)
+- [Data and Sources](/api/spec/data)
+- [Transform Contracts](/api/spec/transforms)
+- [Common Mark Contracts](/api/spec/common-marks)
 - [Parser & Generators](/api/spec/parser-generators)
 
 ## Mosaic DuckDB
 
 - [DuckDB API](/api/duckdb/duckdb)
 - [Data Server](/api/duckdb/data-server)
+- [Server Protocol](/api/duckdb/server-protocol)

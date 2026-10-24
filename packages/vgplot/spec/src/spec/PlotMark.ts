@@ -20,36 +20,75 @@ import { Heatmap, Raster, RasterTile } from './marks/Raster.js';
 import { Rect, RectX, RectY } from './marks/Rect.js';
 import { RegressionY } from './marks/Regression.js';
 import { RuleX, RuleY } from './marks/Rule.js';
-import { Text,TextX, TextY } from './marks/Text.js';
+import { Text, TextX, TextY } from './marks/Text.js';
 import { TickX, TickY } from './marks/Tick.js';
 import { Spike, Vector, VectorX, VectorY } from './marks/Vector.js';
 import { WaffleX, WaffleY } from './marks/Waffle.js';
 
 /** A plot mark entry. */
 export type PlotMark =
-  | Area | AreaX | AreaY
+  | Area
+  | AreaX
+  | AreaY
   | Arrow
-  | AxisX | AxisY | AxisFx | AxisFy | GridX | GridY | GridFx | GridFy
-  | BarX | BarY
-  | Cell | CellX | CellY
+  | AxisX
+  | AxisY
+  | AxisFx
+  | AxisFy
+  | GridX
+  | GridY
+  | GridFx
+  | GridFy
+  | BarX
+  | BarY
+  | Cell
+  | CellX
+  | CellY
   | Contour
-  | DelaunayLink | DelaunayMesh | Hull | Voronoi | VoronoiMesh
+  | DelaunayLink
+  | DelaunayMesh
+  | Hull
+  | Voronoi
+  | VoronoiMesh
   | DenseLine
-  | Density | DensityX | DensityY
-  | Dot | DotX | DotY | Circle | Hexagon
-  | ErrorBarX | ErrorBarY
+  | Density
+  | DensityX
+  | DensityY
+  | Dot
+  | DotX
+  | DotY
+  | Circle
+  | Hexagon
+  | ErrorBarX
+  | ErrorBarY
   | Frame
-  | Geo | Graticule | Sphere
+  | Geo
+  | Graticule
+  | Sphere
   | Hexbin
   | Hexgrid
   | Image
-  | Line | LineX | LineY
+  | Line
+  | LineX
+  | LineY
   | Link
-  | Raster | Heatmap | RasterTile
-  | Rect | RectX | RectY
+  | Raster
+  | Heatmap
+  | RasterTile
+  | Rect
+  | RectX
+  | RectY
   | RegressionY
-  | RuleX | RuleY
-  | Text | TextX | TextY
-  | TickX | TickY
-  | Vector | VectorX | VectorY | Spike
-  | WaffleX | WaffleY;
+  | RuleX
+  | RuleY
+  | Text
+  | TextX
+  | TextY
+  | TickX
+  | TickY
+  | Vector
+  | VectorX
+  | VectorY
+  | Spike
+  | WaffleX
+  | WaffleY;

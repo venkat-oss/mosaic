@@ -6,42 +6,71 @@ Bug reports, feature requests, and questions are welcome via [GitHub issues](htt
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) and [`pnpm`](https://pnpm.io/).
-- [`uv`](https://docs.astral.sh/uv/) for the Python packages.
-- A Rust toolchain and/or Go are only needed if you work on `duckdb-server-rust` or `duckdb-server-go`.
+- [Bazelisk](https://github.com/bazelbuild/bazelisk), which selects Bazel using `.bazelversion` and downloads the declared language tools and dependencies.
+- A C/C++ toolchain for the DuckDB server builds.
+- Docker for the matching Playwright browser environment.
+- [Node.js](https://nodejs.org/) with [`pnpm`](https://pnpm.io/) and [`uv`](https://docs.astral.sh/uv/) when updating dependency locks or setting up IDE environments. They do not orchestrate repository builds or tests.
 
 ## Getting started
 
 * Clone [https://github.com/uwdata/mosaic](https://github.com/uwdata/mosaic).
-* Run `pnpm i` to install dependencies.
-* Run `pnpm build` to build the client-side bundles.
-* Run `pnpm test` to run the test suite.
-* Run `uv sync` to install Python packages into `.venv` for local development (required for IDE import resolution in VS Code).
-* Run `uv build --all-packages` to build the Python packages.
+* Run `bazelisk build //:build` to build packages, servers, examples and documentation, including Rust Clippy.
+* Run `bazelisk test //:check` to run the normal language, API and gallery checks.
+* Run `bin/visual-test.sh` for browser tests in the container matching the locked Playwright version.
+* Optionally run `pnpm install` and `uv sync` for IDE dependency resolution. Bazel builds and tests do not use these workspace installations.
 
-See the `scripts` in [`package.json`](package.json) for other available commands.
+The first build downloads the declared tools, dependencies, and DuckDB SDK; subsequent commands reuse Bazel's cache. Select a package's `:check` target while developing, for example `bazelisk test //packages/mosaic/sql:check`. `pnpm build`, `pnpm test`, `pnpm lint` and `pnpm typecheck` are thin Bazel aliases. See the `scripts` in [`package.json`](package.json) for other commands and the [build workflow](docs/development/build.md) for target ownership and artifact paths.
+
+Build publishable archives with `bazelisk build //:packages`; `bazelisk cquery //:packages --output=files` lists their paths. JavaScript tarballs are under `bazel-bin/<package>/pkg.tgz`; Python wheels and source archives are under each package's corresponding `bazel-bin/` directory. Build outputs stay outside the source directories. `bazelisk clean` removes build outputs; it is not needed for normal iteration.
 
 ## Running examples locally
 
-* Run `pnpm dev` to launch a local web server and view examples. By default, the examples use DuckDB-WASM in the browser. We recommend using Firefox since it remembers the selected dropdown across browser reloads.
-* For greater performance, run `pnpm server` to launch the [`duckdb-server`](packages/server/duckdb-server) and connect to it from the examples. This runs the server in development mode, so the server restarts if you change its code.
+* Run `bazelisk run //:dev` (or `pnpm dev`) to launch the gallery with source hot reload. By default, examples use DuckDB-WASM in the browser.
+* Run `bazelisk run //packages/server/duckdb-server:dev` (or `pnpm server`) to launch the Python server with automatic restarts after source edits. The Node, Go and Rust servers have matching `pnpm server:node`, `pnpm server:go` and `pnpm server:rust` aliases.
+* The standalone applications expose `:dev`, `:build` and `:preview` under `//packages/examples/{vanilla-example,vega-example,svelte-example}`. Restart dev servers after changing build configuration or dependencies.
 
 ## Documentation
 
-The documentation site is built with [VitePress](https://vitepress.dev/) from the `docs/` directory. Run `pnpm docs:dev` for a dev server with hot reload, or `pnpm docs:build` and `pnpm docs:preview` to build and inspect the production site.
+The documentation site is built with [VitePress](https://vitepress.dev/) from the `docs/` directory. Run `bazelisk run //docs:dev` for hot reload, `bazelisk build //docs:site` to build, or `bazelisk run //docs:preview` to inspect the production site. The `pnpm docs:dev`, `pnpm docs:build` and `pnpm docs:preview` aliases select these targets. The site output is `bazel-bin/docs/site`, including generated gallery pages, data and template downloads; deployment uploads this directory.
 
-The production build also generates [LLM-friendly](https://llmstxt.org/) `llms.txt` and `llms-full.txt` files via [`vitepress-plugin-llms`](https://github.com/okineadev/vitepress-plugin-llms). These are only produced by `pnpm docs:build`, not by the dev server, and regenerate automatically from the docs pages — no manual edits needed.
+The production build also generates [LLM-friendly](https://llmstxt.org/) `llms.txt` and `llms-full.txt` through [`vitepress-plugin-llms`](https://github.com/okineadev/vitepress-plugin-llms). They regenerate from the docs pages and stay in build outputs. Do not commit site output, caches or LLM files.
 
 ## Generated files
 
 Some files are generated, so don't edit them by hand. Change the source and regenerate instead, then commit the regenerated files together with your change (CI fails if the committed files don't match a fresh regeneration):
 
 * Example specs under `specs/` and `docs/public/specs`: run `pnpm docs:examples`.
-* The generated Python vgplot API: run `pnpm generate:python-api` (see the [vgplot-python contributing guide](packages/vgplot/vgplot-python/CONTRIBUTING.md)).
+* Declarative specification files, API wrappers and mappings, generated reference sections, and starter templates: run `pnpm generate:api`. Generated filenames are listed in `api/generated.json` for stale-file cleanup.
+* The generated Python vgplot API uses the same command. `pnpm generate:python-api` is a compatibility alias; see the [vgplot-python contributing guide](packages/vgplot/vgplot-python/CONTRIBUTING.md).
+
+### CUE API generation
+
+CUE owns the declarative specification and the corresponding JavaScript and Python authoring contracts: values, params, transforms, data, layouts, attributes, marks, interactors, legends and inputs. Their family packages under `api/` generate types, the full JSON Schema, bindings, parser/codegen metadata, reference sections and starter templates. The shared server protocol is also a CUE family, generating its common cases and reference page. The root specification contracts and parser/runtime API metadata live in `api/spec/model/`. Shared model-only packages let families reuse canonical contracts without loading another family's generation graph.
+
+`api/catalog/sources.cue` lists the owning family packages. Each family’s `contribution.cue` connects its generated artifacts to `api/catalog.cue`; `api/model/`, `api/render/` and `api/compose/` provide shared records, projections and composition. Public generated files have one owning CUE producer.
+
+Edit an owning CUE contract and regenerate its outputs. Keep explicit target adapters: TypeScript, wire data and native JavaScript/Python objects can have distinct contracts. Query/render engines, selections, DOM interactions, serialization, sentinel identity and Python caller-scope discovery retain their runtime implementations.
+
+Install Bazelisk; `.bazelversion` pins Bazel, and the build downloads the pinned CUE and Ruff tools. Installed packages and ordinary builds consume committed artifacts without CUE:
+
+```sh
+bazelisk run //:generate
+bazelisk test //:api_check
+bazelisk build //:build
+bazelisk test //bin/test:tests
+```
+
+Generation validates and exports each family separately, composes the outputs, and formats them before syncing. `pnpm generate:api` runs `bazelisk run //:generate` and removes obsolete files using `api/generated.json`. `pnpm check:api` runs the read-only Bazel comparison. Commit source changes and regenerated artifacts together. Run `bazelisk test //bin/test:tests` for the native contract/consumer tests; Bazel supplies their pinned CUE, TypeScript and Python tools.
+
+The complete CUE-generated schema is checked in at `packages/vgplot/spec/src/generated/mosaic-schema.json`. Ordinary builds materialize it into the existing `dist/mosaic-schema.json` consumer path. The root `cue.mod/module.cue` defines the CUE module.
+
+See the [specification generation guide](docs/spec-generation/index.md) for source layout and workflow. Gallery examples still originate in `specs/yaml/`; run `pnpm docs:examples` to update their generated variants. Build documentation changes with `pnpm docs:build`.
 
 ## Before opening a pull request
 
-Run `pnpm lint` (or `pnpm lint:fix` to fix style errors automatically) and `pnpm test`, and regenerate any generated files your change affects. CI runs the full matrix of checks — JavaScript/TypeScript, Python, Rust, and Go — defined in [`.github/workflows/test.yml`](.github/workflows/test.yml); consult it for the exact commands if you want to reproduce a CI job locally.
+Run the affected package's `:check` target and regenerate any generated files your change affects. Before integration, run `bazelisk build //:build`, `bazelisk test //:check` and `bin/visual-test.sh`. `pnpm lint:fix` runs the declared ESLint engine as an explicit source-writing operation. CI selects the same targets in [`.github/workflows/test.yml`](.github/workflows/test.yml), preserving Go race, Rust lint, notebook, gallery and browser coverage.
+
+Release versioning remains an explicit Lerna operation. Its root `version` hook refreshes and stages `MODULE.bazel.lock` after manifest versions change; the spec hook publishes versioned schemas. Do not invoke these hooks or `pnpm docs:schema` as validation. The release workflow builds `//:packages` after versioning, then publishes those tarballs, wheels and source archives without rebuilding through package lifecycle hooks.
 
 ## License
 

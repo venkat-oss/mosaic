@@ -17,9 +17,5 @@ export type * from './Spec.js';
 export type * from './Transform.js';
 export type * from './VConcat.js';
 export type * from './VSpace.js';
-
-// Marks
 export type * from './marks/index.js';
-
-// Interactors
 export type * from './interactors/index.js';

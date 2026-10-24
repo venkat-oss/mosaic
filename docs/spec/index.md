@@ -1,5 +1,6 @@
 <script setup>
   import { coordinator } from '@uwdata/vgplot';
+  import { withBase } from 'vitepress';
   coordinator().clear();
 </script>
 
@@ -39,15 +40,18 @@ Here is a slightly more complicated example, in which a dynamic `Param` value is
 
 The example above includes descriptive metadata, `data` and `params` definitions, and nested components: an input `slider` and `plot` are positioned using a `vconcat` layout. The `plot` uses a SQL expression that includes a `Param` reference (`$point`) to define a dynamic `y` encoding channel.
 
-A declarative specification may include top-level definitions for:
+Top-level specification properties.
 
-- `meta`: Metadata such as a title and description.
-- `config`: Configuration settings, such as database extensions to load.
-- `data`: Dataset definitions, such as files, queries, or inline data.
-- `params`: Param & Selection definitions. All later Param references use a `$` prefix.
-- `plotDefaults`: Default plot attributes to apply to all plot instances.
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `$schema` | `string` | No | A [JSON schema](http://json-schema.org/) URL for this specification, such as https://uwdata.github.io/mosaic/schema/latest.json. This property enables validation and autocomplete in editors with JSON schema support. |
+| `meta` | `Meta` | No | Specification metadata. |
+| `config` | `Config` | No | Configuration options. |
+| `data` | `Data` | No | Dataset definitions. |
+| `params` | `Params` | No | Param and Selection definitions. |
+| `plotDefaults` | `PlotAttributes` | No | A default set of attributes to apply to all plot components. |
 
-The rest of the spec consists of component definitions supported by the [`vgplot`](/vgplot/) API, including plots, inputs, and layout components.
+A specification component such as a plot, input widget, or layout. The supported component contracts are `HConcat`, `VConcat`, `HSpace`, `VSpace`, `Menu`, `Search`, `Slider`, `Table`, `Plot`, `Legend`.
 
 For more, see the [Specification Format Reference](/api/spec/format).
 
@@ -60,3 +64,11 @@ Given a parsed AST, the generator method `astToDOM()` instantiates a running web
 Meanwhile, the `astToESM()` method instead generates JavaScript code, in the form of an ECMAScript Module (ESM), that uses the `vgplot` API. The JavaScript code listed in the examples above was generated using this method, and `astToPython()` similarly generates equivalent Python code for the [`vgplot` Python API](/vgplot/?lang=python).
 
 For more, see the [Specification Parser & Generators Reference](/api/spec/parser-generators).
+
+## Linked dashboard starter
+
+The dashboard combines a slider, two plots, a brush, a color legend and a filtered table. Brush a day range in the scatter plot to filter the category counts and table. Move the slider to recompute the plotted values. The default plot attributes apply to both plots.
+
+[json](/templates/spec/dashboard.json) · [yaml](/templates/spec/dashboard.yaml) · [js](/templates/spec/dashboard.js) · <a :href="withBase('/templates/spec/dashboard.py')" download>Python</a>
+
+Use the same data and parameter names across the linked components. The Python starter passes named data and params explicitly. Public vg.spec and View methods also discover named local DataDef, frame and parameter values in the caller's scope; retain those direct entry points when composing applications.

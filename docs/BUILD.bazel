@@ -1,7 +1,5 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary")
 
-exports_files(["public/schema/v0.34.0.json"])
-
 filegroup(
     name = "api_sources",
     srcs = glob(["api/**/*.md", "spec/**/*.md"]),

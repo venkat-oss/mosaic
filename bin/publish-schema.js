@@ -24,7 +24,7 @@ const v = version.split('.');
 
 // copy generated schema to file with full version number
 const schemaFile = `v${version}.json`;
-const sourceFile = join(packageDir, 'dist', 'mosaic-schema.json');
+const sourceFile = join(packageDir, 'src', 'generated', 'mosaic-schema.json');
 const targetFile = join(publishDir, schemaFile);
 await copyFile(sourceFile, targetFile);
 console.log(`Wrote JSON schema to ${targetFile}`);
