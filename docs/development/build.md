@@ -17,6 +17,8 @@ migration. The temporary SQL `/native` entry consumes a pinned, prebuilt Polyglo
 SDK archive with its matching WebAssembly binary. Browser builds emit that asset;
 the Jupyter bundle embeds it. Mosaic builds consume the archive without compiling
 Polyglot's Rust sources. DuckDB remains the execution backend during this foundation.
+VitePress keeps the SDK external during server rendering, using the declared
+root development dependency so its Node module and WASM remain together.
 
 ## Commands
 

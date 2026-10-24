@@ -1,10 +1,12 @@
 import { RestConnector } from './connectors/rest.js';
+import type { SqlExecutionContext } from '@uwdata/mosaic-sql/native';
+import type { NativeSqlContext } from './native-sql.js';
 import { type Connector } from './connectors/Connector.js';
 import { PreAggregator, type PreAggregateOptions } from './preagg/PreAggregator.js';
 import { voidLogger } from './util/void-logger.js';
 import { QueryManager, Priority } from './QueryManager.js';
 import { type Selection } from './Selection.js';
-import { type Cache, type Logger, type QueryType } from './types.js';
+import { type Cache, type Logger, type QueryType, type SelectionExpression } from './types.js';
 import { type QueryResult } from './util/query-result.js';
 import { type MosaicClient } from './MosaicClient.js';
 import { type SelectionClause } from './clause/index.js';
@@ -13,8 +15,8 @@ import { type ExtractionOptions, Table } from '@uwdata/flechette';
 import { QueryError } from './util/query-error.js';
 
 interface FilterGroupEntry {
-  selection: Selection;
-  clients: Set<MosaicClient>;
+  selection: Selection<SelectionExpression>;
+  clients: Set<MosaicClient<SelectionExpression>>;
   disconnect(): void;
 }
 
@@ -47,8 +49,9 @@ export function coordinator(
 export class Coordinator {
   public manager: QueryManager;
   public preaggregator: PreAggregator;
-  public clients = new Set<MosaicClient>;
-  public filterGroups = new Map<Selection, FilterGroupEntry>;
+  public clients = new Set<MosaicClient<SelectionExpression>>;
+  public filterGroups = new Map<Selection<SelectionExpression>, FilterGroupEntry>;
+  readonly nativeContext: NativeSqlContext | null;
   protected _logger: Logger = voidLogger();
 
   /**
@@ -74,6 +77,7 @@ export class Coordinator {
       timeout?: number;
       consolidate?: boolean;
       preagg?: PreAggregateOptions;
+      native?: NativeSqlContext;
     } = {}
   ) {
     const {
@@ -83,9 +87,15 @@ export class Coordinator {
       ipc,
       timeout,
       consolidate = true,
-      preagg = {}
+      preagg = {},
+      native = null
     } = options;
+    if (manager.nativeContext()) {
+      throw new TypeError('Native query managers cannot be shared between coordinators.');
+    }
+    this.nativeContext = native;
     this.manager = manager;
+    this.manager.nativeContext(native, () => this.preaggregator?.clear());
     this.manager.cache(cache);
     if (ipc) this.manager.ipc(ipc);
     if (timeout !== undefined) this.manager.timeout(timeout);
@@ -93,7 +103,7 @@ export class Coordinator {
     this.databaseConnector(db);
     this.logger(logger);
     this.clear();
-    this.preaggregator = new PreAggregator(this, preagg);
+    this.preaggregator = new PreAggregator(this, native ? { ...preagg, enabled: false } : preagg);
   }
 
   /**
@@ -123,9 +133,21 @@ export class Coordinator {
   databaseConnector(): Connector | null;
   databaseConnector(db: Connector): Connector;
   databaseConnector(db?: Connector): Connector | null {
-    return db
-      ? this.manager.connector(db)
-      : this.manager.connector();
+    if (db && db !== this.manager.connector()) {
+      this.preaggregator?.clear();
+      return this.manager.connector(db);
+    }
+    return this.manager.connector();
+  }
+
+  executionContext(): SqlExecutionContext | null;
+  executionContext(execution: Partial<SqlExecutionContext>): SqlExecutionContext;
+  executionContext(execution?: Partial<SqlExecutionContext>): SqlExecutionContext | null {
+    if (execution !== undefined) {
+      if (!this.nativeContext) throw new TypeError('This coordinator has no native SQL context.');
+      this.nativeContext.replace(execution);
+    }
+    return this.nativeContext?.execution ?? null;
   }
 
   /**
@@ -219,7 +241,7 @@ export class Coordinator {
    * @returns A Promise that resolves upon completion of the update.
    */
   updateClient(
-    client: MosaicClient,
+    client: MosaicClient<SelectionExpression>,
     query: QueryType,
     priority: number = Priority.Normal
   ): Promise<unknown> {
@@ -228,7 +250,7 @@ export class Coordinator {
       .then(
         data => client.queryResult(data).update(),
         err => {
-          const e = new QueryError(err, query);
+          const e = err instanceof QueryError ? err : new QueryError(err, query);
           this._logger?.error(e);
           client.queryError(e);
           return e;
@@ -244,7 +266,7 @@ export class Coordinator {
    * @param client The client to update.
    * @param query The query to issue.
    */
-  requestQuery(client: MosaicClient, query?: QueryType | null): Promise<unknown> {
+  requestQuery(client: MosaicClient<SelectionExpression>, query?: QueryType | null): Promise<unknown> {
     this.preaggregator.clear();
     return query
       ? this.updateClient(client, query)
@@ -256,8 +278,12 @@ export class Coordinator {
    * Throws an error if the client is already connected.
    * @param client The Mosaic client to connect.
    */
-  connect(client: MosaicClient): void {
-    const { clients } = this;
+  connect(client: MosaicClient<SelectionExpression>): void {
+    const { clients, nativeContext } = this;
+    const owner = nativeContext ?? null;
+    if (client.sqlOwner !== owner || client.filterBy && client.filterBy.owner !== owner) {
+      throw new TypeError('A client and its selections must belong to the coordinator SQL context.');
+    }
 
     if (clients?.has(client)) {
       throw new Error('Client already connected.');
@@ -281,7 +307,7 @@ export class Coordinator {
    * This method has no effect if the client is already disconnected.
    * @param client The Mosaic client to disconnect.
    */
-  disconnect(client: MosaicClient): void {
+  disconnect(client: MosaicClient<SelectionExpression>): void {
     const { clients, filterGroups } = this;
     if (!clients?.has(client)) return;
     clients.delete(client);
@@ -290,7 +316,12 @@ export class Coordinator {
     const group = filterGroups?.get(client.filterBy!);
     if (group) {
       group.clients.delete(client);
+      if (!group.clients.size) {
+        group.disconnect();
+        filterGroups.delete(client.filterBy!);
+      }
     }
+    if (!clients.size) this.nativeContext?.reset();
   }
 }
 
@@ -302,13 +333,13 @@ export class Coordinator {
  */
 function connectSelection(
   mc: Coordinator,
-  selection: Selection,
-  client: MosaicClient
+  selection: Selection<SelectionExpression>,
+  client: MosaicClient<SelectionExpression>
 ): void {
   if (!selection) return;
   let entry = mc.filterGroups?.get(selection);
   if (!entry) {
-    const activate = (clause: SelectionClause) => activateSelection(mc, selection, clause);
+    const activate = (clause: SelectionClause<SelectionExpression>) => activateSelection(mc, selection, clause);
     const value = () => updateSelection(mc, selection);
 
     // @ts-expect-error todo: update selection dispatch types
@@ -339,13 +370,18 @@ function connectSelection(
  */
 function activateSelection(
   mc: Coordinator,
-  selection: Selection,
-  clause: SelectionClause
+  selection: Selection<SelectionExpression>,
+  clause: SelectionClause<SelectionExpression>
 ): void {
+  if (mc.nativeContext) return;
+  if (!isLegacySelection(selection)) throw new TypeError('Native selection reached legacy optimization.');
   const { preaggregator, filterGroups } = mc;
   const { clients } = filterGroups.get(selection)!;
   for (const client of clients) {
     if (client.enabled) {
+      if (!isLegacyClient(client) || !isLegacyClause(clause)) {
+        throw new TypeError('Native values reached legacy optimization.');
+      }
       preaggregator.request(client, selection, clause);
     }
   }
@@ -360,12 +396,11 @@ function activateSelection(
  */
 function updateSelection(
   mc: Coordinator,
-  selection: Selection
+  selection: Selection<SelectionExpression>
 ): Promise<PromiseSettledResult<unknown>[]> {
   const { preaggregator, filterGroups } = mc;
   const { clients } = filterGroups!.get(selection)!;
-  const { active } = selection;
-  return Promise.allSettled(Array.from(clients, async (client: MosaicClient) => {
+  return Promise.allSettled(Array.from(clients, async (client: MosaicClient<SelectionExpression>) => {
     // if client is not enabled, register a request for later
     if (!client.enabled) {
       await client.requestQuery();
@@ -375,7 +410,19 @@ function updateSelection(
     // if client is initializing, wait for it to complete
     if (!client.initialized) await client.pending;
 
+    if (mc.nativeContext) {
+      const filter = selection.predicate(client);
+      if (!filter) return;
+      const query = client.query(filter);
+      await (query ? mc.updateClient(client, query) : client.update());
+      return;
+    }
+    if (!isLegacySelection(selection) || !isLegacyClient(client)) {
+      throw new TypeError('Native values reached legacy optimization.');
+    }
+
     // check if we can handle selection update via preaggregation
+    const active = selection.active;
     const info = preaggregator.request(client, selection, active);
 
     if (info?.skip) {
@@ -399,4 +446,16 @@ function updateSelection(
     const query = client.query(filter);
     await (query ? mc.updateClient(client, query) : client.update());
   }));
+}
+
+function isLegacySelection(selection: Selection<SelectionExpression>): selection is Selection {
+  return selection.owner === null;
+}
+
+function isLegacyClient(client: MosaicClient<SelectionExpression>): client is MosaicClient {
+  return client.sqlOwner === null;
+}
+
+function isLegacyClause(clause: SelectionClause<SelectionExpression>): clause is SelectionClause {
+  return clause.context === undefined;
 }

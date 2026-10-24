@@ -4,9 +4,11 @@ These packets implement the [target architecture](./index.md). P00 is complete
 on the isolated private Polyglot branch `mosaic-native-ast` at
 `b83718ff2c0a7bbd7413c7fd260b4e3372457e9f`. Its built SDK is distributed as a
 [public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f); Polyglot source remains private.
-P01 passes installed-package, SQL, widget, docs and browser checks; startup
-measurements are recorded in the architecture. Mosaic's default SQL runtime still
-uses its existing implementation. P02 is in progress; P03–P10 remain to be completed.
+P01 and P02 pass package, docs and browser checks, including a real Slider
+selection through native queries, DuckDB and Arrow. Startup measurements are
+recorded in the architecture. Mosaic's default SQL runtime still uses its existing
+implementation. P03 compiler prerequisites are prepared; relational queries and
+consolidation are next. P04–P10 remain to be completed.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and
 deletion work. Use normal source changes and reviewable commits. Do not create a
@@ -155,7 +157,8 @@ Mosaic's legacy code is still required at this point.
 
 ## P01 — Pin the compiler and make every runtime load it
 
-**Owners:** SQL `package.json` and `BUILD.bazel`, `pnpm-lock.yaml`, affected
+**Owners:** root/SQL/widget `package.json`, SQL and docs `BUILD.bazel`,
+`pnpm-lock.yaml`, affected
 `MODULE.bazel.lock` translation; `build/javascript.bzl`, `build/npm-consumer.mjs`,
 Vite/example configuration, docs builder, widget bundle and Python packaging.
 Add SQL `src/native/{expression,runtime,compile,index}.ts` as the native
@@ -276,6 +279,10 @@ query/relational native facade workers, native tree utilities,
    set operations, distinct/distinct-on, sampling, pivot and positional clauses.
    Preserve alias/source scoping, join operands and clone isolation. Unsupported
    target operations must lower in P00's compiler or reject before execution.
+   PostgreSQL rejects unquoted `#n` column positions, POSITIONAL/ASOF and unlowered
+   SEMI/ANTI joins, BY NAME sets, query-level or reservoir/row sampling, and
+   PIVOT/UNPIVOT. Preserve existing ON-to-EXISTS lowering and table-level percentage
+   sampling. An unsupported join must never disappear during normalization.
 2. Replace walk/collect/clone/rewrite consumers with native-tree operations.
    Identity-sensitive walks return original JS nodes. Cloning uses a shared memo
    and propagates external binding entries. Never use copied Rust aggregate nodes

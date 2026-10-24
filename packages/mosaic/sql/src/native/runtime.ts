@@ -1,6 +1,8 @@
-import { ast, compileAst, Dialect, native } from '#polyglot';
+import { ast, compileAst, Dialect as CompilerDialect, native } from '#polyglot';
 
-export { ast, compileAst, Dialect, native };
+export { ast, compileAst, native };
+// VitePress's split SSR chunks lose an indirect enum re-export.
+export import Dialect = CompilerDialect;
 export type { CompileAstOptions, TranspileResult } from '#polyglot';
 
 export interface SqlExecutionContext {

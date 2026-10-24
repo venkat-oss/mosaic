@@ -61,10 +61,13 @@ export default {
     /**
      * Serialize a selection's resolved predicate — a single expression or an
      * implicitly conjunctive array — to a SQL string.
-     * @param {import('@uwdata/mosaic-core').Selection} selection
+     * @param {import('@uwdata/mosaic-core').Selection<import('@uwdata/mosaic-core').SelectionExpression>} selection
      * @returns {string}
      */
     function predicateSQL(selection) {
+      if (selection.owner !== null) {
+        throw new TypeError('Widget predicate export requires a selection from the default SQL API.');
+      }
       const predicate = selection.predicate(undefined) ?? [];
       const parts = (Array.isArray(predicate) ? predicate : [predicate]).map(String);
       return parts.length > 1 ? parts.map(s => `(${s})`).join(' AND ') : (parts[0] ?? '');

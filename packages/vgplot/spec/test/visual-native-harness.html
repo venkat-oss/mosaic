@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="slider"></div>
+  <button id="clear">Clear</button>
+  <button id="null">Select null</button>
+  <output id="result"></output>
+  <script type="module">
+    import { Coordinator, makeClient, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
+    import { Query, count, max, min, sum } from '@uwdata/mosaic-sql/native';
+    import { Slider } from '@uwdata/mosaic-inputs';
+
+    window.nativeReady = (async () => {
+      const native = new NativeSqlContext();
+      const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
+        native,
+        logger: null
+      });
+      await coordinator.exec('CREATE OR REPLACE TEMP TABLE native_slider_rows AS SELECT * FROM (VALUES (0), (1), (2), (3), (4), (NULL)) AS t("a""b")');
+      const selection = native.selection({ cross: true });
+      const slider = new Slider({
+        element: document.querySelector('#slider'),
+        from: 'native_slider_rows',
+        column: 'a"b',
+        as: selection,
+        select: 'interval',
+        min: 0,
+        step: 1,
+        value: 2
+      }, native);
+      const events = [];
+      slider.slider.addEventListener('input', () => events.push(slider.slider.value));
+      coordinator.connect(slider);
+      const client = makeClient({
+        coordinator,
+        selection,
+        query: filter => Query.select({ n: count(), total: sum('a"b'), lo: min('a"b'), hi: max('a"b') })
+          .from('native_slider_rows').where(filter ?? []),
+        queryResult: data => {
+          const row = Array.from(data)[0];
+          document.querySelector('#result').textContent = JSON.stringify(
+            ['n', 'total', 'lo', 'hi'].map(key => row[key] == null ? null : Number(row[key]))
+          );
+        },
+        queryError: error => { throw error; }
+      });
+      document.querySelector('#clear').onclick = () => selection.update(native.clear(slider));
+      document.querySelector('#null').onclick = () => selection.update(native.point('a"b', null, { source: slider }));
+      await Promise.all([slider.pending, client.pending]);
+      return { coordinator, selection, slider, client, events };
+    })();
+  </script>
+</body>
+</html>

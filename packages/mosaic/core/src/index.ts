@@ -41,3 +41,5 @@ export type * from './types.js';
 export type * from './clause/index.js';
 export type * from './connectors/Connector.js';
 export type * from './Selection.js';
+export { NativeSqlContext } from './native-sql.js';
+export type { NativeSelection, NativeSelectionClause } from './native-sql.js';

@@ -302,7 +302,7 @@
           "REPO_MAPPING:,toml.bzl toml.bzl+",
           "FILE:@@//packages/vgplot/vgplot-python/package.json b3f458946a101049278d69a5377b955cfb744f6c3201e4bc0d981844400e369a",
           "FILE:@@//packages/vgplot/vgplot-python/pyproject.toml 951c4e1feed8127fd0c0659da18e6525fcfcd9cfdb94eee2cb18bb92a1178e06",
-          "FILE:@@//packages/vgplot/widget/package.json 7a256952d87d089a23e13892c7dca7f2b79fc78fb60e789422eda19adad10013",
+          "FILE:@@//packages/vgplot/widget/package.json 13f730aa188e1d7f459164e975158fb29f7edf8c80c2109b66decfb4a0b92eca",
           "FILE:@@//packages/vgplot/widget/pyproject.toml 02ae26e7511309a1dd72dd0bcc38d24547d33f42ffbce26dd9f3b5031912d2c4",
           "FILE:@@//packages/server/duckdb-server/package.json b1ed799fe7a0cf963ffa9541d1c8ce2b19769095a6d90f61ca3409b06a32831f",
           "FILE:@@//packages/server/duckdb-server/pyproject.toml f3d2ae6e05291dbe585ff67d5811eccee6a09526cfb90b1f1b4a86763bc4c1c0"

@@ -1,4 +1,9 @@
 import type { ExtractionOptions } from '@uwdata/flechette';
+import { isQuery as isNativeQuery } from '@uwdata/mosaic-sql/native';
+import type { SqlExecutionContext } from '@uwdata/mosaic-sql/native';
+import type { NativeSqlContext } from './native-sql.js';
+import { QueryError } from './util/query-error.js';
+import type { QueryType } from './types.js';
 import type { Connector } from './connectors/Connector.js';
 import type { Cache, Logger, QueryEntry, QueryRequest } from './types.js';
 import { consolidator } from './QueryConsolidator.js';
@@ -13,6 +18,7 @@ export const Priority = Object.freeze({ High: 0, Normal: 1, Low: 2 });
 
 interface Flight {
   sql: string;
+  key: string;
   type: QueryRequest['type'];
   controller: AbortController;
   promise: Promise<unknown>;
@@ -31,6 +37,8 @@ export class QueryManager {
   private flights: Set<Flight>;
   private _timeout: number;
   private _generation: number;
+  private _nativeContext: NativeSqlContext | null;
+  private _contextReset?: () => void;
   /** Requests pending with the query manager. */
   public pendingResults: QueryResult[];
   private maxConcurrentRequests: number;
@@ -48,6 +56,7 @@ export class QueryManager {
     this.flights = new Set();
     this._timeout = 0;
     this._generation = 0;
+    this._nativeContext = null;
     this.pendingResults = [];
     this.maxConcurrentRequests = maxConcurrentRequests;
     this.pendingExec = false;
@@ -98,15 +107,27 @@ export class QueryManager {
    */
   async submit(request: QueryRequest, result: QueryResult): Promise<void> {
     let sent: Promise<unknown> | undefined;
+    let sql: string | undefined;
+    let dispatched = false;
+    const context = this._nativeContext;
+    const execution = context?.execution;
     try {
       const { query, type, cache = false, options } = request;
-      const sql = Array.isArray(query) ? query.filter(x => x).join(';\n') : String(query);
       const generation = this._generation;
+      sql = this.sql(query, type, context, execution);
+      if (generation !== this._generation) {
+        throw new DOMException('SQL execution context changed during compilation.', 'AbortError');
+      }
+      const key = execution
+        ? JSON.stringify([execution.backend, execution.sourceDialect, execution.targetDialect, execution.generation, sql])
+        : sql;
       const ipc = this._ipc;
 
       if (cache) {
-        const cached = this.clientCache.get(sql) ?? this.inflight.get(sql)?.promise;
+        const shared = this.inflight.get(key)?.promise;
+        const cached = this.clientCache.get(key) ?? shared;
         if (cached) {
+          dispatched = cached === shared;
           const data = await cached;
           this._logger.debug('Cache');
           result.ready(data);
@@ -120,34 +141,38 @@ export class QueryManager {
       }
 
       const controller = new AbortController();
+      dispatched = true;
       // @ts-expect-error type may be exec | arrow
       const response = this.db!.query({ ...options, type, sql }, { signal: controller.signal });
       sent = response;
       const promise: Promise<unknown> = type === 'arrow'
         ? response.then(bytes => decodeIPC(bytes, ipc))
         : response;
-      const flight: Flight = { sql, type, controller, promise: abortable(promise, controller.signal) };
+      const flight: Flight = { sql, key, type, controller, promise: abortable(promise, controller.signal) };
       const ms = this._timeout;
       const timer = ms
         ? setTimeout(() => this.abortFlight(flight, new DOMException(`Query timed out after ${ms} ms`, 'TimeoutError')), ms)
         : undefined;
       this.flights.add(flight);
-      if (cache) this.inflight.set(sql, flight);
+      if (cache) this.inflight.set(key, flight);
 
       const data = await flight.promise.finally(() => {
         clearTimeout(timer);
         this.flights.delete(flight);
-        if (this.inflight.get(sql) === flight) this.inflight.delete(sql);
+        if (this.inflight.get(key) === flight) this.inflight.delete(key);
       });
 
       if (cache && generation === this._generation) {
-        this.clientCache.set(sql, data, tableByteLength(data) ?? 0);
+        this.clientCache.set(key, data, tableByteLength(data) ?? 0);
       }
 
       this._logger.debug(`Request: ${(performance.now() - t0).toFixed(1)}`);
       result.ready(type === 'exec' ? null : data);
     } catch (err) {
-      result.reject(err);
+      const cancelled = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError');
+      result.reject(context && sql !== undefined && dispatched && !cancelled
+        ? new QueryError(err, sql)
+        : err);
       // later queries must not overtake an exec that the connector is still running
       if (request.type === 'exec') await sent?.catch(() => {});
     }
@@ -223,7 +248,13 @@ export class QueryManager {
   connector(): Connector | null;
   connector(connector: Connector): Connector;
   connector(connector?: Connector): Connector | null {
-    return connector ? (this.db = connector) : this.db;
+    if (connector && connector !== this.db) {
+      const previous = this.db;
+      this.db = connector;
+      if (previous && this._nativeContext) this._nativeContext.replace();
+      else this.invalidateContext();
+    }
+    return this.db;
   }
 
   /**
@@ -252,7 +283,7 @@ export class QueryManager {
   request(request: QueryRequest, priority: number = Priority.Normal): QueryResult {
     const result = new QueryResult();
     const entry = { request, result };
-    if (this._consolidate && this._consolidating) {
+    if (!this._nativeContext && this._consolidate && this._consolidating) {
       this._consolidate.add(entry, priority);
     } else {
       this.enqueue(entry, priority);
@@ -282,6 +313,7 @@ export class QueryManager {
   }
 
   clear(): void {
+    this._nativeContext?.reset();
     this._generation += 1;
     this._consolidate?.remove(({ result }) => {
       result.reject('Cleared');
@@ -303,8 +335,66 @@ export class QueryManager {
     }
   }
 
+  nativeContext(): NativeSqlContext | null;
+  nativeContext(context: NativeSqlContext | null, reset?: () => void): NativeSqlContext | null;
+  nativeContext(context?: NativeSqlContext | null, reset?: () => void): NativeSqlContext | null {
+    if (context !== undefined && context !== this._nativeContext) {
+      context?.attach(this, () => this.invalidateContext());
+      this._nativeContext?.detach(this);
+      this.invalidateContext();
+      this._nativeContext = context;
+      this._contextReset = reset;
+    }
+    return this._nativeContext;
+  }
+
+  private invalidateContext(): void {
+    this.clear();
+    this.clientCache.clear();
+    this.inflight.clear();
+    this._contextReset?.();
+  }
+
+  private sql(
+    query: QueryType | QueryType[],
+    type: QueryRequest['type'],
+    context: NativeSqlContext | null,
+    execution: SqlExecutionContext | undefined
+  ): string {
+    const inputs = Array.isArray(query) ? query.filter(value => value) : [query];
+    if (!context || !execution) {
+      if (inputs.some(isNativeQuery)) {
+        throw new TypeError('Native SQL queries require a native coordinator.');
+      }
+      return inputs.map(input => String(input)).join(';\n');
+    }
+    const admitted = inputs.map(input => {
+      if (isNativeQuery(input)) {
+        if (type === 'arrow' && !('select' in input.expression) && !('describe' in input.expression)) {
+          throw new TypeError('Native Arrow requests require a SELECT or DESCRIBE query.');
+        }
+        return input;
+      }
+      if (typeof input !== 'string') {
+        throw new TypeError('Adopt legacy queries before submitting them to a native coordinator.');
+      }
+      if (type === 'arrow') {
+        throw new TypeError('Native Arrow requests require a structured query during the pilot.');
+      }
+      if (execution.sourceDialect !== execution.targetDialect) {
+        throw new TypeError('Raw SQL requires matching source and target dialects during the native pilot.');
+      }
+      return input;
+    });
+    const statements = context.compileBatch(admitted, execution);
+    if (type === 'arrow' && statements.length !== 1) {
+      throw new TypeError('Arrow requests require one result-producing SQL statement.');
+    }
+    return statements.join(';\n');
+  }
+
   private abortFlight(flight: Flight, reason?: unknown): void {
-    if (this.inflight.get(flight.sql) === flight) this.inflight.delete(flight.sql);
+    if (this.inflight.get(flight.key) === flight) this.inflight.delete(flight.key);
     flight.controller.abort(reason);
   }
 }

@@ -44,6 +44,7 @@ js_library(
     name = "site_sources",
     srcs = [":sources"],
     deps = [
+        "//:node_modules/@polyglot-sql/sdk",
         "//:node_modules/vitepress",
         "//:node_modules/vitepress-plugin-llms",
         "//:node_modules/vue",

@@ -40,6 +40,7 @@ export default defineConfig({
   vite: {
     build: viteConfig.build,
     optimizeDeps: viteConfig.optimizeDeps,
+    ssr: viteConfig.ssr,
     resolve: viteConfig.resolve,
     plugins: [
       langToggleLLMMarkers(),

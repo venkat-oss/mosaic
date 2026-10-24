@@ -10,6 +10,9 @@ export default {
   optimizeDeps: {
     exclude: ['@polyglot-sql/sdk'],
   },
+  ssr: {
+    external: ['@polyglot-sql/sdk'],
+  },
   server: {
     open: '/dev/index.html',
   },

@@ -45,6 +45,6 @@
     }
   },
   "dependencies": {
-    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f/polyglot-sql-sdk-0.13.3-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f.tgz"
+    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-c2f10771494482accd83a5641a555823d85cb129/polyglot-sql-sdk-0.13.3-c2f10771494482accd83a5641a555823d85cb129.tgz"
   }
 }

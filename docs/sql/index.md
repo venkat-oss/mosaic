@@ -8,7 +8,8 @@ These utilities are used throughout Mosaic packages to build structured queries 
 The temporary `@uwdata/mosaic-sql/native` entry exposes Polyglot's native
 expression data and Mosaic's compiler foundation during the [migration](../development/polyglot/).
 It requires Node.js 22 or later, or a browser with WebAssembly and ES2022 support.
-The existing Query facade moves to this representation in subsequent slices.
+Its native Query facade supports the [reactive Slider slice](../inputs/#native-slider-preview)
+while the normal SQL entry retains its existing implementation.
 
 ```js
 import {
@@ -31,6 +32,11 @@ Node ESM initializes the compiler before imports complete. Browser builds must
 emit the SDK's sibling WebAssembly asset and support top-level await. The repository's
 Vite configurations select ES2022 and exclude the SDK from dependency prebundling.
 The Jupyter frontend embeds this asset in its bundle.
+
+Native Query alias maps accept names such as `first` and `sum`. For ambiguous
+plain-data shapes, pass projection entries as `Query.select([[name, value]])`
+or wrap a raw native expression as `{ expression: node }`. The exact object
+`{ null: null }` denotes a native NULL expression.
 
 The migration retains the mutable Query facade and aggregate/window authoring
 chains. Exported low-level node constructors, `instanceof` extensions, underscore

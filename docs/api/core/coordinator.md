@@ -23,6 +23,11 @@ Create a new Mosaic Coordinator to manage all database communication for clients
 * _timeout_: The query timeout in milliseconds (default none). A query that does not complete in time is rejected with a `TimeoutError`, and its connector request is aborted. The clock starts when the query is sent to the connector, not while it waits in the queue. The timeout applies to every query, including `exec` queries that load data or build pre-aggregated tables, so choose a value above the slowest of these. A timed-out `exec` query can still take effect in the database, and later queries wait until the connector stops or completes it.
 * _consolidate_ Boolean flag to enable/disable query consolidation (default `true`). Queries that expand `*` or `COLUMNS(...)` into multiple output columns execute separately, preserving their complete column sets. If extracting a consolidated result fails, every request in that group rejects.
 * _preagg_: Pre-aggregation options object. The _enabled_ flag (default `true`) determines if pre-aggregation optimizations should be used when possible. The _schema_ option (default `'mosaic'`) indicates the database schema in which materialized view tables should be created for pre-aggregated data.
+* _native_: Experimental `NativeSqlContext` for the [native Slider slice](/inputs/#native-slider-preview). Use a separate context and its selections for each coordinator. This path compiles native SQL expressions at submission; consolidation and pre-aggregation are enabled in later migration slices.
+
+The native preview accepts native SELECT/DESCRIBE query handles for Arrow
+requests. Same-dialect raw SQL remains available for `exec` setup batches;
+portable raw statement input follows in P08.
 
 ## Query cache
 
@@ -39,6 +44,20 @@ A custom cache object must implement `get(key)`, `set(key, value, bytes)`, `clea
 `coordinator.databaseConnector(connector)`
 
 Get or set the [_connector_](./connectors) used by the coordinator to issue queries to a backing data source.
+
+Replacing the connector clears cached results, cancels pending reads and advances
+the connection generation. A running `exec` retains its ordering barrier until
+the connector finishes it.
+
+## executionContext
+
+`coordinator.executionContext(options)`
+
+For a native coordinator, get or replace the source/target dialect and backend
+identity. Replacement advances the connection generation and clears cached,
+in-flight and optimization state. Independent coordinators retain their own
+contexts. DuckDB is the supported execution backend for this preview;
+PostgreSQL execution is a later migration packet.
 
 ## connect
 

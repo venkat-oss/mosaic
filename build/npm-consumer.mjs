@@ -43,9 +43,10 @@ db.close();
 writeFileSync(join(directory, 'consumer.ts'), `
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
-import { compile, createExecutionContext, native, type SqlExpression } from '@uwdata/mosaic-sql/native';
+import { compile, createExecutionContext, Dialect, native, type SqlExpression } from '@uwdata/mosaic-sql/native';
+const dialect: Dialect.DuckDB = Dialect.DuckDB;
 const expression: SqlExpression = native.select([native.literal(42)]);
-const statements: string[] = compile([expression], createExecutionContext());
+const statements: string[] = compile([expression], createExecutionContext({ targetDialect: dialect }));
 void statements;
 const query: string = Query.select({ value: literal(42) }).toString();
 const rows: Promise<Record<string, unknown>[]> = new DuckDB().query(query);

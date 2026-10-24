@@ -128,8 +128,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`b83718ff2c0a7bbd7413c7fd260b4e3372457e9f`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-b83718ff2c0a7bbd7413c7fd260b4e3372457e9f)
+`c2f10771494482accd83a5641a555823d85cb129`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-c2f10771494482accd83a5641a555823d85cb129)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -210,9 +210,9 @@ archive about 5.5 MB; these are observed sizes, not performance targets. Measure
 module readiness, transferred bytes and first-query latency on actual package and
 widget builds. Do not maintain a second compiler to make this dependency optional.
 
-The pinned fork archive is 6.80 MB, its uncompressed WASM 26.35 MB, and the
-embedded widget JavaScript bundle 36.72 MB. Local measurements on 2026-10-24
-produced these medians:
+The P01 SDK archive at `b83718f` is 6.80 MB, its uncompressed WASM 26.35 MB,
+and the embedded widget JavaScript bundle 36.72 MB. Local measurements on
+2026-10-24 using that revision produced these medians:
 
 | Consumer | Module ready | First compiler call |
 | --- | ---: | ---: |

@@ -1,6 +1,13 @@
 export { Dialect, native, createExecutionContext } from './runtime.js';
 export type { SqlExecutionContext } from './runtime.js';
-export { asLiteral, asNode } from './expression.js';
-export type { SqlExpression, SqlValue } from './expression.js';
-export { compile, SqlCompilationError } from './compile.js';
+export { asLiteral, asNode, column, deferred, isExpression, isExpressionHandle, literal, tableRef, toExpression } from './expression.js';
+export type { ExprValue, SqlExpression, SqlExpressionHandle, SqlRoot, SqlValue, ParamLike, ParamReader } from './types.js';
+export { BindingScope, bindingOf, cloneExpression, fields, params, rootExpression, snapshot, snapshotAll } from './bindings.js';
+export type { SqlBinding, SqlField } from './bindings.js';
+export { compile, compileBatch, SqlCompilationError } from './compile.js';
 export type { SqlCompileOptions } from './compile.js';
+export { Query, inspectSelect, isQuery } from './query.js';
+export { Aggregate, avg, count, max, min, sum } from './aggregate.js';
+export * from './operators.js';
+export { LegacyInputAdapter } from './legacy-input.js';
+export { cast, int32, float32, float64 } from './cast.js';

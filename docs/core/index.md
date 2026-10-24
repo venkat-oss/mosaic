@@ -43,6 +43,11 @@ The Coordinator additionally performs optimizations including caching and pre-ag
 
 [Coordinator API Reference](/api/core/coordinator)
 
+The [native Slider preview](/inputs/#native-slider-preview) uses a per-coordinator
+`NativeSqlContext`, native selection predicates and the SQL `/native` entry.
+Queries compile from native expression data at submission. This preview keeps
+DuckDB execution and Arrow results while the remaining client families migrate.
+
 ## Data Source
 
 The coordinator submits queries to a _data source_ using an extensible set of database connectors.
