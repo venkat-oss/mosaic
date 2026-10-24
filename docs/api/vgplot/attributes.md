@@ -182,6 +182,22 @@ In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 | [`lengthBase(value)`](#lengthbase) | `` number \| ParamRef `` |
 | [`lengthConstant(value)`](#lengthconstant) | `` number \| ParamRef `` |
 
+## Projection Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`projectionType(value)`](#projectiontype) | `` ProjectionName \| null \| ParamRef `` |
+| [`projectionDomain(value)`](#projectiondomain) | `` object \| ParamRef `` |
+| [`projectionRotate(value)`](#projectionrotate) | `` [x: number \| ParamRef, y: number \| ParamRef, z?: number \| ParamRef] \| ParamRef `` |
+| [`projectionParallels(value)`](#projectionparallels) | `` [y1: number \| ParamRef, y2: number \| ParamRef] \| ParamRef `` |
+| [`projectionPrecision(value)`](#projectionprecision) | `` number \| ParamRef `` |
+| [`projectionClip(value)`](#projectionclip) | `` boolean \| number \| 'frame' \| null \| ParamRef `` |
+| [`projectionInset(value)`](#projectioninset) | `` number \| ParamRef `` |
+| [`projectionInsetTop(value)`](#projectioninsettop) | `` number \| ParamRef `` |
+| [`projectionInsetRight(value)`](#projectioninsetright) | `` number \| ParamRef `` |
+| [`projectionInsetBottom(value)`](#projectioninsetbottom) | `` number \| ParamRef `` |
+| [`projectionInsetLeft(value)`](#projectioninsetleft) | `` number \| ParamRef `` |
+
 </template>
 
 <template v-else-if="language === 'python'">
@@ -375,6 +391,22 @@ In addition to value arrays, scale domain attributes accept the string `"Fixed"`
 | [`vg.length_exponent(value)`](#lengthexponent) | `` number \| ParamRef `` |
 | [`vg.length_base(value)`](#lengthbase) | `` number \| ParamRef `` |
 | [`vg.length_constant(value)`](#lengthconstant) | `` number \| ParamRef `` |
+
+## Projection Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.projection_type(value)`](#projectiontype) | `` ProjectionName \| null \| ParamRef `` |
+| [`vg.projection_domain(value)`](#projectiondomain) | `` object \| ParamRef `` |
+| [`vg.projection_rotate(value)`](#projectionrotate) | `` [x: number \| ParamRef, y: number \| ParamRef, z?: number \| ParamRef] \| ParamRef `` |
+| [`vg.projection_parallels(value)`](#projectionparallels) | `` [y1: number \| ParamRef, y2: number \| ParamRef] \| ParamRef `` |
+| [`vg.projection_precision(value)`](#projectionprecision) | `` number \| ParamRef `` |
+| [`vg.projection_clip(value=True)`](#projectionclip) | `` boolean \| number \| 'frame' \| null \| ParamRef `` |
+| [`vg.projection_inset(value)`](#projectioninset) | `` number \| ParamRef `` |
+| [`vg.projection_inset_top(value)`](#projectioninsettop) | `` number \| ParamRef `` |
+| [`vg.projection_inset_right(value)`](#projectioninsetright) | `` number \| ParamRef `` |
+| [`vg.projection_inset_bottom(value)`](#projectioninsetbottom) | `` number \| ParamRef `` |
+| [`vg.projection_inset_left(value)`](#projectioninsetleft) | `` number \| ParamRef `` |
 
 </template>
 
@@ -1776,3 +1808,88 @@ Length scales have a default range of [0, 12].
 ### Size examples
 
 `radius-range-parameter`: [json](/templates/attributes/size/radius-range-parameter.json) · [yaml](/templates/attributes/size/radius-range-parameter.yaml) · [js](/templates/attributes/size/radius-range-parameter.js) · <a :href="withBase('/templates/attributes/size/radius-range-parameter.py')" download>Python</a>.
+
+## projection attribute reference
+
+### projectionType
+
+The desired projection; one of:
+
+- a named built-in projection such as *albers-usa*
+- null, for no projection
+
+Named projections are scaled and translated to fit
+the **domain** to the plot’s frame (minus insets).
+
+### projectionDomain
+
+A GeoJSON object to fit to the plot’s frame (minus insets); defaults to a
+Sphere for spherical projections (outline of the the whole globe).
+
+### projectionRotate
+
+A rotation of the sphere before projection; defaults to [0, 0, 0].
+Specified as Euler angles λ (yaw, or reference longitude), φ (pitch, or
+reference latitude), and optionally γ (roll), in degrees.
+
+### projectionParallels
+
+The [standard parallels](https://d3js.org/d3-geo/conic#conic_parallels). For conic projections only.
+
+### projectionPrecision
+
+The projection’s [sampling threshold](https://d3js.org/d3-geo/projection#projection_precision).
+
+### projectionClip
+
+The projection’s clipping method; one of:
+
+- *frame* or true (default) - clip to the plot’s frame (including margins but not insets)
+- a number - clip to a circle of the given radius in degrees centered around the origin
+- null or false - do not clip
+
+Some projections (such as [*armadillo*](https://observablehq.com/@d3/armadillo) and [*berghaus*](https://observablehq.com/@d3/berghaus-star)) require
+spherical clipping: in that case set the marks’ **clip** option to
+*sphere*.
+
+### projectionInset
+
+Shorthand to set the same default for all four projection insets.
+All insets typically default to zero, though not always. A positive
+inset reduces effective area, while a negative inset increases it.
+
+### projectionInsetTop
+
+Insets the top edge of the projection by the specified number of pixels.
+A positive value insets towards the bottom edge (reducing effective area),
+while a negative value insets away from the bottom edge (increasing it).
+
+### projectionInsetRight
+
+Insets the right edge of the projection by the specified number of pixels.
+A positive value insets towards the left edge (reducing effective area),
+while a negative value insets away from the left edge (increasing it).
+
+### projectionInsetBottom
+
+Insets the bottom edge of the projection by the specified number of pixels.
+A positive value insets towards the top edge (reducing effective area),
+while a negative value insets away from the top edge (increasing it).
+
+### projectionInsetLeft
+
+Insets the left edge of the projection by the specified number of pixels.
+A positive value insets towards the right edge (reducing effective area),
+while a negative value insets away from the right edge (increasing it).
+
+**`projectionType`:** Native JavaScript initializer functions may return a D3 projection; they receive the available inner frame dimensions and routed projection options. A direct D3 projection passed through this attribute fails with projection.stream is not a function, and a plain projection object fails with unknown projection type: [object Object]. These forms are outside the declared name union. Install d3 alongside @uwdata/vgplot for the examples that import geoMercator.
+
+**`projectionRotate`:** TypeScript and native JavaScript permit a two-angle rotation, but the existing wire schema requires exactly three items. Use three angles in declarative specifications.
+
+**`projectionClip`:** Python defaults to True; JavaScript omitted values remain undefined. False and null disable clipping, while a number requests angular clipping in degrees.
+
+### Projection examples
+
+`projectionType`: [json](/templates/attributes/projection/projectionType.json) · [yaml](/templates/attributes/projection/projectionType.yaml) · [js](/templates/attributes/projection/projectionType.js) · <a :href="withBase('/templates/attributes/projection/projectionType.py')" download>Python</a>.
+
+JavaScript-only [`native-initializer`](/templates/attributes/projection/native-initializer.js).

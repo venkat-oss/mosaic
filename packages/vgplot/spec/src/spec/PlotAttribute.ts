@@ -1741,8 +1741,6 @@ export interface PlotAttributes {
   lengthConstant?: number | ParamRef;
 
 
-  // projection attributes
-
   /**
    * The desired projection; one of:
    *
@@ -1754,20 +1752,21 @@ export interface PlotAttributes {
    */
   projectionType?: ProjectionName | null | ParamRef;
 
+
   /**
    * A GeoJSON object to fit to the plot’s frame (minus insets); defaults to a
    * Sphere for spherical projections (outline of the the whole globe).
    */
   projectionDomain?: object | ParamRef;
 
+
   /**
    * A rotation of the sphere before projection; defaults to [0, 0, 0].
    * Specified as Euler angles λ (yaw, or reference longitude), φ (pitch, or
    * reference latitude), and optionally γ (roll), in degrees.
    */
-  projectionRotate?:
-    | [x: number | ParamRef, y: number | ParamRef, z?: number | ParamRef]
-    | ParamRef;
+  projectionRotate?: [x: number | ParamRef, y: number | ParamRef, z?: number | ParamRef] | ParamRef;
+
 
   /**
    * The [standard parallels][1]. For conic projections only.
@@ -1776,12 +1775,14 @@ export interface PlotAttributes {
    */
   projectionParallels?: [y1: number | ParamRef, y2: number | ParamRef] | ParamRef;
 
+
   /**
    * The projection’s [sampling threshold][1].
    *
    * [1]: https://d3js.org/d3-geo/projection#projection_precision
    */
   projectionPrecision?: number | ParamRef;
+
 
   /**
    * The projection’s clipping method; one of:
@@ -1799,12 +1800,14 @@ export interface PlotAttributes {
    */
   projectionClip?: boolean | number | 'frame' | null | ParamRef;
 
+
   /**
    * Shorthand to set the same default for all four projection insets.
    * All insets typically default to zero, though not always. A positive
    * inset reduces effective area, while a negative inset increases it.
    */
   projectionInset?: number | ParamRef;
+
 
   /**
    * Insets the top edge of the projection by the specified number of pixels.
@@ -1813,6 +1816,7 @@ export interface PlotAttributes {
    */
   projectionInsetTop?: number | ParamRef;
 
+
   /**
    * Insets the right edge of the projection by the specified number of pixels.
    * A positive value insets towards the left edge (reducing effective area),
@@ -1820,12 +1824,14 @@ export interface PlotAttributes {
    */
   projectionInsetRight?: number | ParamRef;
 
+
   /**
    * Insets the bottom edge of the projection by the specified number of pixels.
    * A positive value insets towards the top edge (reducing effective area),
    * while a negative value insets away from the top edge (increasing it).
    */
   projectionInsetBottom?: number | ParamRef;
+
 
   /**
    * Insets the left edge of the projection by the specified number of pixels.

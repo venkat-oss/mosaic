@@ -229,8 +229,6 @@ export const lengthZero = attrf('lengthZero');
 export const lengthBase = attrf('lengthBase');
 export const lengthExponent = attrf('lengthExponent');
 export const lengthConstant = attrf('lengthConstant');
-
-// projection attributes
 export const projectionType = attrf('projectionType');
 export const projectionParallels = attrf('projectionParallels');
 export const projectionPrecision = attrf('projectionPrecision');

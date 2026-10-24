@@ -132,6 +132,19 @@ from .plot_attributes import (
     style,
     width,
 )
+from .projection_attributes import (
+    projection_clip,
+    projection_domain,
+    projection_inset,
+    projection_inset_bottom,
+    projection_inset_left,
+    projection_inset_right,
+    projection_inset_top,
+    projection_parallels,
+    projection_precision,
+    projection_rotate,
+    projection_type,
+)
 from .size_attributes import (
     length_base,
     length_clamp,
@@ -453,61 +466,6 @@ def fy_tick_size(value: AttrValue) -> Directive:
 def fy_tick_spacing(value: AttrValue) -> Directive:
     """The desired approximate spacing between adjacent axis ticks, affecting the default **ticks**; defaults to 80 pixels for *x* and *fx*, and 35 pixels for *y* and *fy*."""
     return Directive("fyTickSpacing", value)
-
-
-def projection_clip(value: AttrValue = True) -> Directive:
-    """The projection’s clipping method; one of: - *frame* or true (default) - clip to the plot’s frame (including margins but not insets) - a number - clip to a circle of the given radius in degrees centered around the origin - null or false - do not clip Some projections (such as *armadillo* and *berghaus*) require spherical clipping: in that case set the marks’ **clip** option to *sphere*."""
-    return Directive("projectionClip", value)
-
-
-def projection_domain(value: AttrValue) -> Directive:
-    """A GeoJSON object to fit to the plot’s frame (minus insets); defaults to a Sphere for spherical projections (outline of the the whole globe)."""
-    return Directive("projectionDomain", value)
-
-
-def projection_inset(value: AttrValue) -> Directive:
-    """Shorthand to set the same default for all four projection insets."""
-    return Directive("projectionInset", value)
-
-
-def projection_inset_bottom(value: AttrValue) -> Directive:
-    """Insets the bottom edge of the projection by the specified number of pixels."""
-    return Directive("projectionInsetBottom", value)
-
-
-def projection_inset_left(value: AttrValue) -> Directive:
-    """Insets the left edge of the projection by the specified number of pixels."""
-    return Directive("projectionInsetLeft", value)
-
-
-def projection_inset_right(value: AttrValue) -> Directive:
-    """Insets the right edge of the projection by the specified number of pixels."""
-    return Directive("projectionInsetRight", value)
-
-
-def projection_inset_top(value: AttrValue) -> Directive:
-    """Insets the top edge of the projection by the specified number of pixels."""
-    return Directive("projectionInsetTop", value)
-
-
-def projection_parallels(value: AttrValue) -> Directive:
-    """The standard parallels."""
-    return Directive("projectionParallels", value)
-
-
-def projection_precision(value: AttrValue) -> Directive:
-    """The projection’s sampling threshold."""
-    return Directive("projectionPrecision", value)
-
-
-def projection_rotate(value: AttrValue) -> Directive:
-    """A rotation of the sphere before projection; defaults to 0, 0, 0."""
-    return Directive("projectionRotate", value)
-
-
-def projection_type(value: AttrValue) -> Directive:
-    """The desired projection; one of: - a named built-in projection such as *albers-usa* - null, for no projection Named projections are scaled and translated to fit the **domain** to the plot’s frame (minus insets)."""
-    return Directive("projectionType", value)
 
 
 __all__ = [
