@@ -52,27 +52,21 @@ export function toggleColor(options) {
 function zoom(options) {
   return interactor(PanZoom, options);
 }
-
 export function pan(options = {}) {
-  return zoom({ ...options, zoom: false });
+  return interactor(PanZoom, { ...options, zoom: false });
 }
-
 export function panX(options = {}) {
-  return zoom({ ...options, zoom: false, pany: false });
+  return interactor(PanZoom, { ...options, zoom: false, pany: false });
 }
-
 export function panY(options = {}) {
-  return zoom({ ...options, zoom: false, panx: false });
+  return interactor(PanZoom, { ...options, zoom: false, panx: false });
 }
-
 export function panZoom(options = {}) {
-  return zoom(options);
+  return interactor(PanZoom, options);
 }
-
 export function panZoomX(options = {}) {
-  return zoom({ ...options, pany: false });
+  return interactor(PanZoom, { ...options, pany: false });
 }
-
 export function panZoomY(options = {}) {
-  return zoom({ ...options, panx: false });
+  return interactor(PanZoom, { ...options, panx: false });
 }

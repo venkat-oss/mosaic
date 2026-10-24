@@ -15,12 +15,13 @@ from . import (
 from ._generated import brush_interactors as _brush_interactors
 from ._generated import layouts as _layouts
 from ._generated import legends as _legends
+from ._generated import navigation_interactors as _navigation_interactors
 from ._generated import plot_attributes as _plot_attributes
 from ._generated import point_interactors as _point_interactors
 from ._mark_contracts import DATA_OPTIONS as _DATA_OPTIONS
 from .data import DataDef, is_frame
 from .params import _ParamBase
-from .util import camelize, omit_none
+from .util import camelize
 
 if TYPE_CHECKING:
     from vgplot._types import MarkData
@@ -150,38 +151,6 @@ def _encode_component(
     return encode_value(item, param_names, data_names)
 
 
-def _interactor(select: str, **opts: Any) -> dict[str, Any]:
-    return omit_none({"select": select, **opts})
-
-
-def pan(
-    x: Any = None, y: Any = None, xfield: Any = None, yfield: Any = None
-) -> dict[str, Any]:
-    return _interactor("pan", x=x, y=y, xfield=xfield, yfield=yfield)
-
-
-def pan_x(x: Any = None, xfield: Any = None) -> dict[str, Any]:
-    return _interactor("panX", x=x, xfield=xfield)
-
-
-def pan_y(y: Any = None, yfield: Any = None) -> dict[str, Any]:
-    return _interactor("panY", y=y, yfield=yfield)
-
-
-def pan_zoom(
-    x: Any = None, y: Any = None, xfield: Any = None, yfield: Any = None
-) -> dict[str, Any]:
-    return _interactor("panZoom", x=x, y=y, xfield=xfield, yfield=yfield)
-
-
-def pan_zoom_x(x: Any = None, xfield: Any = None) -> dict[str, Any]:
-    return _interactor("panZoomX", x=x, xfield=xfield)
-
-
-def pan_zoom_y(y: Any = None, yfield: Any = None) -> dict[str, Any]:
-    return _interactor("panZoomY", y=y, yfield=yfield)
-
-
 _INPUT_ALIASES = {"bind": "as", "source": "from"}
 
 
@@ -232,3 +201,10 @@ interval_xy = _brush_interactors.interval_xy
 interval_y = _brush_interactors.interval_y
 region = _brush_interactors.region
 sort = _brush_interactors.sort
+
+pan = _navigation_interactors.pan
+pan_x = _navigation_interactors.pan_x
+pan_y = _navigation_interactors.pan_y
+pan_zoom = _navigation_interactors.pan_zoom
+pan_zoom_x = _navigation_interactors.pan_zoom_x
+pan_zoom_y = _navigation_interactors.pan_zoom_y

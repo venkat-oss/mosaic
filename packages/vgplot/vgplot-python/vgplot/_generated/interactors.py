@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .brush_interactors import brush, interval_x, interval_xy, interval_y, region, sort
+from .navigation_interactors import pan, pan_x, pan_y, pan_zoom, pan_zoom_x, pan_zoom_y
 from .point_interactors import (
     highlight,
     nearest,
@@ -23,6 +24,12 @@ __all__ = [
     "nearest",
     "nearest_x",
     "nearest_y",
+    "pan",
+    "pan_x",
+    "pan_y",
+    "pan_zoom",
+    "pan_zoom_x",
+    "pan_zoom_y",
     "region",
     "sort",
     "toggle",

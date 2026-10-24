@@ -124,68 +124,53 @@ Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
 ## pan & zoom
 
-Pan or zoom a plot.
-To pan, click and drag within a plot.
-To zoom, scroll within a plot.
-
-Panning and zooming is implemented by changing the `x` and/or `y` scale domains and re-rendering the plot in response.
-
-Pan/zoom interactors will automatically update the plot `xDomain` and `yDomain` attributes.
-For linked panning and zooming across plots, first define your own selections and pass them as options.
-You can additionally use such selections to have the pan/zoom state filter other marks.
-
-All pan/zoom directives share the same possible _options_:
-
-- _x_: The [Selection](../core/selection) over the `x` encoding channel domain. If unspecified, a new selection instance is used.
-- _y_: The [Selection](../core/selection) over the `y` encoding channel domain. If unspecified, a new selection instance is used.
-- _xfield_: The x field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _yfield_: The y field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-
 ### pan
 
-`pan(options)`
+`pan(options = {})`
 
-Pan the plot in either the `x` or `y` dimension.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along both the `x` and `y` scales.
+
+[Options](#pan-options).
 
 ### panX
 
-`panX(options)`
+`panX(options = {})`
 
-Pan the plot in the `x` dimension only.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along the `x` scale only.
+
+[Options](#panx-options).
 
 ### panY
 
-`panY(options)`
+`panY(options = {})`
 
-Pan the plot in the `y` dimension only.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along the `y` scale only.
+
+[Options](#pany-options).
 
 ### panZoom
 
-`panZoom(options)`
+`panZoom(options = {})`
 
-Pan or zoom the plot in either the `x` or `y` dimension.
-The supported _options_ are listed above.
+Pan and zoom a plot along both the `x` and `y` scales.
+
+[Options](#panzoom-options).
 
 ### panZoomX
 
-`panZoomX(options)`
+`panZoomX(options = {})`
 
-Pan or zoom the plot in the `x` dimension only.
-The supported _options_ are listed above.
+Pan and zoom a plot along the `x` scale only.
+
+[Options](#panzoomx-options).
 
 ### panZoomY
 
-`panZoomY(options)`
+`panZoomY(options = {})`
 
-Pan or zoom the plot in the `y` dimension only.
-The supported _options_ are listed above.
+Pan and zoom a plot along the `y` scale only.
 
+[Options](#panzoomy-options).
 
 ## highlight
 
@@ -314,68 +299,53 @@ Select a continuous 2D interval selection over the `x` and `y` scale domains.
 
 ## pan & zoom
 
-Pan or zoom a plot.
-To pan, click and drag within a plot.
-To zoom, scroll within a plot.
-
-Panning and zooming is implemented by changing the `x` and/or `y` scale domains and re-rendering the plot in response.
-
-Pan/zoom interactors will automatically update the plot `x_domain` and `y_domain` attributes.
-For linked panning and zooming across plots, first define your own selections and pass them as options.
-You can additionally use such selections to have the pan/zoom state filter other marks.
-
-All pan/zoom directives share the same possible _options_:
-
-- _x_: The [Selection](../core/selection) over the `x` encoding channel domain. If unspecified, a new selection instance is used.
-- _y_: The [Selection](../core/selection) over the `y` encoding channel domain. If unspecified, a new selection instance is used.
-- _xfield_: The x field to select. If not specified, the field backing the `"x"` encoding channel of the most recently added mark is used.
-- _yfield_: The y field to select. If not specified, the field backing the `"y"` encoding channel of the most recently added mark is used.
-
 ### pan
 
-`pan(options)`
+`pan(x=None, y=None, xfield=None, yfield=None)`
 
-Pan the plot in either the `x` or `y` dimension.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along both the `x` and `y` scales.
+
+[Options](#pan-options).
 
 ### pan_x
 
-`pan_x(options)`
+`pan_x(x=None, xfield=None)`
 
-Pan the plot in the `x` dimension only.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along the `x` scale only.
+
+[Options](#panx-options).
 
 ### pan_y
 
-`pan_y(options)`
+`pan_y(y=None, yfield=None)`
 
-Pan the plot in the `y` dimension only.
-Do not perform zooming.
-The supported _options_ are listed above.
+Pan a plot along the `y` scale only.
+
+[Options](#pany-options).
 
 ### pan_zoom
 
-`pan_zoom(options)`
+`pan_zoom(x=None, y=None, xfield=None, yfield=None)`
 
-Pan or zoom the plot in either the `x` or `y` dimension.
-The supported _options_ are listed above.
+Pan and zoom a plot along both the `x` and `y` scales.
+
+[Options](#panzoom-options).
 
 ### pan_zoom_x
 
-`pan_zoom_x(options)`
+`pan_zoom_x(x=None, xfield=None)`
 
-Pan or zoom the plot in the `x` dimension only.
-The supported _options_ are listed above.
+Pan and zoom a plot along the `x` scale only.
+
+[Options](#panzoomx-options).
 
 ### pan_zoom_y
 
-`pan_zoom_y(options)`
+`pan_zoom_y(y=None, yfield=None)`
 
-Pan or zoom the plot in the `y` dimension only.
-The supported _options_ are listed above.
+Pan and zoom a plot along the `y` scale only.
 
+[Options](#panzoomy-options).
 
 ## highlight
 
@@ -566,5 +536,59 @@ Extends [`RegionOptions`](#regionoptions-options).
 ### brush examples
 
 `crossed-facets`: [json](/templates/interactors/brush/crossed-facets.json) · [yaml](/templates/interactors/brush/crossed-facets.yaml) · [js](/templates/interactors/brush/crossed-facets.js) · <a :href="withBase('/templates/interactors/brush/crossed-facets.py')" download>Python</a>.
+
+[Selection parameters](../core/selection).
+
+## Navigation options
+
+Drag to pan and scroll to zoom. Each directive attaches to the last preceding mark. Fields default to that mark's x and y channels. The interactor updates plot domains through selections; pass the same selections to other plots to link their domains. Selection clauses retain their source and all sibling marks as clients, and can also drive filters. An external selection update changes all listening plots. Domains are initialized by plot attributes; the selection receives its interval after a drag or wheel update. The axis-specific wrappers disable the other axis, and pan wrappers disable zoom after caller options. Omitting options creates independent selections for that interactor.
+
+### PanZoomOptions options
+
+**x** (`ParamRef`) — The output selection for the `x` domain. A clause of the form `field BETWEEN x1 AND x2` is added for the current pan/zom interval [x1, x2].
+
+**y** (`ParamRef`) — The output selection for the `y` domain. A clause of the form `field BETWEEN y1 AND y2` is added for the current pan/zom interval [y1, y2].
+
+**xfield** (`string`) — The name of the field (database column) over which the `x`-component of the pan/zoom interval should be defined. If unspecified, the `x` channel field of the first valid prior mark definition is used.
+
+**yfield** (`string`) — The name of the field (database column) over which the `y`-component of the pan/zoom interval should be defined. If unspecified, the `y` channel field of the first valid prior mark definition is used.
+
+### Pan options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+### PanX options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+### PanY options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+### PanZoom options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+### PanZoomX options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+### PanZoomY options
+
+Extends [`PanZoomOptions`](#panzoomoptions-options).
+
+
+Use Selection objects for x and y. Passing null to an enabled axis throws when the runtime registers its listener. Ordinary value parameters do not implement the selection activation protocol. Python omits None values, while retaining false, zero and empty values; supplying such values does not make them valid runtime Selection objects.
+
+Native JavaScript accepts zoom, panx and pany booleans or numeric extents. These controls are outside the strict declarative contract and Python signatures. The renderer resets its D3 transform at gesture end: zoom extents constrain each gesture, not the cumulative data-domain scale. With zoom=[1,2], a fresh zoom-out cannot undo a previous gesture, while repeated zoom-ins can exceed an overall twofold scale.
+### navigation examples
+
+`linked-x-domains`: [json](/templates/interactors/navigation/linked-x-domains.json) · [yaml](/templates/interactors/navigation/linked-x-domains.yaml) · [js](/templates/interactors/navigation/linked-x-domains.js) · <a :href="withBase('/templates/interactors/navigation/linked-x-domains.py')" download>Python</a>.
+
 
 [Selection parameters](../core/selection).
