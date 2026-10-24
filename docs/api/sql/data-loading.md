@@ -1,7 +1,7 @@
 # Data Loading
 
 SQL data loading utilities.
-These methods generate queries that create tables and load data into DuckDB.
+These methods generate queries that create tables and load data into DuckDB. File paths and string-valued loading options are escaped as SQL literals, including strings nested in arrays or option maps. The `select` and `where` options contain SQL expressions.
 
 ## createTable
 
@@ -101,7 +101,7 @@ loadParquet("table1", "file.parquet", {
 
 `loadObjects(tableName, objects, options)`
 
-Generate a SQL query to create a table containing the values of the provided JavaScript _objects_.
+Generate a SQL query to create a table containing the values of the provided JavaScript _objects_. Object keys become quoted column names. A `select` projection applies to every input row, including reordered columns and computed expressions.
 
 The supported _options_ are:
 

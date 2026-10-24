@@ -39,7 +39,7 @@ const columnDefs = Object.entries(COLUMNS)
   .join(', ');
 
 async function createDB(): Promise<DuckDB> {
-  const db = new DuckDB();
+  const db = new DuckDB(':memory:', {}, '');
   for (const table of TABLES) {
     await db.exec(`CREATE TABLE ${table} (${columnDefs})`);
   }

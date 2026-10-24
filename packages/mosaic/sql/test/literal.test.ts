@@ -1,5 +1,6 @@
 import { expect, describe, it } from 'vitest';
-import { literal } from '../src/index.js';
+import { literal, regexp_matches } from '../src/index.js';
+import { queryFixture } from './util/validate.js';
 
 describe('literal', () => {
   it('handles nulls', () => {
@@ -34,6 +35,12 @@ describe('literal', () => {
     expect(`${literal(d)}`).toBe(`epoch_ms(${+d})`);
     expect(`${literal(new Date(Date.UTC(2000, 0, 1)))}`).toBe('DATE \'2000-01-01\'');
     expect(`${literal(new Date(NaN))}`).toBe('NULL');
+  });
+
+  it('matches apostrophes in regular-expression literals through DuckDB', async () => {
+    const pattern = literal(/O'Reilly/);
+    const expr = regexp_matches(literal("O'Reilly"), pattern);
+    expect(await queryFixture(`SELECT ${pattern} AS pattern, ${expr} AS matched`)).toEqual([{pattern: "O'Reilly", matched: true}]);
   });
 
   it('handles regular expressions', () => {

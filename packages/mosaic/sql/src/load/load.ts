@@ -1,4 +1,5 @@
 import { type CreateTableOptions } from '../ast/query.js';
+import { literalToSQL } from '../ast/literal.js';
 import { createTable } from './create.js';
 import { sqlFrom } from './sql-from.js';
 
@@ -16,7 +17,7 @@ export function load(
 ) {
   const { select = ['*'], where, view, temp, replace, ...file } = options;
   const params = parameters({ ...defaults, ...file });
-  const read = `${method}('${fileName}'${params ? ', ' + params : ''})`;
+  const read = `${method}(${literalToSQL(fileName)}${params ? ', ' + params : ''})`;
   const filter = where ? ` WHERE ${where}` : '';
   const query = `SELECT ${select.join(', ')} FROM ${read}${filter}`;
   return createTable(tableName, query, { view, temp, replace });
@@ -66,7 +67,7 @@ export function loadObjects(
   const values = sqlFrom(data);
   const query = select.length === 1 && select[0] === '*'
     ? values
-    : `SELECT ${select} FROM ${values}`;
+    : `SELECT ${select.join(', ')} FROM (${values})`;
   return createTable(tableName, query, opt);
 }
 
@@ -81,7 +82,7 @@ function toDuckDBValue(value: unknown): string {
     case 'boolean':
       return String(value);
     case 'string':
-      return `'${value}'`;
+      return literalToSQL(value);
     case 'undefined':
     case 'object':
       if (value == null) {
@@ -91,7 +92,7 @@ function toDuckDBValue(value: unknown): string {
       } else {
         return '{'
           + Object.entries(value)
-              .map(([k, v]) => `'${k}': ${toDuckDBValue(v)}`)
+              .map(([k, v]) => `${literalToSQL(k)}: ${toDuckDBValue(v)}`)
               .join(', ')
           + '}';
       }
