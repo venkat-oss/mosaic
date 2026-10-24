@@ -1,0 +1,27 @@
+data:
+  input_data:
+    type: table
+    query: SELECT * FROM (VALUES (1, 'Alpha', ['Alpha','Beta']), (2, 'Beta', ['Beta']), (3, 'Gamma', ['Gamma'])) AS t(x, category, items)
+params:
+  binding:
+    select: crossfilter
+  upstream:
+    select: intersect
+vconcat:
+  - input: menu
+    as: $upstream
+    field: category
+    options:
+      - Alpha
+      - Beta
+      - Gamma
+  - input: slider
+    as: $binding
+    label: Value
+    field: x
+    from: input_data
+    column: x
+    step: 1
+    value: 2
+    select: point
+    filterBy: $upstream

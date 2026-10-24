@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from . import _source_api, _source_runtime
+from . import _input_api, _source_api, _source_runtime
 from ._generated import layouts as _layouts
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -158,13 +158,6 @@ def _encode_component(
         }
         return {"plot": marks, **rest}
     return encode_value(item, param_names, data_names)
-
-
-_MISSING = object()
-
-
-def option(label: Any, value: Any = _MISSING) -> dict[str, Any]:
-    return {"label": label, "value": label if value is _MISSING else value}
 
 
 def brush(**kwargs: Any) -> dict[str, Any]:
@@ -382,112 +375,6 @@ def symbol_legend(
 _INPUT_ALIASES = {"bind": "as", "source": "from"}
 
 
-def input(kind: str, **opts: Any) -> View:
-    from .spec import View
-
-    payload: dict[str, Any] = {"input": kind}
-    for k, v in opts.items():
-        if v is None:
-            continue
-        key = _INPUT_ALIASES.get(k, camelize(k))
-        if (
-            key == "options"
-            and isinstance(v, list)
-            and any(isinstance(i, dict) for i in v)
-        ):
-            v = [{"label": i, "value": i} if not isinstance(i, dict) else i for i in v]
-        payload[key] = v
-    return View(payload)
-
-
-def slider(
-    label: str,
-    bind: Any,
-    min: Any = None,
-    max: Any = None,
-    step: Any = None,
-    value: Any = None,
-    **opts: Any,
-) -> View:
-    return input(
-        "slider",
-        label=label,
-        bind=bind,
-        min=min,
-        max=max,
-        step=step,
-        value=value,
-        **opts,
-    )
-
-
-def select(
-    label: str,
-    bind: Any,
-    options: Any,
-    multiple: bool = False,
-    value: Any = None,
-    **opts: Any,
-) -> View:
-    return input(
-        "select",
-        label=label,
-        bind=bind,
-        options=options,
-        multiple=multiple,
-        value=value,
-        **opts,
-    )
-
-
-def checkbox(label: str, bind: Any, value: bool = False, **opts: Any) -> View:
-    return input("checkbox", label=label, bind=bind, value=value, **opts)
-
-
-def menu(
-    label: Any = None,
-    bind: Any = None,
-    options: Any = None,
-    value: Any = None,
-    source: Any = None,
-    column: Any = None,
-    filter_by: Any = None,
-    **opts: Any,
-) -> View:
-    return input(
-        "menu",
-        label=label,
-        bind=bind,
-        options=options,
-        value=value,
-        source=source,
-        column=column,
-        filter_by=filter_by,
-        **opts,
-    )
-
-
-def search(
-    label: Any = None,
-    bind: Any = None,
-    source: Any = None,
-    column: Any = None,
-    filter_by: Any = None,
-    type: Any = None,
-    **opts: Any,
-) -> View:
-    return input(
-        "search",
-        label=label,
-        bind=bind,
-        source=source,
-        column=column,
-        filter_by=filter_by,
-        type=type,
-        **opts,
-    )
-
-
 def table_input(
     source: Any,
     bind: Any = None,
@@ -523,3 +410,11 @@ vspace = _layouts.vspace
 source = _source_api.source
 
 FromRef = _source_runtime.FromRef
+
+checkbox = _input_api.checkbox
+input = _input_api.input
+menu = _input_api.menu
+option = _input_api.option
+search = _input_api.search
+select = _input_api.select
+slider = _input_api.slider
