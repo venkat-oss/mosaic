@@ -46,7 +46,6 @@ export const spike = (...args) => mark('spike', ...args);
 export const image = (...args) => mark('image', ...args);
 export const densityX = (...args) => explicitType(Density1DMark, 'areaX', ...args);
 export const densityY = (...args) => explicitType(Density1DMark, 'areaY', ...args);
-
 export const density = (...args) => implicitType(Density2DMark, ...args);
 export const denseLine = (...args) => implicitType(DenseLineMark, ...args);
 export const contour = (...args) => implicitType(ContourMark, ...args);

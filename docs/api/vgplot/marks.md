@@ -223,24 +223,13 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 
 ## Contour
 
-The `contour` mark draws isolines to delineate regions above and below a particular continuous value.
-It is often used to convey densities as a height field.
-The special column name `"density"` can be used to map density values to the _fill_ or _stroke_ options.
+### contour
 
-The supported _options_ are:
+`contour(data, options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _fill_: The contour fill color
-- _stroke_: The contour stroke color
-- _thresholds_: The number of contour thresholds to include (default `10`)
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- _interpolate_: The binning interpolation method to use, one of `"linear"` (default) or `"none"`
-- _pixelSize_: The grid cell size in screen pixels (default `2`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `0` (default) to make the bins flush with the maximum domain value, or `1` to include extra padding for the final bin
-- Other standard mark options including _fillOpacity_ and _strokeWidth_
+A contour mark that draws isolines to delineate regions above and below a particular continuous value. It is often used to convey densities as a height field. The special column name "density" can be used to map density values to the fill or stroke options.
+
+[Options](#contour-options).
 
 ## Delaunay
 
@@ -274,39 +263,25 @@ Set the *type* property to use a different base mark type.
 
 ## Density 2D
 
-The 2D `density` mark shows smoothed point cloud densities along two dimensions.
-The mark will bin the data, count the number of records that fall into each bin, smooth the resulting counts, then plot the smoothed distribution (by default using a circular `dot` mark).
-The `density` mark calculates density values that can be mapped to encoding channels such as _fill_ or _r_ using the column name `"density"`.
+### density
 
-The supported _options_ are:
+`density(data, options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _type_: The mark type to use (default [`dot`](#dot))
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- _interpolate_: The binning interpolation method to use, one of `"linear"` (default) or `"none"`
-- _pixelSize_: The grid cell size in screen pixels (default `2`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `0` (default) to make the bins flush with the maximum domain value, or `1` to include extra padding for the final bin
-- Any options accepted by the mark _type_, including _fill_, _stroke_, and _r_
+A 2D density mark that shows smoothed point cloud densities along two dimensions. The mark bins the data, counts the number of records that fall into each bin, and smooths the resulting counts, then plots the smoothed distribution, by default using a circular dot mark. The density mark calculates density values that can be mapped to encoding channels such as fill or r using the special field name "density".
+
+Set the *type* property to use a different base mark type.
+
+[Options](#density-options).
 
 ## Dense Line
 
-Rather than plot point densities, the `denseLine` mark plots line densities: the mark forms a binned raster grid and "draws" lines into it.
-To avoid over-weighting steep lines, by default each drawn series will be normalized on a per-column basis to approximate arc length normalization.
-The values for each series are then aggregated to form the line density, which is then drawn as an image similar to the [`raster`](#raster) mark.
+### denseLine
 
-The supported _options_ are:
+`denseLine(data, options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _bandwidth_: The kernel density bandwidth for smoothing (default `0`)
-- _pixelSize_: The grid cell size in screen pixels (default `1`)
-- _pad_: The bin padding, one of `1` (default) to include extra padding for the final bin, or `0` to make the bins flush with the maximum domain value.
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _normalize_: Boolean flag (default `true`) controlling approximate arc length normalization.
+A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
+
+[Options](#denseline-options).
 
 ## Dot
 
@@ -423,9 +398,14 @@ A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid 
 
 ## Heatmap
 
-The `heatmap` mark is a raster mark with default options for accurate density estimation via smoothing.
-The _bandwidth_ (`20`), _interpolate_ (`"linear"`), and _pixelSize_ (`2`) options are set to produce smoothed density heatmaps.
-For all supported options, see the [`raster`](#raster) mark.
+### heatmap
+
+`heatmap(data, options)`
+
+Like raster, but with default options for accurate density estimation via smoothing. The *bandwidth* (20), *interpolate* ("linear"), and
+*pixelSize* (2) options are set to produce smoothed density heatmaps.
+
+[Options](#heatmap-options).
 
 ## Hexbin
 
@@ -526,29 +506,25 @@ If the plot uses a spherical **projection**, the default *auto* **curve** will r
 
 ## Raster
 
-The `raster` mark draws an image whose pixel colors are a function of the underlying data.
-The _x_ and _y_ data domains are binned into the cells ("pixels") of a raster grid, typically with an aggregate function evaluated over the binned data.
-The result can be optionally smoothed (blurred) in-browser.
-To create a smoothed density heatmap, use the [`heatmap`](#heatmap) mark; this is a raster mark with different default options.
+### raster
 
-The supported _options_ are:
+`raster(data, options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _fill_: The pixel fill color. Use the special value `"density"` to map computed density values to pixel colors. Use an aggregate expression to instead visualize an aggregate value per raster bin. If _fill_ is set to a constant color or to a non-aggregate field, opacity will be used to convey densities. If a non-aggregate (group by) field is provided, multiple rasters are created with a unique categorical color per layer.
-- _fillOpacity_: The pixel fill opacity. Use the special value `"density"` to map computed density values to opacity. Use an aggregate expression to instead visualize an aggregate value per raster bin.
-- _weight_: A data column by which to weight computed densities
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `0`)
-- _interpolate_: The binning interpolation method to use. The `"none"` and `"linear"` methods are performed in-database and only fill bins corresponding to observed data samples. The other methods are performed in-browser and interpolate to fill all raster pixels. The options are:
-  - `"none"` (default): Map data samples to single bins only.
-  - `"linear"`: Linearly distribute the "weight" of a sample across adjacent bin boundaries. Linear binning provides more stable and accurate density estimation upon subsequent smoothing.
-  - `"nearest"`: Perform nearest-neighbor interpolation, forming a pixel-level Voronoi diagram.
-  - `"barycentric"`: Interpolate over a triangulation of sample points. Pixels outside the convex hull of data samples are extrapolated.
-  - `"random-walk`: Apply a random walk from empty pixels until a sample is found.
-- _pixelSize_: The grid cell size in screen pixels (default `1`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `1` (default) to include extra padding for the final bin, or `0` to make the bins flush with the maximum domain value
+A raster mark which renders a raster image from spatial samples. It represents discrete samples in abstract coordinates **x** and **y**; the **fill** and **fillOpacity** channels specify further abstract values (_e.g._, height in a topographic map) to be spatially interpolated to produce an image.
+
+The **x** and **y** data domains are binned into the cells ("pixels") of a raster grid, typically with an aggregate function evaluated over the binned data. The result can be optionally smoothed (blurred).
+
+To create a smoothed density heatmap, use the heatmap mark, which is a raster mark with different default options.
+
+[Options](#raster-options).
+
+### rasterTile
+
+`rasterTile(data, options)`
+
+An experimental raster mark which performs tiling and prefetching to support more scalable rasters upon panning the domain. Uses a tile size that matches with current width and height, and prefetches data from neighboring tile segments.
+
+[Options](#rastertile-options).
 
 ## Rect
 
@@ -947,24 +923,13 @@ Like cell, but **y** defaults to the zero-based index [0, 1, 2, …], and if
 
 ## Contour
 
-The `contour` mark draws isolines to delineate regions above and below a particular continuous value.
-It is often used to convey densities as a height field.
-The special column name `"density"` can be used to map density values to the _fill_ or _stroke_ options.
+### contour
 
-The supported _options_ are:
+`contour(data=None, **options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _fill_: The contour fill color
-- _stroke_: The contour stroke color
-- _thresholds_: The number of contour thresholds to include (default `10`)
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- _interpolate_: The binning interpolation method to use, one of `"linear"` (default) or `"none"`
-- _pixel_size_: The grid cell size in screen pixels (default `2`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `0` (default) to make the bins flush with the maximum domain value, or `1` to include extra padding for the final bin
-- Other standard mark options including _fill_opacity_ and _stroke_width_
+A contour mark that draws isolines to delineate regions above and below a particular continuous value. It is often used to convey densities as a height field. The special column name "density" can be used to map density values to the fill or stroke options.
+
+[Options](#contour-options).
 
 ## Delaunay
 
@@ -998,39 +963,25 @@ Set the *type* property to use a different base mark type.
 
 ## Density 2D
 
-The 2D `density` mark shows smoothed point cloud densities along two dimensions.
-The mark will bin the data, count the number of records that fall into each bin, smooth the resulting counts, then plot the smoothed distribution (by default using a circular `dot` mark).
-The `density` mark calculates density values that can be mapped to encoding channels such as _fill_ or _r_ using the column name `"density"`.
+### density
 
-The supported _options_ are:
+`density(data=None, **options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _type_: The mark type to use (default [`dot`](#dot))
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- _interpolate_: The binning interpolation method to use, one of `"linear"` (default) or `"none"`
-- _pixel_size_: The grid cell size in screen pixels (default `2`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `0` (default) to make the bins flush with the maximum domain value, or `1` to include extra padding for the final bin
-- Any options accepted by the mark _type_, including _fill_, _stroke_, and _r_
+A 2D density mark that shows smoothed point cloud densities along two dimensions. The mark bins the data, counts the number of records that fall into each bin, and smooths the resulting counts, then plots the smoothed distribution, by default using a circular dot mark. The density mark calculates density values that can be mapped to encoding channels such as fill or r using the special field name "density".
+
+Set the *type* property to use a different base mark type.
+
+[Options](#density-options).
 
 ## Dense Line
 
-Rather than plot point densities, the `dense_line` mark plots line densities: the mark forms a binned raster grid and "draws" lines into it.
-To avoid over-weighting steep lines, by default each drawn series will be normalized on a per-column basis to approximate arc length normalization.
-The values for each series are then aggregated to form the line density, which is then drawn as an image similar to the [`raster`](#raster) mark.
+### dense_line
 
-The supported _options_ are:
+`dense_line(data=None, **options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _bandwidth_: The kernel density bandwidth for smoothing (default `0`)
-- _pixel_size_: The grid cell size in screen pixels (default `1`)
-- _pad_: The bin padding, one of `1` (default) to include extra padding for the final bin, or `0` to make the bins flush with the maximum domain value.
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _normalize_: Boolean flag (default `true`) controlling approximate arc length normalization.
+A denseLine mark that plots line densities rather than point densities. The mark forms a binned raster grid and "draws" straight lines into it. To avoid over-weighting steep lines, by default each drawn series is normalized on a per-column basis to approximate arc length normalization. The values for each series are aggregated to form the line density, which is then drawn as an image similar to the raster mark.
+
+[Options](#denseline-options).
 
 ## Dot
 
@@ -1147,9 +1098,14 @@ A vertically-positioned ruleY mark (a horizontal line, —) that renders a grid 
 
 ## Heatmap
 
-The `heatmap` mark is a raster mark with default options for accurate density estimation via smoothing.
-The _bandwidth_ (`20`), _interpolate_ (`"linear"`), and _pixel_size_ (`2`) options are set to produce smoothed density heatmaps.
-For all supported options, see the [`raster`](#raster) mark.
+### heatmap
+
+`heatmap(data=None, **options)`
+
+Like raster, but with default options for accurate density estimation via smoothing. The *bandwidth* (20), *interpolate* ("linear"), and
+*pixelSize* (2) options are set to produce smoothed density heatmaps.
+
+[Options](#heatmap-options).
 
 ## Hexbin
 
@@ -1250,29 +1206,25 @@ If the plot uses a spherical **projection**, the default *auto* **curve** will r
 
 ## Raster
 
-The `raster` mark draws an image whose pixel colors are a function of the underlying data.
-The _x_ and _y_ data domains are binned into the cells ("pixels") of a raster grid, typically with an aggregate function evaluated over the binned data.
-The result can be optionally smoothed (blurred) in-browser.
-To create a smoothed density heatmap, use the [`heatmap`](#heatmap) mark; this is a raster mark with different default options.
+### raster
 
-The supported _options_ are:
+`raster(data=None, **options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _fill_: The pixel fill color. Use the special value `"density"` to map computed density values to pixel colors. Use an aggregate expression to instead visualize an aggregate value per raster bin. If _fill_ is set to a constant color or to a non-aggregate field, opacity will be used to convey densities. If a non-aggregate (group by) field is provided, multiple rasters are created with a unique categorical color per layer.
-- _fill_opacity_: The pixel fill opacity. Use the special value `"density"` to map computed density values to opacity. Use an aggregate expression to instead visualize an aggregate value per raster bin.
-- _weight_: A data column by which to weight computed densities
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `0`)
-- _interpolate_: The binning interpolation method to use. The `"none"` and `"linear"` methods are performed in-database and only fill bins corresponding to observed data samples. The other methods are performed in-browser and interpolate to fill all raster pixels. The options are:
-  - `"none"` (default): Map data samples to single bins only.
-  - `"linear"`: Linearly distribute the "weight" of a sample across adjacent bin boundaries. Linear binning provides more stable and accurate density estimation upon subsequent smoothing.
-  - `"nearest"`: Perform nearest-neighbor interpolation, forming a pixel-level Voronoi diagram.
-  - `"barycentric"`: Interpolate over a triangulation of sample points. Pixels outside the convex hull of data samples are extrapolated.
-  - `"random-walk`: Apply a random walk from empty pixels until a sample is found.
-- _pixel_size_: The grid cell size in screen pixels (default `1`); ignored when _width_ and _height_ options are provided
-- _width_: The number of grid bins to include along the _x_ dimension
-- _height_: The number of grid bins to include along the _y_ dimension
-- _pad_: The bin padding, one of `1` (default) to include extra padding for the final bin, or `0` to make the bins flush with the maximum domain value
+A raster mark which renders a raster image from spatial samples. It represents discrete samples in abstract coordinates **x** and **y**; the **fill** and **fillOpacity** channels specify further abstract values (_e.g._, height in a topographic map) to be spatially interpolated to produce an image.
+
+The **x** and **y** data domains are binned into the cells ("pixels") of a raster grid, typically with an aggregate function evaluated over the binned data. The result can be optionally smoothed (blurred).
+
+To create a smoothed density heatmap, use the heatmap mark, which is a raster mark with different default options.
+
+[Options](#raster-options).
+
+### raster_tile
+
+`raster_tile(data=None, **options)`
+
+An experimental raster mark which performs tiling and prefetching to support more scalable rasters upon panning the domain. Uses a tile size that matches with current width and height, and prefetches data from neighboring tile segments.
+
+[Options](#rastertile-options).
 
 ## Rect
 
@@ -2526,3 +2478,123 @@ Combines [`DensityYBase`](#densityybase-options) with [`DensityAreaYOptions`](#d
 ### density1d examples
 
 `densityY`: [json](/templates/marks/density1d/densityY.json) · [yaml](/templates/marks/density1d/densityY.yaml) · [js](/templates/marks/density1d/densityY.js) · <a :href="withBase('/templates/marks/density1d/densityY.py')" download>Python</a>.
+
+## grid mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### Grid2DOptions options
+
+Options for grid2d marks.
+
+**x** (`ChannelValueSpec`) — The horizontal position channel, typically bound to the *x* scale. Domain values are binned into a grid with *width* horizontal bins.
+
+**y** (`ChannelValueSpec`) — The vertical position channel, typically bound to the *y* scale. Domain values are binned into a grid with *height* vertical bins.
+
+**width** (`number | ParamRef`) — The width (number of columns) of the grid, in actual pixels.
+
+**height** (`number | ParamRef`) — The height (number of rows) of the grid, in actual pixels.
+
+**pixelSize** (`number | ParamRef`) — The effective screen size of a raster pixel, used to determine the height and width of the raster from the frame’s dimensions; defaults to 1.
+
+**pad** (`number | ParamRef`) — The bin padding, one of 1 (default) to include extra padding for the final bin, or 0 to make the bins flush with the maximum domain value.
+
+**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels.
+
+**interpolate** (`GridInterpolate | null | ParamRef`) — The spatial interpolation method; one of:
+
+- *none* - do not perform interpolation (the default), maps samples to single bins
+- *linear* - apply proportional linear interpolation across adjacent bins
+- *nearest* - assign each pixel to the closest sample’s value (Voronoi diagram)
+- *barycentric* - apply barycentric interpolation over the Delaunay triangulation
+- *random-walk* - apply a random walk from each pixel, stopping when near a sample
+
+### RasterOptions options
+
+Options for the raster mark.
+
+Extends [`Grid2DOptions`](#grid2doptions-options), [`Omit<MarkOptions, 'fill' | 'fillOpacity'>`](../spec/common-marks#markoptions).
+
+**imageRendering** (`string | ParamRef`) — The [image-rendering attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/image-rendering); defaults to *auto* (bilinear). The option may be set to *pixelated* to disable bilinear interpolation for a sharper image; however, note that this is not supported in WebKit.
+
+**fill** (`ChannelValueSpec | ParamRef`) — The fill, typically bound to the *color* scale. Can be specified as a constant or a channel based on the input data.  Use the special value `"density"` to map computed density values to pixel colors. Use an aggregate expression to instead visualize an aggregate value per raster bin. If fill is set to a constant color or to a non-aggregate field, opacity will be used to convey densities. If a non-aggregate (group by) field is provided, multiple rasters are created with a unique categorical color per layer.
+
+**fillOpacity** (`ChannelValueSpec | ParamRef`) — The opacity, typically bound to the *opacity* scale. Can be specified as a constant or a channel based on the input data. Use the special value `"density"` to map computed density values to opacity. Use an aggregate expression to instead visualize an aggregate value per raster bin.
+
+### Raster options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
+
+
+### Heatmap options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
+
+
+### RasterTile options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RasterOptions`](#rasteroptions-options).
+
+**origin** (`[number, number] | ParamRef`) — The coordinates of the tile origin in the **x** and **y** data domains. Defaults to [0, 0].
+
+### ContourOptions options
+
+The ContourOptions contract.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Grid2DOptions`](#grid2doptions-options).
+
+**thresholds** (`number | Array<number> | ParamRef`) — The number of contour thresholds to subdivide the domain into discrete level sets; defaults to 10. One of:
+
+- a count representing the desired number of bins
+- an array of *n* threshold values for *n* - 1 bins
+
+### Contour options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ContourOptions`](#contouroptions-options).
+
+
+### DenseLineOptions options
+
+The DenseLineOptions contract.
+
+Extends [`RasterOptions`](#rasteroptions-options).
+
+**normalize** (`boolean | ParamRef`) — Flag to perform approximate arc length normalization of line segments to prevent artifacts due to overcounting steep lines. Defaults to `true`.
+
+**z** (`ChannelValue`) — A ordinal channel for grouping data into series to be drawn as separate lines.
+
+### DenseLine options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`DenseLineOptions`](#denselineoptions-options).
+
+
+### Density2DOptions options
+
+The Density2DOptions contract.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`Omit<DotOptions, 'x' | 'y'>`](#dotoptions-options), [`TextStyles`](../spec/common-marks#textstyles), [`Grid2DOptions`](#grid2doptions-options).
+
+**type** (`'dot' | 'circle' | 'hexagon' | 'cell' | 'text' | ParamRef`) — The basic mark type to use to render 2D density values. Defaults to a dot mark; cell and text marks are also supported.
+
+### Density options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density2DOptions`](#density2doptions-options).
+
+
+### GridInterpolate options
+
+```ts
+type GridInterpolate = 'none' | 'linear' | 'nearest' | 'barycentric' | 'random-walk';
+```
+
+**`rasterTile`:** rasterTile fails on multi-pixel grids; use raster or heatmap. Tile queries use the global coordinator even inside a local API context.
+
+**`density`:** Density cells use ordinal domains; set pad=1 so endpoint grid positions fall inside those domains.
+
+**`density`, `denseLine`, `contour`, `heatmap`, `raster`, `rasterTile`:** Null interpolation fails during rendering. Use none to disable interpolation.
+
+### grid examples
+
+`raster`: [json](/templates/marks/grid/raster.json) · [yaml](/templates/marks/grid/raster.yaml) · [js](/templates/marks/grid/raster.js) · <a :href="withBase('/templates/marks/grid/raster.py')" download>Python</a>.
+
+JavaScript-only `native-interpolator`: [js](/templates/marks/grid/native-interpolator.js).

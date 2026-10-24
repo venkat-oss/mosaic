@@ -1,11 +1,11 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("//build:javascript.bzl", "mosaic_javascript", "mosaic_package_test")
 
-exports_files(glob(["test/util/grid-interpolator.js"], allow_empty = True))
+exports_files(["test/util/grid-interpolator.js"])
 
 js_library(
     name = "browser_test_support",
-    srcs = glob(["test/util/grid-interpolator.js"], allow_empty = True),
+    srcs = ["test/util/grid-interpolator.js"],
     visibility = ["//visibility:public"],
 )
 

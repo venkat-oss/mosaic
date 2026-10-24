@@ -2,27 +2,17 @@ import { coordinator } from '@uwdata/mosaic-core';
 import { Query, count, isBetween, lt, lte, neq, sql, sum } from '@uwdata/mosaic-sql';
 import { binExpr } from './util/bin-expr.js';
 import { extentX, extentY } from './util/extent.js';
-import { indices, permute } from './util/permute.js';
-import { createCanvas } from './util/raster.js';
-import { Grid2DMark } from './Grid2DMark.js';
-import { rasterEncoding } from './RasterMark.js';
+import { RasterMark } from './RasterMark.js';
 
-export class RasterTileMark extends Grid2DMark {
+export class RasterTileMark extends RasterMark {
   constructor(source, options) {
     const { origin = [0, 0], dim = 'xy', ...markOptions } = options;
-    super('image', source, markOptions);
-    this.image = null;
+    super(source, markOptions);
 
     // TODO: make part of data source instead of options?
     this.origin = origin;
     this.tileX = dim.toLowerCase().includes('x');
     this.tileY = dim.toLowerCase().includes('y');
-  }
-
-  setPlot(plot, index) {
-    const update = () => { if (this.hasFieldInfo()) this.rasterize(); };
-    plot.addAttributeListener('schemeColor', update);
-    super.setPlot(plot, index);
   }
 
   requestQuery() {
@@ -166,57 +156,6 @@ export class RasterTileMark extends Grid2DMark {
     this.convolve().update();
   }
 
-  convolve() {
-    return super.convolve().rasterize();
-  }
-
-  rasterize() {
-    const { bins, grids } = this;
-    const [ w, h ] = bins;
-    const { numRows, columns } = grids;
-
-    // raster data
-    const { canvas, ctx, img } = imageData(this, w, h);
-
-    // color + opacity encodings
-    const { alpha, alphaProp, color, colorProp } = rasterEncoding(this);
-    const alphaData = columns[alphaProp] ?? [];
-    const colorData = columns[colorProp] ?? [];
-
-    // determine raster order
-    const idx = numRows > 1 && colorProp && this.groupby?.includes(colorProp)
-      ? permute(colorData, this.plot.getAttribute('colorDomain'))
-      : indices(numRows);
-
-    // generate rasters
-    this.data = {
-      numRows,
-      columns: {
-        src: Array.from({ length: numRows }, (_, i) => {
-          color?.(img.data, w, h, colorData[idx[i]]);
-          alpha?.(img.data, w, h, alphaData[idx[i]]);
-          ctx.putImageData(img, 0, 0);
-          return canvas.toDataURL();
-        })
-      }
-    };
-
-    return this;
-  }
-
-  plotSpecs() {
-    // @ts-expect-error Correct the data column type
-    const { type, plot, data: { numRows: length, columns } } = this;
-    const options = {
-      src: columns.src,
-      width: plot.innerWidth(),
-      height: plot.innerHeight(),
-      preserveAspectRatio: 'none',
-      imageRendering: this.channel('imageRendering')?.value,
-      frameAnchor: 'middle'
-    };
-    return [{ type, data: { length }, options }];
-  }
 }
 
 function processTiles(m, n, x, y, coords, tiles) {
@@ -244,16 +183,6 @@ function copy(m, n, grid, values, tx, ty) {
       grid[i + j * m] = value[row];
     }
   }
-}
-
-function imageData(mark, w, h) {
-  if (!mark.image || mark.image.w !== w || mark.image.h !== h) {
-    const canvas = createCanvas(w, h);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const img = ctx.getImageData(0, 0, w, h);
-    mark.image = { canvas, ctx, img, w, h };
-  }
-  return mark.image;
 }
 
 function bin2d(q, xp, yp, aggs, xn, groupby) {

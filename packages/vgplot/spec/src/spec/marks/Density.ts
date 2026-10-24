@@ -5,26 +5,18 @@ import { LineXOptions, LineYOptions } from './Line.js';
 import { MarkData, MarkOptions, TextStyles } from './Marks.js';
 import { Grid2DOptions } from './Raster.js';
 import { TextOptions } from './Text.js';
-
-// Density2D
-
 export interface Density2DOptions extends MarkOptions, Omit<DotOptions, 'x' | 'y'>, TextStyles, Grid2DOptions {
   /**
-   * The basic mark type to use to render 2D density values.
-   * Defaults to a dot mark; cell and text marks are also supported.
+   * The basic mark type to use to render 2D density values. Defaults to a dot mark; cell and text marks are also supported.
    */
   type?: 'dot' | 'circle' | 'hexagon' | 'cell' | 'text' | ParamRef;
 }
-
-/** The density mark for 2D densities. */
+/**
+ * The density mark for 2D densities.
+ */
 export interface Density extends MarkData, Density2DOptions {
   /**
-   * A 2D density mark that shows smoothed point cloud densities along two
-   * dimensions. The mark bins the data, counts the number of records that fall
-   * into each bin, and smooths the resulting counts, then plots the smoothed
-   * distribution, by default using a circular dot mark. The density mark
-   * calculates density values that can be mapped to encoding channels such as
-   * fill or r using the special field name "density".
+   * A 2D density mark that shows smoothed point cloud densities along two dimensions. The mark bins the data, counts the number of records that fall into each bin, and smooths the resulting counts, then plots the smoothed distribution, by default using a circular dot mark. The density mark calculates density values that can be mapped to encoding channels such as fill or r using the special field name "density".
    *
    * Set the *type* property to use a different base mark type.
    */

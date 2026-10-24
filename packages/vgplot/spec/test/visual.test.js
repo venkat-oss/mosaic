@@ -1,3 +1,4 @@
+import './grid-templates.browser.js';
 import { test, expect } from '@playwright/test';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
