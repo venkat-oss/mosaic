@@ -1,6 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect, vi } from 'vitest';
 import { type Table, tableFromArrays, tableToIPC } from '@uwdata/flechette';
-import { Query, count, literal, sum } from '@uwdata/mosaic-sql';
+import { Query, add, columns, count, literal, sql, star, sum } from '@uwdata/mosaic-sql';
+import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { Coordinator } from '../src/Coordinator.js';
+import { NodeConnector } from '../src/connectors/NodeConnector.js';
+import type { ArrowQueryRequest, Connector } from '../src/connectors/Connector.js';
 import { consolidator } from '../src/QueryConsolidator.js';
 import { Priority } from '../src/QueryManager.js';
 import type { Cache, QueryEntry } from '../src/types.js';
@@ -109,6 +113,22 @@ describe('QueryConsolidation', () => {
 });
 
 describe('QueryConsolidationCaching', () => {
+  it('rejects every original request if any projected result fails', async () => {
+    const entries: QueryEntry[] = ['x', 'y'].map(c => ({
+      request: {type: 'arrow', query: Query.from('source').select({c}), cache: true},
+      result: new QueryResult()
+    }));
+    const data = tableFromArrays({col0: [1]});
+    const set = vi.fn();
+    const cache: Cache = {get: () => undefined, set, clear: () => {}, bytes: () => 0};
+    const c = consolidator(entry => entry.result.fulfill(data), () => cache);
+    for (const entry of entries) c.add(entry, Priority.Normal);
+
+    const results = await Promise.allSettled(entries.map(({result}) => result));
+    expect(results.map(result => result.status)).toEqual(['rejected', 'rejected']);
+    expect(set).not.toHaveBeenCalled();
+  });
+
   it('should charge projected extracts to the merged table', async () => {
     const bytes = tableToIPC(tableFromArrays({ col0: [1, 2], col1: [3, 4] }), {})!;
     const data = decodeIPC(bytes);
@@ -195,5 +215,66 @@ describe('QueryConsolidationCaching', () => {
     await new Promise(resolve => setImmediate(resolve));
 
     expect(entries.map(({ result }) => result.state)).toEqual([QueryState.error, QueryState.error]);
+  });
+});
+
+describe('Native consolidated query results', () => {
+  const db = new DuckDB();
+  const connector = NodeConnector.make(db);
+  beforeAll(async () => {
+    await db.exec('CREATE TABLE consolidation_data AS SELECT 1 AS x, 2 AS y');
+  });
+  afterAll(() => db.close());
+
+  it.each([
+    {name: 'star', projection: '*', names: ['x', 'y'], expected: [1, 2]},
+    {name: 'qualified star', projection: star('consolidation_data'), names: ['x', 'y'], expected: [1, 2]},
+    {name: 'modified star', projection: star(null, {rename: {y: 'z'}}), names: ['x', 'z'], expected: [1, 2]},
+    {name: 'columns', projection: columns(['x', 'y']), names: ['x', 'y'], expected: [1, 2]},
+    {name: 'raw star', projection: {computed: sql`*`}, names: ['computed', 'computed'], expected: [1, 2]},
+    {name: 'raw qualified star', projection: {computed: sql`consolidation_data.*`}, names: ['computed', 'computed'], expected: [1, 2]},
+    {name: 'raw columns', projection: {computed: sql`COLUMNS(['x', 'y'])`}, names: ['computed', 'computed'], expected: [1, 2]},
+    {name: 'commented raw columns', projection: {computed: sql`columns /* projected */ (['x', 'y'])`}, names: ['computed', 'computed'], expected: [1, 2]},
+    {name: 'nested columns', projection: {computed: add(columns(['x', 'y']), 1)}, names: ['computed', 'computed'], expected: [2, 3]}
+  ])('preserves every $name output alongside a scalar query', async ({projection, names, expected}) => {
+    const coordinator = new Coordinator(await connector, {logger: null});
+    try {
+      const [expanded, scalar] = await Promise.all([
+        coordinator.query(Query.from('consolidation_data').select(projection)),
+        coordinator.query(Query.from('consolidation_data').select('x'))
+      ]);
+      expect(expanded.schema.fields.map(field => field.name)).toEqual(names);
+      expect(expanded.numRows).toBe(1);
+      expect(expanded.schema.fields.map((_, index) => expanded.getChildAt(index).at(0))).toEqual(expected);
+      expect(Array.from(scalar)).toEqual([{x: 1}]);
+    } finally {
+      coordinator.clear();
+    }
+  });
+
+  it.each(['before decode', 'after decode'])('isolates extraction options changed %s from cached and in-flight results', async timing => {
+    const native = await connector;
+    const responses: Promise<unknown>[] = [];
+    const coordinator = new Coordinator({
+      query(request: ArrowQueryRequest) {
+        const response = native.query(request);
+        responses.push(response);
+        return response;
+      }
+    } as Connector, {logger: null, consolidate: false});
+    try {
+      const sql = "SELECT DATE '2024-01-01' AS value";
+      const first = coordinator.query(sql);
+      if (timing === 'after decode') await responses[0].then(() => coordinator.manager.ipc({useDate: false}));
+      else coordinator.manager.ipc({useDate: false});
+      const second = coordinator.query(sql);
+      const [oldResult, newResult] = await Promise.all([first, second]);
+      expect(oldResult.getChild('value').at(0)).toEqual(new Date('2024-01-01T00:00:00Z'));
+      expect(newResult.getChild('value').at(0)).toBe(1704067200000);
+      expect(await coordinator.query(sql)).toBe(newResult);
+      expect(responses).toHaveLength(2);
+    } finally {
+      coordinator.clear();
+    }
   });
 });

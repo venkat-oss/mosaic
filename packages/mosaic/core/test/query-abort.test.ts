@@ -182,6 +182,58 @@ describe('QueryManager abort', () => {
     expect(calls[0].signal!.aborted).toBe(false);
   });
 
+  it('cancels requests in a disabled consolidation buffer before execution', async () => {
+    const { calls, manager } = setup();
+    manager.consolidate(true);
+    const result = manager.request(read());
+    const rejected = expect(result).rejects.toBe('Canceled');
+    manager.consolidate(false);
+
+    manager.cancel([result]);
+    await rejected;
+    await flush();
+    expect(calls).toHaveLength(0);
+  });
+
+  it('cancels one consolidated result without dropping its peers', async () => {
+    const { calls, store, manager } = setup();
+    manager.consolidate(true);
+    const results = consolidatable.map(query => manager.request({ type: 'arrow', query, cache: true }));
+    const rejected = expect(results[0]).rejects.toBe('Canceled');
+    await flush();
+    expect(calls).toHaveLength(1);
+
+    manager.cancel([results[0]]);
+    await rejected;
+    calls[0].resolve(consolidated);
+    expect(Array.from(await results[1] as Table)).toEqual([{ c: 2 }]);
+    expect(store.has(String(consolidatable[0]))).toBe(false);
+    expect(store.has(String(consolidatable[1]))).toBe(true);
+  });
+
+  it.each([{indices: [1, 2]}, {indices: [2, 3]}, {indices: [0, 1, 2, 3]}])('removes consecutive queued requests $indices before execution', async ({indices}) => {
+    const { calls, manager } = setup();
+    const blocker = manager.request(exec());
+    const results = [0, 1, 2, 3].map(i => manager.request(read(`SELECT ${i}`)));
+    const canceled = indices.map(i => results[i]);
+    const rejected = Promise.all(canceled.map(result => expect(result).rejects.toBe('Canceled')));
+    manager.cancel(canceled);
+    await rejected;
+    const appended = manager.request(read('SELECT 4'));
+
+    calls[0].resolve(undefined);
+    await blocker;
+    await flush();
+    const remaining = [0, 1, 2, 3].filter(i => !indices.includes(i));
+    for (const [index, value] of [...remaining, 4].entries()) {
+      expect(calls[index + 1].request.sql).toBe(`SELECT ${value}`);
+      calls[index + 1].resolve(bytes);
+      await flush();
+    }
+    expect(calls).toHaveLength(remaining.length + 2);
+    await Promise.all([...remaining.map(i => results[i]), appended]);
+  });
+
   it('sends a fresh request for a query cleared in flight', async () => {
     const { calls, manager } = setup();
     const rejected = expect(manager.request(read())).rejects.toBe('Cleared');

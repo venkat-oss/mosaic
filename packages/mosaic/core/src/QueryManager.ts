@@ -102,6 +102,7 @@ export class QueryManager {
       const { query, type, cache = false, options } = request;
       const sql = Array.isArray(query) ? query.filter(x => x).join(';\n') : String(query);
       const generation = this._generation;
+      const ipc = this._ipc;
 
       if (cache) {
         const cached = this.clientCache.get(sql) ?? this.inflight.get(sql)?.promise;
@@ -123,7 +124,7 @@ export class QueryManager {
       const response = this.db!.query({ ...options, type, sql }, { signal: controller.signal });
       sent = response;
       const promise: Promise<unknown> = type === 'arrow'
-        ? response.then(bytes => decodeIPC(bytes, this._ipc))
+        ? response.then(bytes => decodeIPC(bytes, ipc))
         : response;
       const flight: Flight = { sql, type, controller, promise: abortable(promise, controller.signal) };
       const ms = this._timeout;
@@ -181,7 +182,9 @@ export class QueryManager {
    */
   ipc(value?: ExtractionOptions): ExtractionOptions | undefined {
     if (value === undefined) return this._ipc;
+    this._generation += 1;
     this.clientCache.clear();
+    this.inflight.clear();
     return this._ipc = value;
   }
 
@@ -260,13 +263,15 @@ export class QueryManager {
   cancel(requests: QueryResult[]): void {
     const set = new Set(requests);
     if (set.size) {
-      this.queue.remove(({ result }) => {
+      const remove = ({ result }: QueryEntry) => {
         if (set.has(result)) {
           result.reject('Canceled');
           return true;
         }
         return false;
-      });
+      };
+      this._consolidate?.remove(remove);
+      this.queue.remove(remove);
 
       for (const result of this.pendingResults) {
         if (set.has(result)) {
