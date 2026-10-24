@@ -1,0 +1,118 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary")
+
+exports_files(["public/schema/v0.34.0.json"])
+
+filegroup(
+    name = "api_sources",
+    srcs = glob(["api/**/*.md", "spec/**/*.md"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "sources",
+    srcs = glob(
+        [
+            "**",
+            ".vitepress/**",
+        ],
+        exclude = [
+            "BUILD.bazel",
+            "site-builder.mjs",
+            ".vitepress/cache/**",
+            ".vitepress/dist/**",
+            ".vitepress/.temp/**",
+            "public/data/**",
+            "public/templates/**",
+            "public/specs/**",
+            "examples/*.md",
+        ],
+    ) + ["examples/index.md"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "generated_examples",
+    srcs = glob(
+        [
+            "public/specs/**",
+            "examples/*.md",
+        ],
+        exclude = ["examples/index.md"],
+    ),
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "site_sources",
+    srcs = [":sources"],
+    deps = [
+        "//:node_modules/vitepress",
+        "//:node_modules/vitepress-plugin-llms",
+        "//:node_modules/vue",
+        "//:node_modules/yaml",
+        "//:site_assets",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/vgplot/inputs:sources",
+        "//packages/vgplot/plot:sources",
+        "//packages/vgplot/spec:ast_sources",
+        "//packages/vgplot/vgplot:sources",
+    ],
+)
+
+js_binary(
+    name = "site_builder",
+    data = [":site_sources"],
+    entry_point = "site-builder.mjs",
+    patch_node_fs = False,
+)
+
+js_run_binary(
+    name = "site",
+    srcs = [
+        ":site_sources",
+        "//bin:examples_generated",
+    ],
+    args = [
+        "$(execpath //bin:examples_generated)",
+        "$(RULEDIR)/site",
+    ],
+    copy_srcs_to_bin = False,
+    out_dirs = ["site"],
+    patch_node_fs = False,
+    tool = ":site_builder",
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "dev",
+    args = [
+        "$(rlocationpath //bin:examples_generated)",
+        ".vitepress/dist",
+        "dev",
+    ],
+    data = [
+        ":site_sources",
+        "//bin:examples_generated",
+    ],
+    entry_point = "site-builder.mjs",
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "preview",
+    args = [
+        "$(rlocationpath //bin:examples_generated)",
+        "$(rlocationpath :site)",
+        "preview",
+    ],
+    data = [
+        ":site",
+        ":site_sources",
+        "//bin:examples_generated",
+    ],
+    entry_point = "site-builder.mjs",
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)

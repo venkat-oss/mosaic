@@ -38,6 +38,12 @@ must land first, or an enumeration of non-obvious cases the change handles.
 
 ## Documentation
 
+Bazel owns repository builds and tests. Use `bazelisk build //:build` and
+`bazelisk test //:check`, or select the affected package's native targets.
+`bin/visual-test.sh` runs the browser suite in its matching container. Package
+managers retain dependency/IDE and explicit release operations; do not restore
+Lerna, tsc, uv, Cargo or Go build/test chains outside Bazel.
+
 After changing a public API, user-visible behavior, setup, or protocol, update
 [`docs/`](docs/) in the same change. API reference pages are handwritten; exports
 and source comments do not update them. Use the affected package's public entry

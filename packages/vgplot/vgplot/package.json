@@ -28,12 +28,10 @@
     "url": "https://github.com/uwdata/mosaic.git"
   },
   "scripts": {
-    "clean": "rimraf dist && mkdir dist",
-    "prebuild": "pnpm run clean",
-    "lint": "eslint src test",
-    "typecheck": "tsc -p test/tsconfig.json",
-    "test": "vitest run",
-    "prepublishOnly": "tsc --build"
+    "build": "bazelisk build //packages/vgplot/vgplot:tarball",
+    "lint": "bazelisk test //packages/vgplot/vgplot:lint",
+    "typecheck": "bazelisk test //packages/vgplot/vgplot:test_types_typecheck_test",
+    "test": "bazelisk test //packages/vgplot/vgplot:check"
   },
   "dependencies": {
     "@uwdata/mosaic-core": "workspace:^",

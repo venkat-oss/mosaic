@@ -1,27 +1,8 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.10"
-# ///
-"""
-Mosaic Server Benchmark
+"""Benchmark native Bazel server executables over HTTP POST.
 
-Benchmarks server implementations over HTTP POST,
-with response-size verification.
-
-Usage:
-    ./bench.py [OPTIONS]
-
-Options:
-    -p, --port PORT         Server port (default: 3000)
-    -n, --iterations N      Requests per query (default: 100)
-    -w, --warmup N          Warmup requests (default: 5)
-    -s, --servers LIST      Comma-separated servers to test (default: auto-detect)
-                            Options: rust, go, python, node
-    -h, --help              Show this help
-
-If --servers is given (or auto-detected), each server is built, started,
-benchmarked, and stopped automatically. Without it, the script expects
-a server already running on the given port.
+Run //packages/server/bench:bench for all servers, or :bench_node,
+:bench_python, :bench_go and :bench_rust for an individual implementation.
+Use --servers to select among the target's declared servers.
 """
 
 from __future__ import annotations
@@ -30,30 +11,44 @@ import argparse
 import http.client
 import json
 import math
-import shutil
+import os
 import statistics
 import subprocess
 import sys
+import tempfile
+import threading
 import time
+from collections import deque
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
+from python.runfiles import runfiles
 
-BENCH_DIR = Path(__file__).resolve().parent
-SERVER_DIR = BENCH_DIR.parent
-DATA_DIR = (SERVER_DIR / ".." / ".." / "data").resolve()
+SERVER_NAMES = ("rust", "go", "python", "node")
+MAX_PORT = 65535
 
-# ---------------------------------------------------------------------------
-# Queries
-# ---------------------------------------------------------------------------
 
-LOAD_QUERIES = [
-    f"CREATE OR REPLACE TABLE flights AS SELECT * FROM read_parquet('{DATA_DIR}/flights-200k.parquet')",
-    f"CREATE OR REPLACE TABLE athletes AS SELECT * FROM read_parquet('{DATA_DIR}/athletes.parquet')",
-    f"CREATE OR REPLACE TABLE penguins AS SELECT * FROM read_parquet('{DATA_DIR}/penguins.parquet')",
-]
+def runfile(name: str) -> Path:
+    path = runfiles.Create().Rlocation(name)
+    if not path or not Path(path).is_file():
+        msg = f"Missing declared benchmark input: {name}"
+        raise RuntimeError(msg)
+    return Path(path)
+
+
+def load_queries() -> list[str]:
+    directory = runfile(os.environ["MOSAIC_BENCH_DATA"]).parent
+    queries = []
+    for table, filename in [
+        ("flights", "flights-200k.parquet"),
+        ("athletes", "athletes.parquet"),
+        ("penguins", "penguins.parquet"),
+    ]:
+        path = str(directory / filename).replace("'", "''")
+        queries.append(
+            f"CREATE OR REPLACE TABLE {table} AS SELECT * FROM read_parquet('{path}')"
+        )
+    return queries
+
 
 # (name, type, sql)
 BENCHMARKS: list[tuple[str, str, str]] = [
@@ -118,14 +113,10 @@ BENCHMARKS: list[tuple[str, str, str]] = [
     ),
 ]
 
-# ---------------------------------------------------------------------------
-# HTTP helpers
-# ---------------------------------------------------------------------------
 
-
-def http_post(host: str, port: int, payload: dict) -> bytes:
+def http_post(host: str, port: int, payload: dict, timeout: float = 30) -> bytes:
     body = json.dumps(payload).encode()
-    conn = http.client.HTTPConnection(host, port, timeout=30)
+    conn = http.client.HTTPConnection(host, port, timeout=timeout)
     try:
         conn.request(
             "POST",
@@ -178,11 +169,6 @@ def bench_http(
     return timings, resp_size
 
 
-# ---------------------------------------------------------------------------
-# Reporting
-# ---------------------------------------------------------------------------
-
-
 def fmt_bytes(n: int) -> str:
     if n < 1024:  # ruff: ignore[magic-value-comparison]
         return f"{n}B"
@@ -211,26 +197,47 @@ def print_row(name: str, timings: list[float], resp_size: int) -> None:
     print(ROW_FMT.format(name, fmt_bytes(resp_size), mn, med, p95, avg))
 
 
-# ---------------------------------------------------------------------------
-# Server management
-# ---------------------------------------------------------------------------
+def wait_for_server(
+    server: str,
+    host: str,
+    port: int,
+    proc: subprocess.Popen[bytes],
+    timeout: float = 30,
+) -> bool:
+    ready = threading.Event()
+    output: deque[bytes] = deque(maxlen=20)
+    marker = {
+        "node": f"Data server running on port {port}",
+        "python": f"Uvicorn running on http://{host}:{port}",
+        "go": f"DuckDB Server listening on http://{host}:{port}",
+        "rust": f"DuckDB Server listening on http://{host}:{port}",
+    }[server].encode()
 
+    def read_output() -> None:
+        if proc.stdout is not None:
+            for line in proc.stdout:
+                if not ready.is_set():
+                    output.append(line)
+                    if marker in line:
+                        ready.set()
 
-def has_cmd(name: str) -> bool:
-    return shutil.which(name) is not None
-
-
-def wait_for_server(host: str, port: int, timeout: int = 30) -> bool:
-    for _ in range(timeout):
-        try:
-            http_post(host, port, {"type": "arrow", "sql": "SELECT 1"})
-            return True
-        except Exception:  # ruff: ignore[blind-except]
-            time.sleep(1)
+    threading.Thread(target=read_output, daemon=True).start()
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            break
+        if ready.is_set():
+            try:
+                http_post(host, port, {"type": "arrow", "sql": "SELECT 1"}, timeout=1)
+                return proc.poll() is None
+            except (OSError, http.client.HTTPException, RuntimeError):
+                pass
+        time.sleep(0.1)
+    print(b"".join(list(output)).decode(errors="replace"), file=sys.stderr, end="")
     return False
 
 
-def stop_server(proc: subprocess.Popen) -> None:
+def stop_server(proc: subprocess.Popen[bytes]) -> None:
     if proc.poll() is None:
         proc.terminate()
         try:
@@ -238,110 +245,39 @@ def stop_server(proc: subprocess.Popen) -> None:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()
+    if proc.stdout is not None:
+        proc.stdout.close()
 
 
-def build_and_start_rust(port: int) -> subprocess.Popen | None:
-    rust_dir = SERVER_DIR / "duckdb-server-rust"
-    print("  Building Rust server (release) ...")
-    result = subprocess.run(
-        ["cargo", "build", "--release"],
-        cwd=rust_dir,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        print(f"  Build failed:\n{result.stderr}")
-        return None
-
-    print("  Starting Rust server ...")
+def start_server(server: str, port: int, directory: Path) -> subprocess.Popen[bytes]:
+    executable = runfile(os.environ["MOSAIC_BENCH_" + server.upper()])
+    arguments = {
+        "rust": ["--port", str(port)],
+        "go": ["-address=127.0.0.1", f"-port={port}"],
+        "python": ["--no-http2", "--port", str(port)],
+        "node": [str(port)],
+    }[server]
+    print(f"  Starting {server} server ...")
     return subprocess.Popen(
-        ["cargo", "run", "--release", "--", "--port", str(port)],
-        cwd=rust_dir,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        [str(executable), *arguments],
+        cwd=directory,
+        env={
+            **os.environ,
+            "BAZEL_BINDIR": ".",
+            "XDG_CONFIG_HOME": str(directory / "config"),
+            "APPDATA": str(directory / "config"),
+            "RUST_LOG": "duckdb_server=info",
+        },
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
-
-
-def build_and_start_go(port: int) -> subprocess.Popen | None:
-    go_dir = SERVER_DIR / "duckdb-server-go"
-    print("  Building Go server ...")
-    result = subprocess.run(
-        ["go", "build", "-tags=duckdb_arrow", "-o", "./duckdb-server-go", "."],
-        cwd=go_dir,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        print(f"  Build failed:\n{result.stderr}")
-        return None
-
-    print("  Starting Go server ...")
-    return subprocess.Popen(
-        [str(go_dir / "duckdb-server-go"), f"-port={port}"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
-def build_and_start_python(port: int) -> subprocess.Popen | None:
-    py_dir = SERVER_DIR / "duckdb-server"
-    print("  Starting Python server ...")
-    return subprocess.Popen(
-        ["uv", "run", "duckdb-server", "--no-http2", "--port", f"{port}"],
-        cwd=py_dir,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
-def build_and_start_node(port: int) -> subprocess.Popen | None:
-    node_dir = SERVER_DIR / "duckdb"
-    print("  Installing Node dependencies ...")
-    result = subprocess.run(
-        ["npm", "install", "--ignore-scripts"],
-        cwd=node_dir,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        print(f"  Install failed:\n{result.stderr}")
-        return None
-
-    if port != 3000:  # ruff: ignore[magic-value-comparison]
-        print("  WARNING: Node server does not support custom ports, using 3000")
-    print("  Starting Node server ...")
-    return subprocess.Popen(
-        ["node", str(node_dir / "bin" / "run-server.js")],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
-SERVER_BUILDERS = {
-    "rust": build_and_start_rust,
-    "go": build_and_start_go,
-    "python": build_and_start_python,
-    "node": build_and_start_node,
-}
-
-SERVER_REQUIREMENTS = {
-    "rust": "cargo",
-    "go": "go",
-    "python": "uv",
-    "node": "node",
-}
 
 
 def detect_servers() -> list[str]:
-    return [name for name, cmd in SERVER_REQUIREMENTS.items() if has_cmd(cmd)]
+    return [
+        name for name in SERVER_NAMES if "MOSAIC_BENCH_" + name.upper() in os.environ
+    ]
 
-
-# ---------------------------------------------------------------------------
-# Benchmark runner
-# ---------------------------------------------------------------------------
 
 # Results: {label: median_ms}
 ServerResults = dict[str, float]
@@ -352,16 +288,12 @@ def run_benchmarks(host: str, port: int, iterations: int, warmup: int) -> Server
 
     # Check server
     print(f"Checking server at http://{host}:{port} ...")
-    try:
-        http_post(host, port, {"type": "arrow", "sql": "SELECT 1"})
-    except Exception as e:  # ruff: ignore[blind-except]
-        print(f"ERROR: No server responding at http://{host}:{port}: {e}")
-        return results
+    http_post(host, port, {"type": "arrow", "sql": "SELECT 1"})
     print("Server is up.\n")
 
     # Load data
     print("Loading test data ...")
-    for sql in LOAD_QUERIES:
+    for sql in load_queries():
         http_exec(host, port, sql)
     print("Data loaded.\n")
 
@@ -425,11 +357,6 @@ def print_comparison(all_results: dict[str, ServerResults]) -> None:
     print()
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Mosaic Server Benchmark")
     parser.add_argument("-p", "--port", type=int, default=3000)
@@ -439,15 +366,18 @@ def main() -> None:
         "-s",
         "--servers",
         help="Comma-separated list of servers (rust,go,python,node). "
-        "If omitted, auto-detects available runtimes.",
+        "If omitted, uses this Bazel target's declared servers.",
     )
     args = parser.parse_args()
 
     if args.iterations < 1:
         parser.error("--iterations must be >= 1")
 
-    # NOTE: rust/python are initialized with `"127.0.0.1"`
-    # They accept `"localhost"`, but it adds 2000ms per request (1-40ms)
+    if args.warmup < 0:
+        parser.error("--warmup must be >= 0")
+    if not 1 <= args.port <= MAX_PORT:
+        parser.error("--port must be between 1 and 65535")
+
     host = "127.0.0.1"
     port = args.port
 
@@ -457,9 +387,11 @@ def main() -> None:
         else detect_servers()
     )
 
+    available = detect_servers()
     if not servers:
-        print("ERROR: No server runtimes found (need cargo, go, uv, or node).")
-        sys.exit(1)
+        parser.error("No declared servers; run a //packages/server/bench Bazel target.")
+    if missing := [server for server in servers if server not in available]:
+        parser.error(f"Servers not included in this Bazel target: {', '.join(missing)}")
 
     print("=" * 60)
     print("  Mosaic Server Benchmark Suite")
@@ -478,28 +410,20 @@ def main() -> None:
         print(f"  Server: {server}")
         print("-" * 60)
 
-        builder = SERVER_BUILDERS.get(server)
-        if builder is None:
-            print(f"  Unknown server: {server} (skipping)\n")
-            continue
+        with tempfile.TemporaryDirectory(prefix="mosaic-bench-") as directory:
+            proc = start_server(server, port, Path(directory))
+            try:
+                print(f"  Waiting for server on port {port} ...")
+                if not wait_for_server(server, host, port, proc):
+                    msg = f"ERROR: {server} server failed to start on port {port}"
+                    raise SystemExit(msg)
+                print("  Server is ready.\n")
 
-        proc = builder(port)
-        if proc is None:
-            print("  Build/start failed, skipping.\n")
-            continue
-
-        try:
-            print(f"  Waiting for server on port {port} ...")
-            if not wait_for_server(host, port):
-                print("  ERROR: Server did not start within 30s, skipping.\n")
-                continue
-            print("  Server is ready.\n")
-
-            results = run_benchmarks(host, port, args.iterations, args.warmup)
-            if results:
-                all_results[server] = results
-        finally:
-            stop_server(proc)
+                results = run_benchmarks(host, port, args.iterations, args.warmup)
+                if results:
+                    all_results[server] = results
+            finally:
+                stop_server(proc)
 
         print()
 

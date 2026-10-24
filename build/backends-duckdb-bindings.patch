@@ -1,0 +1,18 @@
+--- /dev/null
++++ b/bazel.bzl
+@@ -0,0 +1,15 @@
++load("@io_bazel_rules_go//go:def.bzl", "go_library")
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
++def duckdb_go_library(name, **kwargs):
++    if native.package_name() == "include":
++        native.filegroup(name = "lint_inputs", srcs = native.glob(["*.h"]), visibility = ["//visibility:public"])
++        cc_library(
++            name = "headers",
++            hdrs = native.glob(["*.h"]),
++            includes = ["."],
++            visibility = ["//visibility:public"],
++        )
++    elif native.package_name() == "":
++        kwargs["cdeps"] = kwargs.get("cdeps", []) + ["//include:headers"]
++    go_library(name = name, **kwargs)

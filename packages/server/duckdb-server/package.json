@@ -3,6 +3,8 @@
   "version": "0.34.0",
   "private": true,
   "scripts": {
-    "dev": "uv run watchfiles --filter python --grace-period 5 --target-type command \"uv run duckdb-server\" pkg"
+    "dev": "bazelisk run //packages/server/duckdb-server:dev",
+    "build": "bazelisk build //packages/server/duckdb-server:server //packages/server/duckdb-server:wheel //packages/server/duckdb-server:sdist",
+    "test": "bazelisk test //packages/server/duckdb-server:check"
   }
 }

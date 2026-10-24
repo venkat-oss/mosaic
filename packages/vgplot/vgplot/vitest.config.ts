@@ -2,5 +2,6 @@ import { defineConfig } from 'vite';
 import viteConfig from '../../../vite.config.js';
 
 export default defineConfig({
-  resolve: viteConfig.resolve,
+  resolve: {...viteConfig.resolve, preserveSymlinks: true},
+  test: {maxWorkers: 4},
 });

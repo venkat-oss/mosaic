@@ -18,15 +18,11 @@ Alternatively, you can install the server with `pip install duckdb-server`. Then
 
 ## Developer Setup
 
-We use [uv](https://docs.astral.sh/uv/) to manage our development setup.
+From the repository root, start the server with `bazelisk run //packages/server/duckdb-server:server -- --no-http2`. Pass server flags after `--`.
 
-Start the server with `uv run duckdb-server`. The server will not restart when the code changes.
+For automatic restarts after Python edits, run `bazelisk run //packages/server/duckdb-server:dev` or `pnpm dev` from this package.
 
-Start the server in development with `pnpm dev`. The server restarts when you change the code.
-
-Run `uv run ruff check --fix` and `uv run ruff format` to lint the code.
-
-To run the tests, use `uv run pytest`.
+Run `bazelisk test //packages/server/duckdb-server:check` for tests, Ruff, formatting, typechecking and installed distribution consumers. Tests use the declared interpreter and locked dependencies; no activated environment is required. Use uv to update dependencies or create an IDE environment.
 
 ## API
 
@@ -38,5 +34,4 @@ Python 3.11 or newer is required. Dependencies include DuckDB 2 and PyArrow 26.
 
 ## Publishing
 
-Run the build with `uv build`. Then publish with `uvx twine upload --skip-existing ../../dist/*`. We publish using tokens so when asked, set the username to `__token__` and then use your token as the password. Alternatively, create a [`.pypirc` file](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account).
-
+Build distributions with `bazelisk build //packages/server/duckdb-server:wheel //packages/server/duckdb-server:sdist`. The artifacts are under `bazel-bin/packages/server/duckdb-server/`. Upload those files explicitly with Twine after updating the package version. Credentials and publication remain separate from the build.

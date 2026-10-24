@@ -77,7 +77,7 @@ export function bridgeCount(element, props) {
       root.render(<Count {...props} />);
     },
     destroy() {
-      root.destroy();
+      root.unmount();
     },
   };
 }

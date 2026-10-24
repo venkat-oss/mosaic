@@ -1,0 +1,3 @@
+load("//build:examples.bzl", "mosaic_example")
+
+mosaic_example()

@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "format_test",
+    srcs = ["format_test.go"],
+    data = [
+        ":format_srcs",
+        "//packages/server/duckdb-server-go:format_srcs",
+        "//packages/server/duckdb-server-go/internal/gatekeepertest:format_srcs",
+        "//packages/server/duckdb-server-go/lint:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/extensions:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/query:format_srcs",
+        "//packages/server/duckdb-server-go/pkg/server:format_srcs",
+    ],
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

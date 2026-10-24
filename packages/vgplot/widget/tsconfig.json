@@ -3,9 +3,5 @@
   "files": ["src/index.js", "src/global.d.ts"],
   "compilerOptions": {
     "noEmit": true,
-  },
-  "references": [
-    { "path": "../../mosaic/core" },
-    { "path": "../spec" }
-  ]
+  }
 }

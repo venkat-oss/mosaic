@@ -4,6 +4,7 @@
 // legends, data sources, params, and the runtime core stay hand-written.
 //
 // Run: node bin/generate-python-api.js   (or: pnpm run generate:python-api)
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,8 +12,10 @@ import { camelCaseToSnake } from '../packages/vgplot/spec/src/util.js';
 import { PYTHON_KEYWORDS } from '../packages/vgplot/spec/src/python-codegen.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
-const SCHEMA = resolve(ROOT, 'packages/vgplot/spec/dist/mosaic-schema.json');
+const ROOT = process.env.BUILD_WORKSPACE_DIRECTORY ?? resolve(__dirname, '..');
+const SCHEMA = process.env.MOSAIC_SCHEMA
+  ? resolve(process.env.RUNFILES_DIR || process.env.JS_BINARY__RUNFILES || process.cwd(), process.env.MOSAIC_SCHEMA)
+  : resolve(ROOT, 'packages/vgplot/spec/dist/mosaic-schema.json');
 const OUT_DIR = resolve(ROOT, 'packages/vgplot/vgplot-python/vgplot/_generated');
 const SPEC_GEN_DIR = resolve(ROOT, 'packages/vgplot/spec/src/generated');
 
@@ -244,3 +247,10 @@ const all = [...markNames, ...attrNames, ...encNames];
 const dupes = all.filter((n, i) => all.indexOf(n) !== i);
 if (dupes.length) throw new Error(`Name collisions in generated API: ${dupes.join(', ')}`);
 console.log(`Generated ${markNames.length} marks + ${attrNames.length} attributes + ${encNames.length} encodings -> vgplot/_generated/`);
+
+if (process.env.MOSAIC_RUFF) {
+  const ruff = resolve(process.env.RUNFILES_DIR || process.env.JS_BINARY__RUNFILES || process.cwd(), process.env.MOSAIC_RUFF);
+  const config = resolve(ROOT, 'pyproject.toml');
+  execFileSync(ruff, ['check', '--fix', '--config', config, OUT_DIR], { stdio: 'inherit' });
+  execFileSync(ruff, ['format', '--config', config, OUT_DIR], { stdio: 'inherit' });
+}

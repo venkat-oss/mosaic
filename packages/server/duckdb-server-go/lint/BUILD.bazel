@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_binary")
+
+go_binary(
+    name = "runner",
+    srcs = ["runner.go"],
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

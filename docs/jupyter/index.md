@@ -8,6 +8,14 @@ Install the widget with `pip install mosaic-widget`. Then you can import it in J
 
 The PyPI package is at https://pypi.org/project/mosaic-widget/. The widget also works in [Google Colab](https://colab.research.google.com/drive/1Txy6L_of8_lJFImKEkhUCqZX70yKpYnv#scrollTo=leuzblN47K-T&line=1&uniqifier=1).
 
+From a repository checkout, start Jupyter with the built frontend and Python API:
+
+```sh
+bazelisk run //packages/vgplot/widget:notebook -- --notebook-dir=dev/notebooks
+```
+
+Run `bazelisk test //packages/vgplot/widget:check` to check the widget. Its wheel and source distribution targets include the JavaScript/CSS bundle and work independently of the repository.
+
 ## Using the Widget
 
 After importing the widget with

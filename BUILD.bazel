@@ -1,0 +1,240 @@
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//:@typescript/native/package_json.bzl", typescript_bin = "bin")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library")
+
+exports_files([
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "tsconfig.base.json",
+    "pyproject.toml",
+    "uv.lock",
+    "data/seattle-weather.csv",
+    "data/seattle-weather.parquet",
+    "data/travelers.parquet",
+    "data/flights-200k.parquet",
+    "data/athletes.parquet",
+    "data/penguins.parquet",
+    "LICENSE",
+    "vite.config.js",
+])
+
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "workspace_metadata",
+    srcs = ["package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"] + [
+        "//packages/mosaic/sql:manifest",
+        "//packages/mosaic/core:manifest",
+        "//packages/server/duckdb:manifest",
+        "//packages/vgplot/inputs:manifest",
+        "//packages/vgplot/plot:manifest",
+        "//packages/vgplot/vgplot:manifest",
+        "//packages/vgplot/spec:manifest",
+        "//packages/examples/vanilla-example:manifest",
+        "//packages/examples/vega-example:manifest",
+        "//packages/examples/svelte-example:manifest",
+        "//packages/server/duckdb-server:manifest",
+        "//packages/vgplot/vgplot-python:manifest",
+        "//packages/vgplot/widget:manifest",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "javascript_test_support",
+    srcs = ["package.json", "eslint.config.js", "vite.config.js", "data/penguins.csv"],
+    deps = [
+        ":node_modules/vite",
+        ":node_modules/vitest",
+        ":node_modules/@eslint/js",
+        ":node_modules/typescript-eslint",
+        ":node_modules/globals",
+        "//build:vitest_environment",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ts_config(
+    name = "tsconfig_base",
+    src = "tsconfig.base.json",
+    visibility = ["//visibility:public"],
+)
+
+typescript_bin.tsc_binary(
+    name = "tsc",
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "python_test_data",
+    srcs = ["pyproject.toml", "//specs:fixtures", "//specs:yaml"] + glob(["templates/**"], allow_empty = True),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "data_assets",
+    srcs = glob(["data/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "templates",
+    srcs = glob(["templates/**"], allow_empty = True),
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "site_assets",
+    srcs = ["vite.config.js", "package.json", ":data_assets", ":templates"],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "dev_sources",
+    srcs = ["vite.config.js", "package.json"],
+    deps = [
+        "//dev:sources",
+        ":site_assets",
+        ":node_modules/vite",
+        ":node_modules/yaml",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/vgplot/inputs:sources",
+        "//packages/vgplot/plot:sources",
+        "//packages/vgplot/spec:ast_sources",
+        "//packages/vgplot/vgplot:sources",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "examples",
+    actual = "//bin:examples_sync",
+)
+
+test_suite(
+    name = "examples_check",
+    tests = ["//bin:examples_check", "//specs:typescript_typecheck_test", "//specs:python"],
+)
+
+_JAVASCRIPT_PACKAGES = [
+    "//packages/mosaic/sql",
+    "//packages/server/duckdb",
+    "//packages/mosaic/core",
+    "//packages/vgplot/inputs",
+    "//packages/vgplot/plot",
+    "//packages/vgplot/vgplot",
+    "//packages/vgplot/spec",
+]
+
+_PYTHON_PACKAGES = [
+    "//packages/server/duckdb-server",
+    "//packages/vgplot/vgplot-python",
+    "//packages/vgplot/widget",
+]
+
+filegroup(
+    name = "packages",
+    srcs = [package + ":tarball" for package in _JAVASCRIPT_PACKAGES] + [
+        package + ":" + artifact
+        for package in _PYTHON_PACKAGES
+        for artifact in ["wheel", "sdist"]
+    ],
+)
+
+filegroup(
+    name = "build",
+    testonly = True,
+    srcs = [
+        ":packages",
+        "//docs:site",
+        "//packages/examples:build",
+        "//packages/server/duckdb-server:server",
+        "//packages/vgplot/widget:bundle",
+    ],
+)
+
+test_suite(
+    name = "node_checks",
+    tests = [package + ":check" for package in _JAVASCRIPT_PACKAGES] + [
+        "//packages/vgplot/widget:javascript_types_typecheck_test",
+        "//packages/vgplot/widget:javascript_lint",
+        "//packages/server:protocol_node",
+    ],
+)
+
+test_suite(
+    name = "python_checks",
+    tests = [
+        "//packages/server/duckdb-server:check",
+        "//packages/vgplot/vgplot-python:check",
+        "//packages/vgplot/widget:python_check",
+        "//build/python:check",
+        "//dev:check",
+        "//specs:python",
+        "//packages/server/bench:check",
+        "//packages/server:protocol_python",
+        "//packages/server:lint",
+        "//packages/server:format",
+    ],
+)
+
+test_suite(
+    name = "check",
+    tests = [
+        ":node_checks",
+        ":python_checks",
+    ],
+)
+
+test_suite(
+    name = "browser_tests",
+    tests = [
+        "//packages/examples:browser_tests",
+        "//packages/vgplot/spec:browser_tests",
+    ],
+)
+
+test_suite(
+    name = "lint",
+    tests = [package + ":lint" for package in _JAVASCRIPT_PACKAGES + _PYTHON_PACKAGES] + [
+        "//packages/vgplot/widget:javascript_lint",
+        "//packages/vgplot/spec:browser_lint",
+        "//build/python:check",
+        "//dev:lint",
+        "//specs:lint",
+        "//packages/server/bench:check",
+    ],
+)
+
+test_suite(
+    name = "typecheck",
+    tests = [package + ":test_types_typecheck_test" for package in _JAVASCRIPT_PACKAGES] + [
+        package + ":typecheck" for package in _PYTHON_PACKAGES
+    ] + [
+        "//packages/vgplot/widget:javascript_types_typecheck_test",
+        "//specs:typescript_typecheck_test",
+        "//specs:python_types",
+        "//dev:typecheck",
+    ],
+)
+
+alias(
+    name = "dev",
+    actual = "//bin:dev",
+)
+
+js_binary(
+    name = "lint_fix",
+    testonly = True,
+    entry_point = "//build:lint_fix_source",
+    args = [
+        package.removeprefix("//") + "/" + directory
+        for package in _JAVASCRIPT_PACKAGES
+        for directory in ["src", "test"]
+    ] + ["packages/vgplot/widget/src"],
+    data = [":javascript_test_support", ":node_modules/eslint"],
+    patch_node_fs = False,
+)

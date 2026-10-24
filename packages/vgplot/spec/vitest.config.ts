@@ -1,9 +1,11 @@
 import { defineConfig, configDefaults } from 'vitest/config';
 import viteConfig from '../../../vite.config.js';
+import '../../../build/vitest-env.js';
 
 export default defineConfig({
-  resolve: viteConfig.resolve,
+  resolve: { ...viteConfig.resolve, preserveSymlinks: true },
   test: {
-    exclude: [...configDefaults.exclude, 'test/visual.test.js'],
+    hookTimeout: 120000,
+    exclude: [...configDefaults.exclude, 'test/visual*.test.js'],
   },
 });

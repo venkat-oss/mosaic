@@ -8,14 +8,10 @@ Learn how to install and use the widget in the [Mosaic documentation](https://uw
 
 ## Developer Setup
 
-We use [uv](https://docs.astral.sh/uv/) to manage our development setup.
+From the repository root, run `bazelisk run //packages/vgplot/widget:notebook -- --notebook-dir=dev/notebooks` to start Jupyter with the built widget and Python authoring API. The real JavaScript and CSS bundle are declared inputs beside the Python module. Rebuild and restart after editing frontend code.
 
-You can start Jupyter with `ANYWIDGET_HMR=1 uv run jupyter lab --notebook-dir=../../../dev/notebooks`.
-
-Run `pnpm build` to build the widget JavaScript code. If you want to live edit the widget code, run `pnpm dev` in a separate terminal.
-
-Run `uv run ruff check --fix` and `uv run ruff format` to lint the code.
+Run `bazelisk test //packages/vgplot/widget:check` for Python behavior, JavaScript/Python typing, ESLint, Ruff and installed distribution consumers. No activated Python environment or prebuilt workspace static files are required. Use uv for dependency updates and IDE environments.
 
 ## Publishing
 
-Run the build with `uv build`. Then publish with `uvx twine upload --skip-existing ../../dist/*`. We publish using tokens so when asked, set the username to `__token__` and then use your token as the password. Alternatively, create a [`.pypirc` file](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account).
+Run `bazelisk build //packages/vgplot/widget:wheel //packages/vgplot/widget:sdist`. Both artifacts are under `bazel-bin/packages/vgplot/widget/` and include the real JavaScript/CSS assets. The source distribution retains Hatchling support for consumers building outside this repository. Upload these existing files explicitly after version bumping and building; publication is separate from the build.

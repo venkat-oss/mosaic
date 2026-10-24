@@ -1,0 +1,220 @@
+module(name = "mosaic")
+
+bazel_dep(name = "aspect_rules_js", version = "3.5.2")
+bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
+bazel_dep(name = "bazel_lib", version = "3.7.2")
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
+bazel_dep(name = "gazelle", version = "0.54.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_cue", version = "0.18.2")
+bazel_dep(name = "rules_cc", version = "0.2.27")
+bazel_dep(name = "rules_go", version = "0.65.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.7")
+bazel_dep(name = "rules_python", version = "2.4.5")
+bazel_dep(name = "rules_rust", version = "0.74.0")
+bazel_dep(name = "toml.bzl", version = "0.5.0")
+
+single_version_override(
+    module_name = "rules_python",
+    patches = ["//build/python:rules-python-workspace.patch"],
+    patch_strip = 1,
+)
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "24.22.1")
+use_repo(node, "nodejs_toolchains")
+register_toolchains("@nodejs_toolchains//:all")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    run_lifecycle_hooks = False,
+    update_pnpm_lock = False,
+)
+use_repo(npm, "npm")
+
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
+pnpm.pnpm(pnpm_version_from = "//:package.json")
+use_repo(pnpm, "pnpm")
+
+typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "typescript")
+typescript.deps(version_from = "@npm//:@typescript/native/resolved.json")
+use_repo(typescript, "npm_typescript")
+
+cue = use_extension("@rules_cue//cue:extensions.bzl", "cue")
+cue.download(version = "v0.17.1", tolerate_newer = False)
+use_repo(cue, "cue_tool", "cue_tool_toolchains")
+register_toolchains("@cue_tool_toolchains//:all")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.single_version_override(
+    python_version = "3.15.1",
+    urls = ["https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-{python_version}+20261021-{platform}-install_only_stripped.tar.gz"],
+    strip_prefix = "python",
+    sha256 = {
+        "aarch64-apple-darwin": "1a4eb4d5aa82400de6eeb94e6fc6d870f5fabc97eb1d801f7eeba8072117b11c",
+        "aarch64-unknown-linux-gnu": "6efe65c43ae0bdebebeab4607f91a0053dd36d5e51cfd69a791d544e9b122be7",
+        "x86_64-apple-darwin": "b7604b6cfcce467baca5bd607c4fc55928be99310b92b4faf2bdb448f488929e",
+        "x86_64-pc-windows-msvc": "e7153a9f05921a72f7da1551d3bd374a88c4ffc0bbbea08776ddcb99b787d0f8",
+        "x86_64-unknown-linux-gnu": "01d901e09ca673c99a6c9bd9ec2cfbd58dbe8813d07514c36cb73cfd20b18bd8",
+    },
+)
+python.toolchain(python_version = "3.15.1", is_default = True)
+use_repo(python, python_3_15 = "python_3_15_1")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "mosaic_pypi",
+    python_version = "3.15.1",
+    uv_lock = "//:uv.lock",
+)
+use_repo(pip, pypi = "mosaic_pypi")
+
+projects = use_extension("//build/python:repositories.bzl", "projects")
+projects.project(
+    name = "vgplot",
+    pyproject = "//packages/vgplot/vgplot-python:pyproject.toml",
+    package_json = "//packages/vgplot/vgplot-python:package.json",
+)
+projects.project(
+    name = "widget",
+    pyproject = "//packages/vgplot/widget:pyproject.toml",
+    package_json = "//packages/vgplot/widget:package.json",
+)
+projects.project(
+    name = "duckdb_server",
+    pyproject = "//packages/server/duckdb-server:pyproject.toml",
+    package_json = "//packages/server/duckdb-server:package.json",
+)
+use_repo(projects, "python_projects")
+
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.from_file(go_mod = "//packages/server/duckdb-server-go:go.mod")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//packages/server/duckdb-server-go:go.mod")
+go_deps.gazelle_override(
+    path = "github.com/duckdb/duckdb-go/v2",
+    directives = ["gazelle:build_tags duckdb_arrow", "gazelle:map_kind go_library duckdb_go_library //:bazel_lint_inputs.bzl"],
+)
+go_deps.module_override(
+    path = "github.com/duckdb/duckdb-go/v2",
+    patches = ["//build:backends-duckdb-go.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "github.com/duckdb/duckdb-go-bindings",
+    directives = ["gazelle:map_kind go_library duckdb_go_library //:bazel.bzl", "gazelle:build_tags duckdb_arrow"],
+)
+go_deps.module_override(
+    path = "github.com/duckdb/duckdb-go-bindings",
+    patches = ["//build:backends-duckdb-bindings.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "go.duckdb.org/libduckdb/darwin-amd64",
+    build_file_generation = "off",
+)
+go_deps.module_override(
+    path = "go.duckdb.org/libduckdb/darwin-amd64",
+    patches = ["//build:backends-duckdb-darwin-amd64.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "go.duckdb.org/libduckdb/darwin-arm64",
+    build_file_generation = "off",
+)
+go_deps.module_override(
+    path = "go.duckdb.org/libduckdb/darwin-arm64",
+    patches = ["//build:backends-duckdb-darwin-arm64.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "go.duckdb.org/libduckdb/linux-amd64",
+    build_file_generation = "off",
+)
+go_deps.module_override(
+    path = "go.duckdb.org/libduckdb/linux-amd64",
+    patches = ["//build:backends-duckdb-linux-amd64.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "go.duckdb.org/libduckdb/linux-arm64",
+    build_file_generation = "off",
+)
+go_deps.module_override(
+    path = "go.duckdb.org/libduckdb/linux-arm64",
+    patches = ["//build:backends-duckdb-linux-arm64.patch"],
+    patch_strip = 1,
+)
+go_deps.gazelle_override(
+    path = "go.duckdb.org/libduckdb/windows-amd64",
+    build_file_generation = "off",
+)
+go_deps.module_override(
+    path = "go.duckdb.org/libduckdb/windows-amd64",
+    patches = ["//build:backends-duckdb-windows-amd64.patch"],
+    patch_strip = 1,
+)
+use_repo(
+    go_deps,
+    "com_github_apache_arrow_go_v18",
+    "com_github_duckdb_duckdb_go_v2",
+    "com_github_klauspost_compress",
+    "com_github_rs_cors",
+    "com_github_stretchr_testify",
+)
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(edition = "2021", versions = ["1.99.1"])
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "rust_crates",
+    manifests = ["//packages/server/duckdb-server-rust:Cargo.toml"],
+    cargo_lockfile = "//packages/server/duckdb-server-rust:Cargo.lock",
+)
+crate.annotation(
+    crate = "libduckdb-sys",
+    link_deps = ["@@//build:duckdb_sdk"],
+    build_script_link_deps = ["@@//build:duckdb_sdk"],
+    build_script_data = ["@@//build:duckdb_sdk_files"],
+    build_script_env = {
+        "DUCKDB_LIB_DIR": ".",
+        "DUCKDB_NO_PKG_CONFIG": "1",
+        "DUCKDB_DOWNLOAD_LIB": "0",
+    },
+)
+# http and hyper reject generated SQL query strings over 64 KiB.
+crate.annotation(
+    crate = "http",
+    version = "1.5.0",
+    patches = ["//build:backends-http-uri.patch"],
+    patch_args = ["-p1"],
+)
+crate.annotation(
+    crate = "hyper",
+    version = "1.12.0",
+    patches = ["//build:backends-hyper-uri.patch"],
+    patch_args = ["-p1"],
+)
+use_repo(crate, "rust_crates")
+
+duckdb_sdk = use_extension("//build:duckdb.bzl", "duckdb")
+use_repo(duckdb_sdk, "mosaic_duckdb_sdk")
+
+go_tools = use_extension("//packages/server/duckdb-server-go:tools.bzl", "go_tools")
+use_repo(go_tools, "golangci_lint")
+
+browser = use_extension("//packages/vgplot/spec:browser.bzl", "browser")
+browser.playwright(
+    package_json = "@npm//:@playwright/test/resolved.json",
+    duckdb_package_json = "@npm//packages/server/duckdb:@duckdb/node-api/resolved.json",
+)
+use_repo(browser, "mosaic_browser", "mosaic_browser_extensions")
+
+gatekeeper = use_extension("//packages/server/duckdb-server-go/gatekeeper:repositories.bzl", "gatekeeper")
+use_repo(gatekeeper, "mosaic_gatekeeper_duckdb", "mosaic_gatekeeper_sdk", "mosaic_gatekeeper_source")

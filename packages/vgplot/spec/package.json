@@ -26,25 +26,18 @@
     "url": "https://github.com/uwdata/mosaic.git"
   },
   "scripts": {
-    "clean": "rimraf dist && mkdir dist",
-    "prebuild": "pnpm run clean",
-    "build": "pnpm run schema",
-    "lint": "eslint src test",
-    "typecheck": "tsc -p test/tsconfig.json",
-    "preschema": "tsc --build",
-    "schema": "ts-json-schema-generator -f tsconfig.json -p src/spec/Spec.ts -t Spec --no-type-check --no-ref-encode --functions hide > dist/mosaic-schema.json",
-    "test": "pnpm run schema && vitest run",
-    "test:visual": "playwright test test/visual.test.js",
-    "test:visual:update": "pnpm run test:visual -- --update-snapshots",
-    "version": "cd ../../.. && pnpm run docs:schema",
-    "prepublishOnly": "pnpm run build"
+    "build": "bazelisk build //packages/vgplot/spec:tarball",
+    "lint": "bazelisk test //packages/vgplot/spec:lint",
+    "typecheck": "bazelisk test //packages/vgplot/spec:test_types_typecheck_test",
+    "schema": "bazelisk build //packages/vgplot/spec:schema",
+    "test": "bazelisk test //packages/vgplot/spec:check",
+    "test:visual": "../../../bin/visual-test.sh",
+    "test:visual:update": "../../../bin/visual-test.sh --update",
+    "version": "cd ../../.. && pnpm run docs:schema"
   },
   "dependencies": {
     "@uwdata/mosaic-core": "workspace:^",
     "@uwdata/mosaic-sql": "workspace:^",
     "@uwdata/vgplot": "workspace:^"
-  },
-  "devDependencies": {
-    "ts-json-schema-generator": "3.0.0-native.5"
   }
 }

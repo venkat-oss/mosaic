@@ -4,9 +4,9 @@
   "version": "0.34.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "bazelisk run //packages/examples/vanilla-example:dev --",
+    "build": "bazelisk build //packages/examples/vanilla-example:build",
+    "preview": "bazelisk run //packages/examples/vanilla-example:preview --"
   },
   "devDependencies": {
     "vite": "^8.3.1"

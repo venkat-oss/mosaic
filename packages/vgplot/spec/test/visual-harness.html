@@ -16,7 +16,7 @@
 
     window.__renderSpec = async function(specData) {
       const vg = createAPIContext();
-      const connector = new RestConnector();
+      const connector = new RestConnector({uri: window.__MOSAIC_DATABASE_URI});
       const coordinator = vg.coordinator();
       coordinator.databaseConnector(connector);
 

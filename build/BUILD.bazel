@@ -1,0 +1,119 @@
+load(":cue.bzl", "cue_binary")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_binary", "js_test")
+
+exports_files(["duckdb.bzl", "cue.bzl", "javascript.bzl", "examples.bzl"] + glob(["backends-*.patch"]))
+
+alias(
+    name = "duckdb_sdk",
+    actual = "@mosaic_duckdb_sdk//:duckdb",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "duckdb_sdk_files",
+    actual = "@mosaic_duckdb_sdk//:files",
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "example_builder_source",
+    srcs = ["example-builder.mjs"],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "lint_fix_source",
+    srcs = ["lint-fix.mjs"],
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "npm_install_sources",
+    srcs = ["npm-install.mjs"],
+)
+
+js_library(
+    name = "npm_render_entry",
+    srcs = ["npm-render-consumer.mjs"],
+    deps = [":npm_install_sources"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "example_builder",
+    entry_point = "example-builder.mjs",
+    data = ["//:node_modules/vite"],
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "npm_pack",
+    entry_point = "npm-pack.mjs",
+    fixed_args = ["$(rlocationpath @pnpm//:pnpm)"],
+    data = ["@pnpm//:pnpm"],
+    patch_node_fs = False,
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "vitest_environment",
+    srcs = ["vitest-env.js"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "npm_core_consumer",
+    entry_point = "npm-core-consumer.mjs",
+    args = [
+        "$(rlocationpath //packages/mosaic/sql:tarball)",
+        "$(rlocationpath //packages/server/duckdb:tarball)",
+        "$(rlocationpath //packages/mosaic/core:tarball)",
+        "$(rlocationpath @pnpm//:pnpm)",
+        "$(rlocationpath //:tsc)",
+    ],
+    data = [
+        ":npm_install_sources",
+        "//packages/mosaic/sql:tarball",
+        "//packages/server/duckdb:tarball",
+        "//packages/mosaic/core:tarball",
+        "//packages/server/duckdb:node_modules/@duckdb/node-api",
+        "//packages/mosaic/core:node_modules/@duckdb/duckdb-wasm",
+        "//packages/mosaic/core:node_modules/@types/emscripten",
+        "//packages/mosaic/core:node_modules/@uwdata/flechette",
+        "@pnpm//:pnpm",
+        "//:tsc",
+    ],
+    patch_node_fs = False,
+    tags = ["requires-network"],
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "npm_consumer",
+    entry_point = "npm-consumer.mjs",
+    args = [
+        "$(rlocationpath //packages/mosaic/sql:tarball)",
+        "$(rlocationpath //packages/server/duckdb:tarball)",
+        "packages/server/duckdb/node_modules/@duckdb/node-api",
+        "packages/server/duckdb/node_modules/@uwdata/flechette",
+        "$(rlocationpath @pnpm//:pnpm)",
+        "$(rlocationpath //:tsc)",
+    ],
+    data = [
+        ":npm_install_sources",
+        "//packages/mosaic/sql:tarball",
+        "//packages/server/duckdb:tarball",
+        "//packages/server/duckdb:node_modules/@duckdb/node-api",
+        "//packages/server/duckdb:node_modules/@uwdata/flechette",
+        "@pnpm//:pnpm",
+        "//:tsc",
+    ],
+    patch_node_fs = False,
+    tags = ["requires-network"],
+    visibility = ["//visibility:public"],
+)
+
+
+
+cue_binary(name = "cue", visibility = ["//visibility:public"])

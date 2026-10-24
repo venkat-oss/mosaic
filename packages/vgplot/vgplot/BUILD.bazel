@@ -1,0 +1,63 @@
+load("//build:javascript.bzl", "mosaic_javascript", "mosaic_package_test")
+
+mosaic_package_test(
+    package = "@uwdata/vgplot",
+    packages = {
+        "@uwdata/mosaic-sql": "//packages/mosaic/sql:tarball",
+        "@uwdata/mosaic-duckdb": "//packages/server/duckdb:tarball",
+        "@uwdata/mosaic-core": "//packages/mosaic/core:tarball",
+        "@uwdata/mosaic-inputs": "//packages/vgplot/inputs:tarball",
+        "@uwdata/mosaic-plot": "//packages/vgplot/plot:tarball",
+        "@uwdata/vgplot": "//packages/vgplot/vgplot:tarball",
+    },
+    links = {
+        "@duckdb/node-api": "//packages/server/duckdb:node_modules/@duckdb/node-api",
+        "@duckdb/duckdb-wasm": "//packages/mosaic/core:node_modules/@duckdb/duckdb-wasm",
+        "@uwdata/flechette": "//packages/mosaic/core:node_modules/@uwdata/flechette",
+        "@observablehq/plot": "//packages/vgplot/plot:node_modules/@observablehq/plot",
+        "d3": "//packages/vgplot/plot:node_modules/d3",
+    },
+)
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+js_library(
+    name = "test_support",
+    srcs = ["test/util/clients-ready.js"],
+    testonly = True,
+    visibility = ["//visibility:public"],
+)
+
+mosaic_javascript(
+    consumer_tests = [":package_test"],
+    deps = [
+        ":node_modules/@uwdata/mosaic-core",
+        ":node_modules/@uwdata/mosaic-inputs",
+        ":node_modules/@uwdata/mosaic-plot",
+        ":node_modules/@uwdata/mosaic-sql",
+    ],
+    emit_declaration_only = True,
+    tests = True,
+    test_deps = [
+        "//:node_modules/jsdom",
+        "//:node_modules/ajv",
+        "//:node_modules/ajv-formats",
+        "//:node_modules/yaml",
+        "//:node_modules/@uwdata/mosaic-spec",
+        "//:node_modules/d3",
+        "//packages/vgplot/spec:ast_sources",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/vgplot/inputs:sources",
+        "//packages/vgplot/plot:sources",
+        "//packages/server/duckdb:sources",
+    ],
+    test_data = [
+        "//:python_test_data",
+        "//:data/seattle-weather.parquet",
+        "//:data/travelers.parquet",
+        "//:data/flights-200k.parquet",
+        "//packages/vgplot/spec:schema",
+        "//packages/vgplot/vgplot-python:python",
+    ],
+    test_env = {"MOSAIC_PYTHON": "$(rlocationpath //packages/vgplot/vgplot-python:python)"},
+)

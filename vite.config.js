@@ -18,12 +18,5 @@ export default {
       '@uwdata/mosaic-inputs': path.resolve(dirname, './packages/vgplot/inputs/src/index.js'),
       '@uwdata/mosaic-plot': path.resolve(dirname, './packages/vgplot/plot/src/index.js'),
     }
-  },
-  test: {
-    projects: [
-      'packages/mosaic/*',
-      'packages/vgplot/*',
-      'packages/server/*/vitest.config.*',
-    ]
   }
 };

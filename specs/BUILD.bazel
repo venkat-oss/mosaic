@@ -1,0 +1,119 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+filegroup(
+    name = "yaml",
+    srcs = glob(["yaml/*.yaml"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "fixtures",
+    srcs = glob([
+        "json/**",
+        "esm/**",
+        "python/**",
+        "ts/**",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+js_library(
+    name = "browser_sources",
+    srcs = [":fixtures"],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "typescript",
+    visibility = ["//:__pkg__"],
+    srcs = glob(["ts/*.ts"]),
+    no_emit = True,
+    supports_workers = 0,
+    tsc = "//:tsc",
+    tsconfig = {
+        "compilerOptions": {
+            "target": "es2022",
+            "module": "nodenext",
+            "skipLibCheck": True,
+            "strict": False,
+            "noEmit": True,
+        },
+    },
+    deps = ["//:node_modules/@uwdata/mosaic-spec"],
+)
+
+py_test(
+    name = "python_types",
+    srcs = ["//build/python:tool_test.py"],
+    args = [
+        "$(rlocationpath //build/python:ty)",
+        "check",
+    ] + ["$(rlocationpath " + file + ")" for file in glob(["python/*.py"])],
+    data = glob(["python/*.py"]) + [
+        "//:pyproject.toml",
+        "//build/python:ty",
+    ],
+    legacy_create_init = False,
+    main = "//build/python:tool_test.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/vgplot/vgplot-python:vgplot",
+        "@rules_python//python/runfiles",
+    ],
+)
+
+test_suite(
+    name = "python",
+    tests = [
+        ":lint",
+        ":python_types",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+[
+    py_test(
+        name = name,
+        srcs = ["//build/python:tool_test.py"],
+        args = ["$(rlocationpath //build/python:ruff)"] + options + [
+            "--no-cache",
+            "--config",
+            "$(rlocationpath //:pyproject.toml)",
+        ] + ["$(rlocationpath " + source + ")" for source in glob(["python/*.py"])],
+        data = glob(["python/*.py"]) + [
+            "//:pyproject.toml",
+            "//build/python:ruff",
+        ],
+        legacy_create_init = False,
+        main = "//build/python:tool_test.py",
+        visibility = ["//visibility:public"],
+        deps = ["@rules_python//python/runfiles"],
+    )
+    for name, options in [
+        (
+            "ruff",
+            [
+                "check",
+                "--no-fix",
+            ],
+        ),
+        (
+            "format",
+            [
+                "format",
+                "--check",
+            ],
+        ),
+    ]
+]
+
+test_suite(
+    name = "lint",
+    tests = [
+        ":format",
+        ":ruff",
+    ],
+    visibility = ["//visibility:public"],
+)

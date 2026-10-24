@@ -1,0 +1,66 @@
+diff --git a/src/uri/mod.rs b/src/uri/mod.rs
+--- a/src/uri/mod.rs
++++ b/src/uri/mod.rs
+@@ -141,8 +141,7 @@
+     SchemeTooLong,
+ }
+ 
+-// u16::MAX is reserved for None
+-const MAX_LEN: usize = (u16::MAX - 1) as usize;
++const MAX_LEN: usize = 2 * 1024 * 1024;
+ 
+ // URI_CHARS is a table of valid characters in a URI. An entry in the table is
+ // 0 for invalid characters. For valid characters the entry is itself (i.e.
+diff --git a/src/uri/path.rs b/src/uri/path.rs
+--- a/src/uri/path.rs
++++ b/src/uri/path.rs
+@@ -11,10 +11,10 @@
+ #[derive(Clone)]
+ pub struct PathAndQuery {
+     pub(super) data: ByteStr,
+-    pub(super) query: u16,
+-}
+-
+-const NONE: u16 = u16::MAX;
++    pub(super) query: u32,
++}
++
++const NONE: u32 = u32::MAX;
+ 
+ impl PathAndQuery {
+     // Not public while `bytes` is unstable.
+@@ -403,8 +403,8 @@
+ // =====
+ 
+ struct Scanned {
+-    query: u16,
+-    fragment: Option<u16>,
++    query: u32,
++    fragment: Option<u32>,
+     is_maybe_not_utf8: bool,
+ }
+ 
+@@ -496,12 +496,12 @@
+             CLASS_VALID => {}
+             CLASS_QUERY => {
+                 debug_assert!(query == NONE);
+-                query = i as u16;
++                query = i as u32;
+                 i += 1;
+                 break;
+             }
+             CLASS_FRAGMENT => {
+-                fragment = Some(i as u16);
++                fragment = Some(i as u32);
+                 break;
+             }
+             CLASS_HIGH => {
+@@ -521,7 +521,7 @@
+                     is_maybe_not_utf8 = true;
+                 }
+                 CLASS_FRAGMENT => {
+-                    fragment = Some(i as u16);
++                    fragment = Some(i as u32);
+                     break;
+                 }
+                 _ => return Err(ErrorKind::InvalidUriChar),

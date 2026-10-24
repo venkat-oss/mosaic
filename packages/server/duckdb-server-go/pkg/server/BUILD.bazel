@@ -1,0 +1,55 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("//packages/server/duckdb-server-go:tests.bzl", "duckdb_go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "authorization.go",
+        "cache.go",
+        "compression.go",
+        "errors.go",
+        "options.go",
+        "security.go",
+        "server.go",
+    ],
+    importpath = "github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/server",
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+    deps = [
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+        "//packages/server/duckdb-server-go/pkg/query",
+        "@com_github_klauspost_compress//gzhttp",
+        "@com_github_rs_cors//:cors",
+    ],
+)
+
+duckdb_go_test(
+    name = "server_test",
+    srcs = [
+        "authorization_test.go",
+        "cache_test.go",
+        "compression_test.go",
+        "example_test.go",
+        "metadata_test.go",
+        "options_test.go",
+        "security_test.go",
+        "server_test.go",
+    ],
+    embed = [":server"],
+    network = True,
+    gatekeeper = True,
+    deps = [
+        "//packages/server/duckdb-server-go/pkg/extensions",
+        "//packages/server/duckdb-server-go/pkg/query",
+        "@com_github_apache_arrow_go_v18//arrow/ipc",
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+        "@com_github_klauspost_compress//gzhttp",
+        "@com_github_klauspost_compress//zstd",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

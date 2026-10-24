@@ -1,0 +1,42 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("//packages/server/duckdb-server-go:tests.bzl", "duckdb_go_test")
+
+go_library(
+    name = "query",
+    srcs = [
+        "options.go",
+        "protocol.go",
+        "query.go",
+        "validator.go",
+    ],
+    importpath = "github.com/uwdata/mosaic/packages/server/duckdb-server-go/pkg/query",
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+    deps = [
+        "@com_github_apache_arrow_go_v18//arrow/ipc",
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+        "@com_github_duckdb_duckdb_go_v2//mapping",
+    ],
+)
+
+duckdb_go_test(
+    name = "query_test",
+    srcs = [
+        "query_test.go",
+        "validator_test.go",
+    ],
+    embed = [":query"],
+    network = True,
+    gatekeeper = True,
+    deps = [
+        "//packages/server/duckdb-server-go/pkg/extensions",
+        "@com_github_apache_arrow_go_v18//arrow/ipc",
+        "@com_github_duckdb_duckdb_go_v2//:duckdb-go",
+        "@com_github_stretchr_testify//require",
+    ],
+)
+
+filegroup(
+    name = "format_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//packages/server/duckdb-server-go:__subpackages__"],
+)

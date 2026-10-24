@@ -1,36 +1,57 @@
 #!/usr/bin/env bash
-# Run visual tests in a Docker container matching the CI environment. This script is designed for local testing.
-#
-# Usage: bin/visual-test.sh [--update] [playwright args...]
-#   --update           Update snapshots instead of comparing against them.
-#   -g "axes|bias"     Pass extra args to playwright (e.g. grep filter).
+set -euo pipefail
 
-set -eo pipefail
-
-IMAGE="mcr.microsoft.com/playwright:v1.62.1-noble"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-
-ARGS=()
-if [[ "${1:-}" == "--update" ]]; then
-  ARGS+=("--update-snapshots")
+cd "$REPO_ROOT"
+BAZEL_FLAGS=()
+[[ -z "${CI:-}" ]] || BAZEL_FLAGS+=(--config=ci)
+IMAGE="$(bazelisk run "${BAZEL_FLAGS[@]}" @mosaic_browser//:image)"
+VERSION="$(cat .bazelversion)"
+CACHE="${MOSAIC_BROWSER_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mosaic-browser}"
+mkdir -p "$CACHE"
+CACHE="$(cd "$CACHE" && pwd)"
+TEST_ARGS=()
+if [[ "${1:-}" == "--no-cache" ]]; then
+  TEST_ARGS+=(--nocache_test_results)
   shift
 fi
-ARGS+=("$@")
 
-RUNTIME="${CONTAINER_RUNTIME:-docker}"
+if [[ "${1:-}" == "--update" ]]; then
+  shift
+  COMMAND=(run "${BAZEL_FLAGS[@]}" //packages/vgplot/spec:browser_update -- "$@")
+else
+  TARGET=//:browser_tests
+  [[ "$#" == 0 ]] || TARGET=//packages/vgplot/spec:browser_tests
+  COMMAND=(test "${BAZEL_FLAGS[@]}" --local_test_jobs=1 "${TEST_ARGS[@]}" "$TARGET")
+  for arg in "$@"; do COMMAND+=("--test_arg=$arg"); done
+fi
 
-CMD="mkdir -p /tmp/bin && corepack enable --install-directory=/tmp/bin && export PATH=/tmp/bin:\$PATH && pnpm install --frozen-lockfile && pnpm run build && pnpm -F @uwdata/mosaic-spec test:visual"
-for arg in "${ARGS[@]}"; do
-  CMD+=" $(printf '%q' "$arg")"
-done
-
-exec "$RUNTIME" run --rm \
+exec "${CONTAINER_RUNTIME:-docker}" run --rm \
   --user "$(id -u):$(id -g)" \
   --memory 8g \
   -e HOME=/tmp \
-  -e COREPACK_ENABLE_AUTO_PIN=0 \
-  -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-  -v "$REPO_ROOT":/workspace \
-  -w /workspace \
+  -e CI \
+  -e BUILD_WORKSPACE="$REPO_ROOT" \
+  -e BROWSER_CACHE="$CACHE" \
+  -v "$REPO_ROOT:$REPO_ROOT" \
+  -v "$CACHE:$CACHE" \
+  -w "$REPO_ROOT" \
   "$IMAGE" \
-  bash -c "$CMD"
+  bash -euc '
+    version="$1"
+    shift
+    arch="$(uname -m)"
+    [[ "$arch" != aarch64 ]] || arch=arm64
+    client="bazel-$version-linux-$arch"
+    mkdir -p "$BROWSER_CACHE/bin"
+    cd "$BROWSER_CACHE/bin"
+    if [[ ! -x "$client" ]]; then
+      base="https://github.com/bazelbuild/bazel/releases/download/$version/$client"
+      curl -fsSL --retry 3 "$base" -o "$client"
+      curl -fsSL --retry 3 "$base.sha256" -o "$client.sha256"
+      sha256sum -c "$client.sha256"
+      chmod +x "$client"
+    fi
+    cd "$BUILD_WORKSPACE"
+    exec "$BROWSER_CACHE/bin/$client" --batch --output_user_root="$BROWSER_CACHE/bazel" --output_base="$BROWSER_CACHE/output" "$@"
+  ' bash "$VERSION" "${COMMAND[@]}"

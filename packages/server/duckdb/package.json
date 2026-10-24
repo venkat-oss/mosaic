@@ -32,12 +32,11 @@
     "to-parquet": "./bin/to-parquet.js"
   },
   "scripts": {
-    "clean": "rimraf dist && mkdir dist",
-    "lint": "eslint src test",
-    "typecheck": "tsc -p test/tsconfig.json",
-    "server": "node bin/run-server.js",
-    "test": "vitest run",
-    "prepublishOnly": "tsc --build"
+    "build": "bazelisk build //packages/server/duckdb:tarball",
+    "lint": "bazelisk test //packages/server/duckdb:lint",
+    "typecheck": "bazelisk test //packages/server/duckdb:test_types_typecheck_test",
+    "server": "bazelisk run //packages/server/duckdb:server --",
+    "test": "bazelisk test //packages/server/duckdb:check"
   },
   "dependencies": {
     "@duckdb/node-api": "~2.0.0-r.1",

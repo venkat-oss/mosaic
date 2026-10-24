@@ -1,0 +1,11 @@
+--- a/python/private/pypi/parse_requirements.bzl
++++ b/python/private/pypi/parse_requirements.bzl
+@@ -169,5 +169,8 @@
+ 
+     for pkg in uv_lock["package"]:
++        source = pkg.get("source") or {}
++        if "editable" in source or "virtual" in source:
++            continue
+         name = pkg["name"]
+         version = pkg["version"]
+         norm_name = normalize_name(name)

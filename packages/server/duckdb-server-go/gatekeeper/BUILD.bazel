@@ -1,0 +1,41 @@
+load("@mosaic_gatekeeper_sdk//:platform.bzl", "PLATFORM")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+exports_files(["repositories.bzl", "source.BUILD.bazel", "duckdb.BUILD.bazel"])
+
+genrule(
+    name = "generated",
+    srcs = ["@mosaic_gatekeeper_duckdb//:schemas", "@mosaic_gatekeeper_duckdb//:CMakeLists.txt"],
+    tools = ["@mosaic_gatekeeper_source//:generate"],
+    outs = ["generated/grammar.hpp", "generated/inventory.hpp", "generated/version.hpp"],
+    cmd = "$(execpath @mosaic_gatekeeper_source//:generate) --duckdb-source $$(dirname $(location @mosaic_gatekeeper_duckdb//:CMakeLists.txt)) --output $(RULEDIR)/generated --engine-version-label v2.0.0 --engine-source-id d54cbbe3df",
+)
+
+cc_library(name = "generated_headers", hdrs = [":generated"], includes = ["generated"])
+
+cc_binary(
+    name = "gatekeeper.so",
+    srcs = ["@mosaic_gatekeeper_source//:sources"],
+    deps = [":generated_headers", "@mosaic_gatekeeper_source//:headers", "@mosaic_gatekeeper_duckdb//:headers", "@mosaic_gatekeeper_sdk//:static"],
+    defines = ["GATEKEEPER_DUCKDB_MAJOR=2", "GATEKEEPER_LOADABLE"],
+    copts = select({"@platforms//os:windows": ["/std:c++17", "/O2"], "//conditions:default": ["-std=c++17", "-O2", "-g0", "-fvisibility=hidden"]}),
+    linkopts = select({
+        "@platforms//os:windows": ["/EXPORT:gatekeeper_duckdb_cpp_init"],
+        "@platforms//os:macos": ["-pthread", "-Wl,-dead_strip", "-Wl,-exported_symbol,_gatekeeper_duckdb_cpp_init"],
+        "//conditions:default": ["-pthread", "-ldl", "-Wl,--gc-sections", "-Wl,--exclude-libs,ALL"],
+    }),
+    linkshared = True,
+)
+
+py_binary(name = "append_metadata", srcs = ["extension.py"], main = "extension.py", legacy_create_init = False)
+
+genrule(
+    name = "extension",
+    srcs = [":gatekeeper.so"],
+    tools = [":append_metadata"],
+    outs = ["gatekeeper.duckdb_extension"],
+    cmd = "$(execpath :append_metadata) $(location :gatekeeper.so) $@ " + PLATFORM,
+    visibility = ["//visibility:public"],
+)

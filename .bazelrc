@@ -1,0 +1,10 @@
+common --repo_env=DO_NOT_TRACK=1
+build --incompatible_strict_action_env
+build --local_resources=memory=HOST_RAM*.7
+build --@rules_go//go/config:tags=duckdb_arrow
+build --@rules_rust//rust/settings:clippy_flag=-Dwarnings
+test --test_output=errors
+test --local_test_jobs=4
+common:ci --lockfile_mode=error
+build:release --compilation_mode=opt
+build:release --@rules_rust//rust/settings:codegen_units=1

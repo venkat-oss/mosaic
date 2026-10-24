@@ -122,19 +122,14 @@ jobs:
           cache-dependency-path: |
             pnpm-lock.yaml
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: bazel-contrib/setup-bazel@0.19.1
         with:
-          version: ">=0.12.0"
-          enable-cache: true
-          cache-dependency-glob: |
-            uv.lock
-            **/pyproject.toml
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: true
 
       - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm run build
 
       - name: Configure git
         run: |
@@ -156,20 +151,32 @@ jobs:
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "## Released v$VERSION" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish to npm
-        run: pnpm publish -r --access public --no-git-checks --tag ${{ steps.version.outputs.prerelease == 'true' && 'next' || 'latest' }}
+      - name: Build release packages
+        run: bazelisk build --config=ci //:packages
 
-      - name: Build Python packages
+      - name: Publish to npm
+        env:
+          NPM_TAG: ${{ steps.version.outputs.prerelease == 'true' && 'next' || 'latest' }}
         run: |
-          rm -rf dist
-          uv build --package duckdb-server
-          uv build --package mosaic-widget
-          uv build --package vgplot
+          artifacts="$(bazelisk cquery --config=ci //:packages --output=files)"
+          while IFS= read -r artifact; do
+            [[ "$artifact" != *.tgz ]] || npm publish "$artifact" --access public --tag "$NPM_TAG"
+          done <<< "$artifacts"
+
+      - name: Stage Python packages
+        run: |
+          mkdir -p "$RUNNER_TEMP/mosaic-pypi"
+          artifacts="$(bazelisk cquery --config=ci //:packages --output=files)"
+          while IFS= read -r artifact; do
+            case "$artifact" in
+              *.whl|*.tar.gz) cp "$artifact" "$RUNNER_TEMP/mosaic-pypi/" ;;
+            esac
+          done <<< "$artifacts"
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/
+          packages-dir: ${{ runner.temp }}/mosaic-pypi/
           skip-existing: true
 
       - name: Create GitHub Release

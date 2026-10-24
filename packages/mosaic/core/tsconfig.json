@@ -4,6 +4,5 @@
   "compilerOptions": {
     "outDir": "dist",
     "strict": true
-  },
-  "references": [{ "path": "../sql" }, { "path": "../../server/duckdb" }]
+  }
 }
