@@ -44,7 +44,6 @@ export const vectorX = (...args) => mark('vectoX', ...args);
 export const vectorY = (...args) => mark('vectorY', ...args);
 export const spike = (...args) => mark('spike', ...args);
 export const image = (...args) => mark('image', ...args);
-
 export const densityX = (...args) => explicitType(Density1DMark, 'areaX', ...args);
 export const densityY = (...args) => explicitType(Density1DMark, 'areaY', ...args);
 

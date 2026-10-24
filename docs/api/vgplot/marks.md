@@ -250,18 +250,27 @@ For more, see the [Observable Plot `delaunay` documentation](https://observableh
 
 ## Density 1D
 
-The 1D density marks show smoothed point cloud densities along one dimension.
-The `densityX` and `densityY` marks bin the data, count the number of records that fall into each bin, smooth the resulting counts, then plot the smoothed distribution (by default using an `area` mark).
-The `densityX` mark maps density values to the _x_ dimension automatically, while `densityY` maps the density values to the _y_ dimension.
+### densityX
 
-The supported _options_ are:
+`densityX(data, options)`
 
-- _x_: The x dimension encoding channel, used with `densityY`
-- _y_: The y dimension encoding channel, used with `densityX`
-- _type_: The mark type to use (default [`areaX`](#area) or [`areaY`](#area))
-- _bins_: The number of bins (default `1024`)
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- Any options accepted by the mark _type_, including _stroke_ and _fill_
+A densityX mark that visualizes smoothed point cloud densities along the
+**x** dimension. The mark bins the data, counts the number of records that fall into each bin, smooths the resulting counts, and then plots the smoothed distribution, by default using an areaX mark.
+
+Set the *type* property to use a different base mark type.
+
+[Options](#densityx-options).
+
+### densityY
+
+`densityY(data, options)`
+
+A densityY mark that visualizes smoothed point cloud densities along the
+**y** dimension. The mark bins the data, counts the number of records that fall into each bin, smooths the resulting counts, and then plots the smoothed distribution, by default using an areaY mark.
+
+Set the *type* property to use a different base mark type.
+
+[Options](#densityy-options).
 
 ## Density 2D
 
@@ -965,18 +974,27 @@ For more, see the [Observable Plot `delaunay` documentation](https://observableh
 
 ## Density 1D
 
-The 1D density marks show smoothed point cloud densities along one dimension.
-The `density_x` and `density_y` marks bin the data, count the number of records that fall into each bin, smooth the resulting counts, then plot the smoothed distribution (by default using an `area` mark).
-The `density_x` mark maps density values to the _x_ dimension automatically, while `density_y` maps the density values to the _y_ dimension.
+### density_x
 
-The supported _options_ are:
+`density_x(data=None, **options)`
 
-- _x_: The x dimension encoding channel, used with `density_y`
-- _y_: The y dimension encoding channel, used with `density_x`
-- _type_: The mark type to use (default [`area_x`](#area) or [`area_y`](#area))
-- _bins_: The number of bins (default `1024`)
-- _bandwidth_: The kernel density bandwidth for smoothing, in pixels (default `20`)
-- Any options accepted by the mark _type_, including _stroke_ and _fill_
+A densityX mark that visualizes smoothed point cloud densities along the
+**x** dimension. The mark bins the data, counts the number of records that fall into each bin, smooths the resulting counts, and then plots the smoothed distribution, by default using an areaX mark.
+
+Set the *type* property to use a different base mark type.
+
+[Options](#densityx-options).
+
+### density_y
+
+`density_y(data=None, **options)`
+
+A densityY mark that visualizes smoothed point cloud densities along the
+**y** dimension. The mark bins the data, counts the number of records that fall into each bin, smooths the resulting counts, and then plots the smoothed distribution, by default using an areaY mark.
+
+Set the *type* property to use a different base mark type.
+
+[Options](#densityy-options).
 
 ## Density 2D
 
@@ -2396,3 +2414,115 @@ type AxisScaleOptions = Pick<ScaleOptions, 'tickSize' | 'tickPadding' | 'tickFor
 `axisX`: [json](/templates/marks/guides/axisX.json) · [yaml](/templates/marks/guides/axisX.yaml) · [js](/templates/marks/guides/axisX.js) · <a :href="withBase('/templates/marks/guides/axisX.py')" download>Python</a>.
 
 JavaScript-only `native-formatter`: [js](/templates/marks/guides/native-formatter.js).
+
+## density1d mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### Density1DOptions options
+
+The Density1DOptions contract.
+
+**bandwidth** (`number | ParamRef`) — The kernel density bandwidth for smoothing, in pixels. Defaults to 20.
+
+**bins** (`number | ParamRef`) — The number of bins over which to discretize the data prior to smoothing. Defaults to 1024.
+
+**normalize** (`boolean | 'max' | 'sum' | 'none' | ParamRef`) — Normalization method for density estimates. If `false` or `'none'` (the default), the density estimates are smoothed weighted counts. If `true` or `'sum'`, density estimates are divided by the sum of the total point mass. If `'max'`, estimates are divided by the maximum smoothed value.
+
+### DensityAreaXOptions options
+
+The DensityAreaXOptions contract.
+
+Extends [`Omit<AreaXOptions, 'x' | 'x1' | 'x2'>`](#areaxoptions-options).
+
+**type** (`'areaX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
+
+### DensityAreaYOptions options
+
+The DensityAreaYOptions contract.
+
+Extends [`Omit<AreaYOptions, 'y' | 'y1' | 'y2'>`](#areayoptions-options).
+
+**type** (`'areaY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+**stack** (`boolean | ParamRef`) — Flag indicating if densities should be stacked. Defaults to false.
+
+### DensityLineXOptions options
+
+The DensityLineXOptions contract.
+
+Extends [`Omit<LineXOptions, 'x' | 'x1' | 'x2'>`](#linexoptions-options).
+
+**type** (`'lineX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+### DensityLineYOptions options
+
+The DensityLineYOptions contract.
+
+Extends [`Omit<LineYOptions, 'y' | 'y1' | 'y2'>`](#lineyoptions-options).
+
+**type** (`'lineY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+### DensityDotXOptions options
+
+The DensityDotXOptions contract.
+
+Extends [`Omit<DotOptions, 'x'>`](#dotoptions-options).
+
+**type** (`'dotX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+### DensityDotYOptions options
+
+The DensityDotYOptions contract.
+
+Extends [`Omit<DotOptions, 'y'>`](#dotoptions-options).
+
+**type** (`'dot' | 'dotY' | 'circle' | 'hexagon'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+### DensityTextXOptions options
+
+The DensityTextXOptions contract.
+
+Extends [`Omit<TextOptions, 'x'>`](#textoptions-options).
+
+**type** (`'textX'`) — The basic mark type to use to render 1D density values. Defaults to an areaX mark; lineX, dotX, and textX marks are also supported.
+
+### DensityTextYOptions options
+
+The DensityTextYOptions contract.
+
+Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
+
+**type** (`'text' | 'textY'`) — The basic mark type to use to render 1D density values. Defaults to an areaY mark; lineY, dot, and text marks are also supported.
+
+### DensityXBase options
+
+The DensityXBase contract.
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
+
+
+### DensityYBase options
+
+The DensityYBase contract.
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`Density1DOptions`](#density1doptions-options).
+
+
+### DensityX options
+
+Combines [`DensityXBase`](#densityxbase-options) with [`DensityAreaXOptions`](#densityareaxoptions-options), [`DensityLineXOptions`](#densitylinexoptions-options), [`DensityDotXOptions`](#densitydotxoptions-options), [`DensityTextXOptions`](#densitytextxoptions-options).
+
+### DensityY options
+
+Combines [`DensityYBase`](#densityybase-options) with [`DensityAreaYOptions`](#densityareayoptions-options), [`DensityLineYOptions`](#densitylineyoptions-options), [`DensityDotYOptions`](#densitydotyoptions-options), [`DensityTextYOptions`](#densitytextyoptions-options).
+
+**`densityX`, `densityY`:** Density wrappers always construct areaX or areaY. An explicit type is interpreted as a queried column, causing a missing-column error. Use densityY without type for the supported declarative form; native densityX must also omit type.
+
+**`densityX`, `densityY`:** Density rendering requires a SQL-backed data source. Inline arrays remain admitted by the general declarative data type, but the retained density query engine rejects them. Native weight channels retain separate authoring applicability.
+
+### density1d examples
+
+`densityY`: [json](/templates/marks/density1d/densityY.json) · [yaml](/templates/marks/density1d/densityY.yaml) · [js](/templates/marks/density1d/densityY.js) · <a :href="withBase('/templates/marks/density1d/densityY.py')" download>Python</a>.
