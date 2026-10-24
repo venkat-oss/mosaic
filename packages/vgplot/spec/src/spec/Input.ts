@@ -170,52 +170,55 @@ export interface Slider {
    */
   width?: number;
 }
-
-/** A table grid view component. */
+/**
+ * A table grid view component.
+ */
 export interface Table {
   /**
    * A table grid widget.
    */
   input: 'table';
+
   /**
-   * The output selection. A selection clause is added for each
-   * currently selected table row.
+   * The output selection. A selection clause is added for each currently selected table row.
    */
   as?: ParamRef;
+
   /**
    * The name of a database table to use as a data source for this widget.
    */
   from: string | ParamRef;
+
   /**
-   * A list of column names to include in the table grid.
-   * If unspecified, all table columns are included.
+   * A list of column names to include in the table grid. If unspecified, all table columns are included.
    */
-  columns?: string[];
+  columns?: Array<string>;
+
   /**
    * A selection to filter the database table indicated by the `from` property.
    */
   filterBy?: ParamRef;
+
   /**
-   * An object of per-column alignment values.
-   * Column names should be object keys, which map to alignment values.
-   * Valid alignment values are: `"left"`, `"right"`, `"center"`, and `"justify"`.
-   * By default, numbers are right-aligned and other values are left-aligned.
+   * An object of per-column alignment values. Column names should be object keys, which map to alignment values. Valid alignment values are: `"left"`, `"right"`, `"center"`, and `"justify"`. By default, numbers are right-aligned and other values are left-aligned.
    */
   align?: { [column: string]: 'left' | 'right' | 'center' | 'justify' };
+
   /**
-   * If a number, sets the total width of the table widget, in pixels.
-   * If an object, provides per-column pixel width values.
-   * Column names should be object keys, mapped to numeric width values.
+   * If a number, sets the total width of the table widget, in pixels. If an object, provides per-column pixel width values. Column names should be object keys, mapped to numeric width values.
    */
-  width?: number | { [column : string]: number };
+  width?: number | { [column: string]: number };
+
   /**
    * The maximum width of the table widget, in pixels.
    */
   maxWidth?: number;
+
   /**
    * The height of the table widget, in pixels.
    */
   height?: number;
+
   /**
    * The number of rows load in a new batch upon table scroll.
    */

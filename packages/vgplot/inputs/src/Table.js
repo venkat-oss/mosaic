@@ -6,6 +6,7 @@ import { clausePoints, coordinator, isParam, isSelection, queryFieldInfo, toData
 import { Query, desc } from '@uwdata/mosaic-sql';
 import { formatDate, formatLocaleAuto, formatLocaleNumber } from './util/format.js';
 import { Input, input } from './input.js';
+import { TABLE_DEFAULT_COLUMNS, TABLE_DEFAULT_HEIGHT, TABLE_DEFAULT_ROW_BATCH } from './generated/table.js';
 
 let _id = -1;
 
@@ -81,13 +82,13 @@ export class Table extends Input {
     element,
     filterBy,
     from,
-    columns = ['*'],
+    columns = [...TABLE_DEFAULT_COLUMNS],
     align = {},
     format,
     width,
     maxWidth,
-    height = 500,
-    rowBatch = 100,
+    height = TABLE_DEFAULT_HEIGHT,
+    rowBatch = TABLE_DEFAULT_ROW_BATCH,
     as
   } = {}) {
     super(filterBy, element, null);

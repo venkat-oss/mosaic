@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from . import _input_api, _source_api, _source_runtime
+from . import _input_api, _source_api, _source_runtime, _table_api
 from ._generated import layouts as _layouts
 from .data import DataDef, is_frame
 from .params import _ParamBase
@@ -375,33 +375,6 @@ def symbol_legend(
 _INPUT_ALIASES = {"bind": "as", "source": "from"}
 
 
-def table_input(
-    source: Any,
-    bind: Any = None,
-    columns: Any = None,
-    filter_by: Any = None,
-    width: Any = None,
-    height: Any = None,
-    max_width: Any = None,
-    row_batch: Any = None,
-    align: Any = None,
-    **opts: Any,
-) -> View:
-    return input(
-        "table",
-        source=source,
-        bind=bind,
-        columns=columns,
-        filter_by=filter_by,
-        width=width,
-        height=height,
-        max_width=max_width,
-        row_batch=row_batch,
-        align=align,
-        **opts,
-    )
-
-
 hconcat = _layouts.hconcat
 hspace = _layouts.hspace
 vconcat = _layouts.vconcat
@@ -418,3 +391,5 @@ option = _input_api.option
 search = _input_api.search
 select = _input_api.select
 slider = _input_api.slider
+
+table_input = _table_api.table_input
