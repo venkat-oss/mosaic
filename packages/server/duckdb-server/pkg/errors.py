@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import sys
 from http import HTTPStatus
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from msgspec import DecodeError
+from starlette.exceptions import HTTPException
 
+from pkg.protocols import ProtocolError
 from pkg.responses import JSONResponse
 
 if TYPE_CHECKING:
@@ -14,40 +15,49 @@ if TYPE_CHECKING:
     from starlette.requests import Request
 
 
-if sys.version_info >= (3, 12):
-    from typing import TypeAliasType as Type
-else:
-    from typing_extensions import TypeAliasType as Type
+async def _protocol_error(_: Request, err: Exception) -> JSONResponse:
+    if isinstance(err, ProtocolError):
+        body: dict[str, Any] = {
+            "error": str(err),
+            "code": err.code,
+            "reason": err.reason,
+        }
+        if err.field:
+            body["field"] = err.field
+        if err.reference:
+            body["reference"] = err.reference
+        headers = (
+            {"Allow": "GET, POST, OPTIONS"}
+            if err.status == HTTPStatus.METHOD_NOT_ALLOWED
+            else None
+        )
+        return JSONResponse(body, err.status, headers=headers)
+    return JSONResponse(
+        {"error": str(err), "code": "internal_error", "reason": "internal_failure"}, 500
+    )
 
-E = TypeVar("E", bound=Exception)
-Err = Type("Err", Exception | E, type_params=(E,))
+
+async def _decode_error(request: Request, err: Exception) -> JSONResponse:
+    return await _protocol_error(request, ProtocolError(str(err), "malformed_json"))
 
 
-def _response(message: str, status: HTTPStatus) -> JSONResponse:
-    return JSONResponse({"detail": message}, status)
-
-
-async def _decode_error(_: Request, err: Err[DecodeError], /) -> JSONResponse:
-    return _response(str(err), HTTPStatus.BAD_REQUEST)
-
-
-async def _key_error(_: Request, err: Err[KeyError], /) -> JSONResponse:
-    if (args := err.args) and args[0] == "query":
-        return _response("Missing required 'query' parameter", HTTPStatus.BAD_REQUEST)
-    return _response(str(err), HTTPStatus.INTERNAL_SERVER_ERROR)
-
-
-async def _not_implemented_error(
-    _: Request, err: Err[NotImplementedError], /
-) -> JSONResponse:
-    return _response(str(err), HTTPStatus.NOT_IMPLEMENTED)
+async def _http_error(request: Request, err: Exception) -> JSONResponse:
+    if (
+        isinstance(err, HTTPException)
+        and err.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    ):
+        return await _protocol_error(
+            request, ProtocolError(str(err), "method_not_allowed", status=405)
+        )
+    return await _protocol_error(request, err)
 
 
 def create_exception_handlers() -> Mapping[
     type[Exception], Callable[[Request, Exception], Awaitable[JSONResponse]]
 ]:
     return {
+        ProtocolError: _protocol_error,
         DecodeError: _decode_error,
-        KeyError: _key_error,
-        NotImplementedError: _not_implemented_error,
+        HTTPException: _http_error,
+        Exception: _protocol_error,
     }

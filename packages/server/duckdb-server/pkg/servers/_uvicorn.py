@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING
 from pkg.servers import common
 
 if TYPE_CHECKING:
+    from typing import Self
+
     import uvicorn
     from _typeshed import Incomplete
-    from typing_extensions import Self
 
 
 class UvicornServer(common.Server):
@@ -31,8 +32,9 @@ class UvicornServer(common.Server):
             app,
             host=args.address,
             port=args.port,
-            http="zttp",
+            http="zttp" if http2 else "h11",
             http2=http2,
+            h11_max_incomplete_event_size=2 * 1024 * 1024,
             ssl_keyfile=ssl_keyfile,
             ssl_certfile=ssl_certfile,
             log_level=args.log_level,

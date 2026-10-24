@@ -3,13 +3,13 @@ name = "duckdb-server"
 description = "A DuckDB server for Mosaic"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-  "duckdb>=1.5.2",
-  "msgspec",
-  "platformdirs>=4.11.14",
-  "pyarrow",
-  "starlette>=1.7.0",
+  "duckdb>=2.0.0",
+  "msgspec>=0.22.0",
+  "platformdirs>=4.13.5",
+  "pyarrow>=26.0.0",
+  "starlette>=1.9.0",
   "uvicorn>=0.54.0",
   "zttp>=0.0.34",
 ]
@@ -21,18 +21,18 @@ duckdb-server = "pkg.__main__:serve"
 homepage = "https://github.com/uwdata/mosaic"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.32.4"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-  "pytest-cov",
-  "pytest",
-  "ruff",
-  "watchfiles",
-  "ty",
+  "pytest-cov>=7.1.0",
+  "pytest>=9.1.1",
+  "ruff>=0.17.2",
+  "watchfiles>=1.3.0",
+  "ty>=0.0.91",
   "pyarrow-stubs>=20.0.0.20260819",
-  "httpx2>=2.13.1",
+  "httpx2>=2.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]

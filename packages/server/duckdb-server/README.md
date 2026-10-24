@@ -4,7 +4,7 @@
 
 A Python-based server that runs a local DuckDB instance and supports queries over HTTP, returning data in [Apache Arrow](https://arrow.apache.org/) format.
 
-_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/mosaic-core) package.
+_Note:_ This package provides a local DuckDB server. To instead use DuckDB-WASM in the browser, use the `wasmConnector` in the [`mosaic-core`](https://github.com/uwdata/mosaic/tree/main/packages/mosaic/core) package.
 
 ## Installation and usage
 
@@ -30,29 +30,13 @@ To run the tests, use `uv run pytest`.
 
 ## API
 
-The server supports queries via HTTP GET and POST. The GET endpoint is useful for debugging.
+The server implements the [shared HTTP protocol](https://uwdata.github.io/mosaic/api/duckdb/server-protocol): POST accepts `arrow`, `exec`, and `preagg` JSON commands. GET accepts read-only `arrow` commands through flat `type` and `sql` URL parameters. Arrow responses are IPC streams; errors use the common JSON error envelope.
 
-For example, you can query it with [this url](<https://localhost:3000/?query={"type":"arrow","sql":"select 1"}>):
+For example: `http://localhost:3000/?type=arrow&sql=SELECT%201`.
 
-```terminal
-https://localhost:3000/?query={"type":"arrow","sql":"select 1"}
-```
-
-Each endpoint accepts a `query` parameter, which is a JSON object with two required fields [^1]:
-
-### `type`
-
-A command type, discriminates between:
-
-- `arrow`: Execute a single statement and return the result in Apache Arrow format.
-- `exec`: Execute a one or more `";"`-separated statements for their side effects.
-
-### `sql`
-
-SQL query to execute.
+Python 3.11 or newer is required. Dependencies include DuckDB 2 and PyArrow 26.
 
 ## Publishing
 
 Run the build with `uv build`. Then publish with `uvx twine upload --skip-existing ../../dist/*`. We publish using tokens so when asked, set the username to `__token__` and then use your token as the password. Alternatively, create a [`.pypirc` file](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account).
 
-[^1]: Following (#1286) it is expected that the parameters may be simplified to `?type=arrow&sql=select 1`

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, NewType, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, NewType, TypeVar
 
 import msgspec
 
@@ -15,6 +15,26 @@ Sql = NewType("Sql", str)
 - For `arrow` and `preagg` this MUST be exactly one statement; a trailing semicolon is permitted. 
 - For `exec` it MAY contain several`;` separated statements, executed in order.
 """
+
+
+class ProtocolError(Exception):
+    def __init__(
+        self,
+        message: str,
+        reason: str,
+        field: str | None = None,
+        *,
+        code: str = "bad_request",
+        status: int = 400,
+        reference: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.field = field
+        self.code = code
+        self.status = status
+        self.reference = reference
+
 
 R = TypeVar("R")
 
