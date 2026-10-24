@@ -1527,8 +1527,6 @@ export interface PlotAttributes {
   symbolRange?: Array<any> | Fixed | ParamRef;
 
 
-  // r scale attributes
-
   /**
    * The *r* (radius) scale type, affecting how the scale encodes abstract
    * data, say by applying a mathematical transformation. If null, the scale
@@ -1536,6 +1534,7 @@ export interface PlotAttributes {
    * for quantitative data.
    */
   rScale?: ContinuousScaleType | null | ParamRef;
+
 
   /**
    * The extent of the scale’s inputs (abstract values). By default inferred
@@ -1547,7 +1546,8 @@ export interface PlotAttributes {
    * Radius scales have a default domain from 0 to the median first quartile
    * of associated channels.
    */
-  rDomain?: any[] | Fixed | ParamRef;
+  rDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * The extent of the scale’s outputs (visual values). By default inferred from
@@ -1560,7 +1560,8 @@ export interface PlotAttributes {
    *
    * Radius scales have a default range of [0, 3].
    */
-  rRange?: any[] | Fixed | ParamRef;
+  rRange?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * If true, values below the domain minimum are treated as the domain minimum,
@@ -1576,6 +1577,7 @@ export interface PlotAttributes {
    */
   rClamp?: any;
 
+
   /**
    * If true, or a tick count or interval, extend the domain to nice round
    * values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
@@ -1585,7 +1587,8 @@ export interface PlotAttributes {
    *
    * For continuous scales only.
    */
-  rNice?: boolean | number| Interval | ParamRef;
+  rNice?: boolean | number | Interval | ParamRef;
+
 
   /**
    * A textual label to show on the axis or legend; if null, show no label. By
@@ -1594,11 +1597,13 @@ export interface PlotAttributes {
    */
   rLabel?: string | null | ParamRef;
 
+
   /**
    * If true, shorthand for a transform suitable for percentages, mapping
    * proportions in [0, 1] to [0, 100].
    */
   rPercent?: boolean | ParamRef;
+
 
   /**
    * Whether the **domain** must include zero. If the domain minimum is
@@ -1609,17 +1614,20 @@ export interface PlotAttributes {
    */
   rZero?: boolean | ParamRef;
 
+
   /**
    * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
    * linear scale. For *pow* scales only.
    */
   rExponent?: number | ParamRef;
 
+
   /**
    * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
    * but rather the default ticks. For *log* scales only.
    */
   rBase?: number | ParamRef;
+
 
   /**
    * A symlog scale’s constant, expressing the magnitude of the linear region
@@ -1628,8 +1636,6 @@ export interface PlotAttributes {
   rConstant?: number | ParamRef;
 
 
-  // length scale attributes
-
   /**
    * The *length* scale type, affecting how the scale encodes abstract data,
    * say by applying a mathematical transformation. If null, the scale is
@@ -1637,6 +1643,7 @@ export interface PlotAttributes {
    * for quantitative data.
    */
   lengthScale?: ContinuousScaleType | null | ParamRef;
+
 
   /**
    * The extent of the scale’s inputs (abstract values). By default inferred
@@ -1652,7 +1659,8 @@ export interface PlotAttributes {
    * Opacity scales have a default domain from 0 to the maximum value of
    * associated channels.
    */
-  lengthDomain?: any[] | Fixed | ParamRef;
+  lengthDomain?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * The extent of the scale’s outputs (visual values). By default inferred from
@@ -1665,7 +1673,8 @@ export interface PlotAttributes {
    *
    * Length scales have a default range of [0, 12].
    */
-  lengthRange?: any[] | Fixed | ParamRef;
+  lengthRange?: Array<any> | Fixed | ParamRef;
+
 
   /**
    * If true, values below the domain minimum are treated as the domain minimum,
@@ -1681,6 +1690,7 @@ export interface PlotAttributes {
    */
   lengthClamp?: any;
 
+
   /**
    * If true, or a tick count or interval, extend the domain to nice round
    * values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
@@ -1690,13 +1700,15 @@ export interface PlotAttributes {
    *
    * For continuous scales only.
    */
-  lengthNice?: boolean | number| Interval | ParamRef;
+  lengthNice?: boolean | number | Interval | ParamRef;
+
 
   /**
    * If true, shorthand for a transform suitable for percentages, mapping
    * proportions in [0, 1] to [0, 100].
    */
   lengthPercent?: boolean | ParamRef;
+
 
   /**
    * Whether the **domain** must include zero. If the domain minimum is
@@ -1707,17 +1719,20 @@ export interface PlotAttributes {
    */
   lengthZero?: boolean | ParamRef;
 
+
   /**
    * A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
    * linear scale. For *pow* scales only.
    */
   lengthExponent?: number | ParamRef;
 
+
   /**
    * A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
    * but rather the default ticks. For *log* scales only.
    */
   lengthBase?: number | ParamRef;
+
 
   /**
    * A symlog scale’s constant, expressing the magnitude of the linear region

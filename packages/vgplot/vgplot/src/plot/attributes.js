@@ -208,8 +208,6 @@ export const opacityConstant = attrf('opacityConstant');
 export const symbolScale = attrf('symbolScale');
 export const symbolDomain = attrf('symbolDomain');
 export const symbolRange = attrf('symbolRange');
-
-// r scale attributes
 export const rScale = attrf('rScale');
 export const rDomain = attrf('rDomain');
 export const rRange = attrf('rRange');
@@ -221,8 +219,6 @@ export const rZero = attrf('rZero');
 export const rBase = attrf('rBase');
 export const rExponent = attrf('rExponent');
 export const rConstant = attrf('rConstant');
-
-// length scale attributes
 export const lengthScale = attrf('lengthScale');
 export const lengthDomain = attrf('lengthDomain');
 export const lengthRange = attrf('lengthRange');

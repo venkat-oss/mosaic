@@ -132,6 +132,29 @@ from .plot_attributes import (
     style,
     width,
 )
+from .size_attributes import (
+    length_base,
+    length_clamp,
+    length_constant,
+    length_domain,
+    length_exponent,
+    length_nice,
+    length_percent,
+    length_range,
+    length_scale,
+    length_zero,
+    r_base,
+    r_clamp,
+    r_constant,
+    r_domain,
+    r_exponent,
+    r_label,
+    r_nice,
+    r_percent,
+    r_range,
+    r_scale,
+    r_zero,
+)
 
 if TYPE_CHECKING:
     from .._types import AttrValue
@@ -432,56 +455,6 @@ def fy_tick_spacing(value: AttrValue) -> Directive:
     return Directive("fyTickSpacing", value)
 
 
-def length_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("lengthBase", value)
-
-
-def length_clamp(value: AttrValue) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("lengthClamp", value)
-
-
-def length_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("lengthConstant", value)
-
-
-def length_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("lengthDomain", value)
-
-
-def length_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("lengthExponent", value)
-
-
-def length_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("lengthNice", value)
-
-
-def length_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("lengthPercent", value)
-
-
-def length_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("lengthRange", value)
-
-
-def length_scale(value: AttrValue) -> Directive:
-    """The *length* scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("lengthScale", value)
-
-
-def length_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("lengthZero", value)
-
-
 def projection_clip(value: AttrValue = True) -> Directive:
     """The projection’s clipping method; one of: - *frame* or true (default) - clip to the plot’s frame (including margins but not insets) - a number - clip to a circle of the given radius in degrees centered around the origin - null or false - do not clip Some projections (such as *armadillo* and *berghaus*) require spherical clipping: in that case set the marks’ **clip** option to *sphere*."""
     return Directive("projectionClip", value)
@@ -535,61 +508,6 @@ def projection_rotate(value: AttrValue) -> Directive:
 def projection_type(value: AttrValue) -> Directive:
     """The desired projection; one of: - a named built-in projection such as *albers-usa* - null, for no projection Named projections are scaled and translated to fit the **domain** to the plot’s frame (minus insets)."""
     return Directive("projectionType", value)
-
-
-def r_base(value: AttrValue) -> Directive:
-    """A log scale’s base; defaults to 10."""
-    return Directive("rBase", value)
-
-
-def r_clamp(value: AttrValue) -> Directive:
-    """If true, values below the domain minimum are treated as the domain minimum, and values above the domain maximum are treated as the domain maximum."""
-    return Directive("rClamp", value)
-
-
-def r_constant(value: AttrValue) -> Directive:
-    """A symlog scale’s constant, expressing the magnitude of the linear region around the origin; defaults to 1."""
-    return Directive("rConstant", value)
-
-
-def r_domain(value: AttrValue) -> Directive:
-    """The extent of the scale’s inputs (abstract values)."""
-    return Directive("rDomain", value)
-
-
-def r_exponent(value: AttrValue) -> Directive:
-    """A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a linear scale."""
-    return Directive("rExponent", value)
-
-
-def r_label(value: AttrValue) -> Directive:
-    """A textual label to show on the axis or legend; if null, show no label."""
-    return Directive("rLabel", value)
-
-
-def r_nice(value: AttrValue = True) -> Directive:
-    """If true, or a tick count or interval, extend the domain to nice round values."""
-    return Directive("rNice", value)
-
-
-def r_percent(value: AttrValue = True) -> Directive:
-    """If true, shorthand for a transform suitable for percentages, mapping proportions in 0, 1 to 0, 100."""
-    return Directive("rPercent", value)
-
-
-def r_range(value: AttrValue) -> Directive:
-    """The extent of the scale’s outputs (visual values)."""
-    return Directive("rRange", value)
-
-
-def r_scale(value: AttrValue) -> Directive:
-    """The *r* (radius) scale type, affecting how the scale encodes abstract data, say by applying a mathematical transformation."""
-    return Directive("rScale", value)
-
-
-def r_zero(value: AttrValue = True) -> Directive:
-    """Whether the **domain** must include zero."""
-    return Directive("rZero", value)
 
 
 __all__ = [

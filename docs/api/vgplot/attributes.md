@@ -151,6 +151,37 @@ In addition to value arrays, scale domain attributes accept the `Fixed` symbol.
 | [`opacityBase(value)`](#opacitybase) | `` number \| ParamRef `` |
 | [`opacityConstant(value)`](#opacityconstant) | `` number \| ParamRef `` |
 
+## Radius Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`rScale(value)`](#rscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`rDomain(value)`](#rdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`rRange(value)`](#rrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`rClamp(value)`](#rclamp) | `` any `` |
+| [`rNice(value)`](#rnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`rLabel(value)`](#rlabel) | `` string \| null \| ParamRef `` |
+| [`rPercent(value)`](#rpercent) | `` boolean \| ParamRef `` |
+| [`rZero(value)`](#rzero) | `` boolean \| ParamRef `` |
+| [`rExponent(value)`](#rexponent) | `` number \| ParamRef `` |
+| [`rBase(value)`](#rbase) | `` number \| ParamRef `` |
+| [`rConstant(value)`](#rconstant) | `` number \| ParamRef `` |
+
+## Length Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`lengthScale(value)`](#lengthscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`lengthDomain(value)`](#lengthdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`lengthRange(value)`](#lengthrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`lengthClamp(value)`](#lengthclamp) | `` any `` |
+| [`lengthNice(value)`](#lengthnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`lengthPercent(value)`](#lengthpercent) | `` boolean \| ParamRef `` |
+| [`lengthZero(value)`](#lengthzero) | `` boolean \| ParamRef `` |
+| [`lengthExponent(value)`](#lengthexponent) | `` number \| ParamRef `` |
+| [`lengthBase(value)`](#lengthbase) | `` number \| ParamRef `` |
+| [`lengthConstant(value)`](#lengthconstant) | `` number \| ParamRef `` |
+
 </template>
 
 <template v-else-if="language === 'python'">
@@ -313,6 +344,37 @@ In addition to value arrays, scale domain attributes accept the string `"Fixed"`
 | [`vg.opacity_exponent(value)`](#opacityexponent) | `` number \| ParamRef `` |
 | [`vg.opacity_base(value)`](#opacitybase) | `` number \| ParamRef `` |
 | [`vg.opacity_constant(value)`](#opacityconstant) | `` number \| ParamRef `` |
+
+## Radius Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.r_scale(value)`](#rscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`vg.r_domain(value)`](#rdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.r_range(value)`](#rrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.r_clamp(value)`](#rclamp) | `` any `` |
+| [`vg.r_nice(value=True)`](#rnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.r_label(value)`](#rlabel) | `` string \| null \| ParamRef `` |
+| [`vg.r_percent(value=True)`](#rpercent) | `` boolean \| ParamRef `` |
+| [`vg.r_zero(value=True)`](#rzero) | `` boolean \| ParamRef `` |
+| [`vg.r_exponent(value)`](#rexponent) | `` number \| ParamRef `` |
+| [`vg.r_base(value)`](#rbase) | `` number \| ParamRef `` |
+| [`vg.r_constant(value)`](#rconstant) | `` number \| ParamRef `` |
+
+## Length Scale Attributes
+
+| Directive | Value type |
+| --- | --- |
+| [`vg.length_scale(value)`](#lengthscale) | `` ContinuousScaleType \| null \| ParamRef `` |
+| [`vg.length_domain(value)`](#lengthdomain) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.length_range(value)`](#lengthrange) | `` Array<any> \| Fixed \| ParamRef `` |
+| [`vg.length_clamp(value)`](#lengthclamp) | `` any `` |
+| [`vg.length_nice(value=True)`](#lengthnice) | `` boolean \| number \| Interval \| ParamRef `` |
+| [`vg.length_percent(value=True)`](#lengthpercent) | `` boolean \| ParamRef `` |
+| [`vg.length_zero(value=True)`](#lengthzero) | `` boolean \| ParamRef `` |
+| [`vg.length_exponent(value)`](#lengthexponent) | `` number \| ParamRef `` |
+| [`vg.length_base(value)`](#lengthbase) | `` number \| ParamRef `` |
+| [`vg.length_constant(value)`](#lengthconstant) | `` number \| ParamRef `` |
 
 </template>
 
@@ -1554,3 +1616,163 @@ Symbol scales have a default range of categorical symbols; the choice of symbols
 ### Color examples
 
 `colorScheme`: [json](/templates/attributes/color/colorScheme.json) · [yaml](/templates/attributes/color/colorScheme.yaml) · [js](/templates/attributes/color/colorScheme.js) · <a :href="withBase('/templates/attributes/color/colorScheme.py')" download>Python</a>.
+
+## size attribute reference
+
+### rScale
+
+The *r* (radius) scale type, affecting how the scale encodes abstract
+data, say by applying a mathematical transformation. If null, the scale
+is disabled. The radius scale defaults to *sqrt*; this scale is intended
+for quantitative data.
+
+### rDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred
+from channel values. For continuous data (numbers and dates), it is
+typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
+For ordinal data (strings or booleans), it is an array (or iterable) of
+values is the desired order, defaulting to natural ascending order.
+
+Radius scales have a default domain from 0 to the median first quartile
+of associated channels.
+
+### rRange
+
+The extent of the scale’s outputs (visual values). By default inferred from
+the scale’s **type** and **domain**, and for position scales, the plot’s
+dimensions. For continuous data (numbers and dates), and for ordinal
+position scales (*point* and *band*), it is typically [*min*, *max*]; it
+can be [*max*, *min*] to reverse the scale. For other ordinal data, such as
+for a *color* scale, it is an array (or iterable) of output values in the
+same order as the **domain**.
+
+Radius scales have a default range of [0, 3].
+
+### rClamp
+
+<span id="lengthclamp"></span>
+Applies to `rClamp`, `lengthClamp`.
+
+If true, values below the domain minimum are treated as the domain minimum,
+and values above the domain maximum are treated as the domain maximum.
+
+Clamping is useful for focusing on a subset of the data while ensuring that
+extreme values remain visible, but use caution: clamped values may need an
+annotation to avoid misinterpretation. Clamping typically requires setting
+an explicit **domain** since if the domain is inferred, no values will be
+outside the domain.
+
+For continuous scales only.
+
+### rNice
+
+<span id="lengthnice"></span>
+Applies to `rNice`, `lengthNice`.
+
+If true, or a tick count or interval, extend the domain to nice round
+values. Defaults to 1, 2 or 5 times a power of 10 for *linear* scales, and
+nice time intervals for *utc* and *time* scales. Pass an interval such as
+*minute*, *wednesday* or *month* to specify what constitutes a nice
+interval.
+
+For continuous scales only.
+
+### rLabel
+
+A textual label to show on the axis or legend; if null, show no label. By
+default the scale label is inferred from channel definitions, possibly with
+an arrow (↑, →, ↓, or ←) to indicate the direction of increasing value.
+
+### rPercent
+
+<span id="lengthpercent"></span>
+Applies to `rPercent`, `lengthPercent`.
+
+If true, shorthand for a transform suitable for percentages, mapping
+proportions in [0, 1] to [0, 100].
+
+### rZero
+
+<span id="lengthzero"></span>
+Applies to `rZero`, `lengthZero`.
+
+Whether the **domain** must include zero. If the domain minimum is
+positive, it will be set to zero; otherwise if the domain maximum is
+negative, it will be set to zero.
+
+For quantitative scales only.
+
+### rExponent
+
+<span id="lengthexponent"></span>
+Applies to `rExponent`, `lengthExponent`.
+
+A power scale’s exponent (*e.g.*, 0.5 for sqrt); defaults to 1 for a
+linear scale. For *pow* scales only.
+
+### rBase
+
+<span id="lengthbase"></span>
+Applies to `rBase`, `lengthBase`.
+
+A log scale’s base; defaults to 10. Does not affect the scale’s encoding,
+but rather the default ticks. For *log* scales only.
+
+### rConstant
+
+<span id="lengthconstant"></span>
+Applies to `rConstant`, `lengthConstant`.
+
+A symlog scale’s constant, expressing the magnitude of the linear region
+around the origin; defaults to 1. For *symlog* scales only.
+
+### lengthScale
+
+The *length* scale type, affecting how the scale encodes abstract data,
+say by applying a mathematical transformation. If null, the scale is
+disabled. The length scale defaults to *linear*, as this scale is intended
+for quantitative data.
+
+### lengthDomain
+
+The extent of the scale’s inputs (abstract values). By default inferred
+from channel values. For continuous data (numbers and dates), it is
+typically [*min*, *max*]; it can be [*max*, *min*] to reverse the scale.
+For ordinal data (strings or booleans), it is an array (or iterable) of
+values is the desired order, defaulting to natural ascending order.
+
+Linear scales have a default domain of [0, 1]. Log scales have a default
+domain of [1, 10] and cannot include zero. Radius scales have a default
+domain from 0 to the median first quartile of associated channels. Length
+have a default domain from 0 to the median median of associated channels.
+Opacity scales have a default domain from 0 to the maximum value of
+associated channels.
+
+### lengthRange
+
+The extent of the scale’s outputs (visual values). By default inferred from
+the scale’s **type** and **domain**, and for position scales, the plot’s
+dimensions. For continuous data (numbers and dates), and for ordinal
+position scales (*point* and *band*), it is typically [*min*, *max*]; it
+can be [*max*, *min*] to reverse the scale. For other ordinal data, such as
+for a *color* scale, it is an array (or iterable) of output values in the
+same order as the **domain**.
+
+Length scales have a default range of [0, 12].
+
+**`rClamp`, `lengthClamp`:** The declared value is unrestricted. Python requires an explicit argument; it does not infer a default from the clamp option's purpose.
+
+**`rRange`:** **Known limitation**: Fixed is admitted and serializes, but only Fixed domain inference is implemented. Use an explicit range array. The JavaScript error is Unsupported fixed attribute: rRange.
+
+**`lengthRange`:** **Known limitation**: Fixed is admitted and serializes, but only Fixed domain inference is implemented. Use an explicit range array. The JavaScript error is Unsupported fixed attribute: lengthRange.
+
+**`rScale`:** **Known limitation**: Null is admitted and serializes, but scale creation rejects it. The JavaScript error is unknown scale type: null.
+
+**`lengthScale`:** **Known limitation**: Null is admitted and serializes, but scale creation rejects it. The JavaScript error is unknown scale type: null.
+
+**`rDomain`, `lengthDomain`:** Fixed domains are inferred from actual scale channels once and cached across later mark updates. Scalar radius/length constants bypass scale inference; field or array channels establish a scale.
+
+### Size examples
+
+`radius-range-parameter`: [json](/templates/attributes/size/radius-range-parameter.json) · [yaml](/templates/attributes/size/radius-range-parameter.yaml) · [js](/templates/attributes/size/radius-range-parameter.js) · <a :href="withBase('/templates/attributes/size/radius-range-parameter.py')" download>Python</a>.
