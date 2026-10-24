@@ -335,8 +335,15 @@ For supported options, see the [Observable Plot `hexgrid` documentation](https:/
 
 ## Image
 
-The `image` mark draws images centered at the given position in _x_ and _y_.
-For supported options, see the [Observable Plot `image` documentation](https://observablehq.com/plot/marks/image).
+### image
+
+`image(data, options)`
+
+An image mark that draws images as in a scatterplot.
+
+If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#image-options).
 
 ## Line
 
@@ -481,8 +488,37 @@ The ruleY mark is often used to highlight specific *y* values. If *x* represents
 
 ## Text
 
-The `text` mark, with `textX` and `textY` variants, draws text at the given position in _x_ and _y_. It is often used to label other marks.
-For supported options, see the [Observable Plot `text` documentation](https://observablehq.com/plot/marks/text).
+### text
+
+`text(data, options)`
+
+A text mark. The **text** channel specifies the textual contents of the mark, which may be preformatted with line breaks (\n, \r\n, or \r), or wrapped or clipped using the **lineWidth** and **textOverflow** options.
+
+If **text** contains numbers or dates, a default formatter will be applied, and the **fontVariant** will default to *tabular-nums* instead of *normal*. If **text** is not specified, it defaults to the identity function for primitive data (such as numbers, dates, and strings), and to the zero-based index [0, 1, 2, …] for objects (so that something identifying is visible by default).
+
+If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option.
+
+[Options](#text-options).
+
+### textX
+
+`textX(data, options)`
+
+Like text, but **x** defaults to the identity function, assuming that
+*data* = [*x₀*, *x₁*, *x₂*, …]. If an **interval** is specified, such as
+*day*, **y** is transformed to the middle of the interval.
+
+[Options](#textx-options).
+
+### textY
+
+`textY(data, options)`
+
+Like text, but **y** defaults to the identity function, assuming that
+*data* = [*y₀*, *y₁*, *y₂*, …]. If an **interval** is specified, such as
+*day*, **x** is transformed to the middle of the interval.
+
+[Options](#texty-options).
 
 ## Tick
 
@@ -508,12 +544,71 @@ If *x* represents quantitative or temporal values, use a ruleY mark instead.
 
 ## Vector
 
-The `vector` mark, with `vectorX` and `vectorY` variants, draws little arrows, typically positioned in _x_ and _y_ quantitative dimensions, with an optional magnitude (`length`) and direction (`rotate`), as in a vector field.
+### vector
 
-The `spike` mark is equivalent to `vector`, but changes the default `shape`, `anchor`, and color options to draw a more spiky element.
+`vector(data, options)`
 
-For supported options, see the [Observable Plot `vector` documentation](https://observablehq.com/plot/marks/vector).
+A vector mark.
 
+If none of **frameAnchor**, **x**, and **y** are specified, then **x** and
+**y** default to accessors assuming that *data* contains tuples [[*x₀*,
+*y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …]
+
+[Options](#vector-options).
+
+### vectorX
+
+`vectorX(data, options)`
+
+Like vector, but **x** instead defaults to the identity function and **y** defaults to null, assuming that *data* is an array of numbers [*x₀*, *x₁*,
+*x₂*, …].
+
+[Options](#vectorx-options).
+
+### vectorY
+
+`vectorY(data, options)`
+
+Like vector, but **y** instead defaults to the identity function and **x** defaults to null, assuming that *data* is an array of numbers [*y₀*, *y₁*,
+*y₂*, …].
+
+[Options](#vectory-options).
+
+### spike
+
+`spike(data, options)`
+
+Like vector, but with default *options* suitable for drawing a spike map.
+
+[Options](#spike-options).
+
+## Waffle
+
+### waffleX
+
+`waffleX(data, options)`
+
+A horizontal waffle mark. The required *x* values should be quantitative, and the optional *y* values should be ordinal.
+
+If neither **x1** nor **x2** nor **interval** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise if an **interval** is specified, then **x1** and **x2** are derived from **x**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+The optional **y** ordinal channel specifies the vertical position; it is typically bound to the *y* scale, which must be a *band* scale. If the
+**y** channel is not specified, the bar will span the vertical extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
+
+[Options](#wafflex-options).
+
+### waffleY
+
+`waffleY(data, options)`
+
+A vertical waffle mark. The required *y* values should be quantitative, and the optional *x* values should be ordinal.
+
+If neither **y1** nor **y2** nor **interval** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise if an **interval** is specified, then **y1** and **y2** are derived from **y**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+The optional **x** ordinal channel specifies the horizontal position; it is typically bound to the *x* scale, which must be a *band* scale. If the
+**x** channel is not specified, the bar will span the horizontal extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
+
+[Options](#waffley-options).
 
 </template>
 
@@ -843,8 +938,15 @@ For supported options, see the [Observable Plot `hexgrid` documentation](https:/
 
 ## Image
 
-The `image` mark draws images centered at the given position in _x_ and _y_.
-For supported options, see the [Observable Plot `image` documentation](https://observablehq.com/plot/marks/image).
+### image
+
+`image(data=None, **options)`
+
+An image mark that draws images as in a scatterplot.
+
+If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option. If none of **x**, **y**, and **frameAnchor** are specified, *data* is assumed to be an array of pairs [[*x₀*, *y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …] such that **x** = [*x₀*, *x₁*, *x₂*, …] and **y** = [*y₀*, *y₁*, *y₂*, …].
+
+[Options](#image-options).
 
 ## Line
 
@@ -989,8 +1091,37 @@ The ruleY mark is often used to highlight specific *y* values. If *x* represents
 
 ## Text
 
-The `text` mark, with `text_x` and `text_y` variants, draws text at the given position in _x_ and _y_. It is often used to label other marks.
-For supported options, see the [Observable Plot `text` documentation](https://observablehq.com/plot/marks/text).
+### text
+
+`text(data=None, **options)`
+
+A text mark. The **text** channel specifies the textual contents of the mark, which may be preformatted with line breaks (\n, \r\n, or \r), or wrapped or clipped using the **lineWidth** and **textOverflow** options.
+
+If **text** contains numbers or dates, a default formatter will be applied, and the **fontVariant** will default to *tabular-nums* instead of *normal*. If **text** is not specified, it defaults to the identity function for primitive data (such as numbers, dates, and strings), and to the zero-based index [0, 1, 2, …] for objects (so that something identifying is visible by default).
+
+If either **x** or **y** is not specified, the default is determined by the **frameAnchor** option.
+
+[Options](#text-options).
+
+### text_x
+
+`text_x(data=None, **options)`
+
+Like text, but **x** defaults to the identity function, assuming that
+*data* = [*x₀*, *x₁*, *x₂*, …]. If an **interval** is specified, such as
+*day*, **y** is transformed to the middle of the interval.
+
+[Options](#textx-options).
+
+### text_y
+
+`text_y(data=None, **options)`
+
+Like text, but **y** defaults to the identity function, assuming that
+*data* = [*y₀*, *y₁*, *y₂*, …]. If an **interval** is specified, such as
+*day*, **x** is transformed to the middle of the interval.
+
+[Options](#texty-options).
 
 ## Tick
 
@@ -1016,12 +1147,71 @@ If *x* represents quantitative or temporal values, use a ruleY mark instead.
 
 ## Vector
 
-The `vector` mark, with `vector_x` and `vector_y` variants, draws little arrows, typically positioned in _x_ and _y_ quantitative dimensions, with an optional magnitude (`length`) and direction (`rotate`), as in a vector field.
+### vector
 
-The `spike` mark is equivalent to `vector`, but changes the default `shape`, `anchor`, and color options to draw a more spiky element.
+`vector(data=None, **options)`
 
-For supported options, see the [Observable Plot `vector` documentation](https://observablehq.com/plot/marks/vector).
+A vector mark.
 
+If none of **frameAnchor**, **x**, and **y** are specified, then **x** and
+**y** default to accessors assuming that *data* contains tuples [[*x₀*,
+*y₀*], [*x₁*, *y₁*], [*x₂*, *y₂*], …]
+
+[Options](#vector-options).
+
+### vector_x
+
+`vector_x(data=None, **options)`
+
+Like vector, but **x** instead defaults to the identity function and **y** defaults to null, assuming that *data* is an array of numbers [*x₀*, *x₁*,
+*x₂*, …].
+
+[Options](#vectorx-options).
+
+### vector_y
+
+`vector_y(data=None, **options)`
+
+Like vector, but **y** instead defaults to the identity function and **x** defaults to null, assuming that *data* is an array of numbers [*y₀*, *y₁*,
+*y₂*, …].
+
+[Options](#vectory-options).
+
+### spike
+
+`spike(data=None, **options)`
+
+Like vector, but with default *options* suitable for drawing a spike map.
+
+[Options](#spike-options).
+
+## Waffle
+
+### waffle_x
+
+`waffle_x(data=None, **options)`
+
+A horizontal waffle mark. The required *x* values should be quantitative, and the optional *y* values should be ordinal.
+
+If neither **x1** nor **x2** nor **interval** is specified, an implicit stackX transform is applied and **x** defaults to the identity function, assuming that *data* = [*x₀*, *x₁*, *x₂*, …]. Otherwise if an **interval** is specified, then **x1** and **x2** are derived from **x**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **x1** or **x2** is specified, the other defaults to **x**, which defaults to zero.
+
+The optional **y** ordinal channel specifies the vertical position; it is typically bound to the *y* scale, which must be a *band* scale. If the
+**y** channel is not specified, the bar will span the vertical extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
+
+[Options](#wafflex-options).
+
+### waffle_y
+
+`waffle_y(data=None, **options)`
+
+A vertical waffle mark. The required *y* values should be quantitative, and the optional *x* values should be ordinal.
+
+If neither **y1** nor **y2** nor **interval** is specified, an implicit stackY transform is applied and **y** defaults to the identity function, assuming that *data* = [*y₀*, *y₁*, *y₂*, …]. Otherwise if an **interval** is specified, then **y1** and **y2** are derived from **y**, representing the lower and upper bound of the containing interval, respectively. Otherwise, if only one of **y1** or **y2** is specified, the other defaults to **y**, which defaults to zero.
+
+The optional **x** ordinal channel specifies the horizontal position; it is typically bound to the *x* scale, which must be a *band* scale. If the
+**x** channel is not specified, the bar will span the horizontal extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
+
+[Options](#waffley-options).
 
 </template>
 
@@ -1578,3 +1768,202 @@ Extends [`MarkData`](../spec/common-marks#markdata), [`LinkOptions`](#linkoption
 `line`: [json](/templates/marks/connected/line.json) · [yaml](/templates/marks/connected/line.yaml) · [js](/templates/marks/connected/line.js) · <a :href="withBase('/templates/marks/connected/line.py')" download>Python</a>.
 
 JavaScript-only `native-curve`: [js](/templates/marks/connected/native-curve.js).
+
+## annotation mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### TextOptions options
+
+Options for the text mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`TextStyles`](../spec/common-marks#textstyles).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel specifying the text’s anchor point, typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel specifying the text’s anchor point, typically bound to the *y* scale.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into series.
+
+**text** (`ChannelValue`) — The text contents channel, possibly with line breaks (\n, \r\n, or \r). If not specified, defaults to the zero-based index [0, 1, 2, …].
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y**, along with
+**textAnchor** and **lineAnchor**, based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*, *bottom-left*), or the
+*middle* of the frame.
+
+**lineAnchor** (`'top' | 'middle' | 'bottom' | ParamRef`) — The line anchor controls how text is aligned (typically vertically) relative to its anchor point; it is one of *top*, *bottom*, or *middle*. If the frame anchor is *top*, *top-left*, or *top-right*, the default line anchor is *top*; if the frame anchor is *bottom*, *bottom-right*, or
+*bottom-left*, the default is *bottom*; otherwise it is *middle*.
+
+**rotate** (`ChannelValue | ParamRef`) — The rotation angle in degrees clockwise; a constant or a channel; defaults to 0°. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+
+### TextXOptions options
+
+Options for the textX mark.
+
+Extends [`Omit<TextOptions, 'y'>`](#textoptions-options).
+
+**y** (`ChannelValueIntervalSpec`) — The vertical position of the text’s anchor point, typically bound to the
+*y* scale.
+
+**interval** (`Interval | ParamRef`) — An interval (such as *day* or a number), to transform **y** values to the middle of the interval.
+
+### TextYOptions options
+
+Options for the textY mark.
+
+Extends [`Omit<TextOptions, 'x'>`](#textoptions-options).
+
+**x** (`ChannelValueIntervalSpec`) — The horizontal position of the text’s anchor point, typically bound to the
+*x* scale.
+
+**interval** (`Interval`) — An interval (such as *day* or a number), to transform **x** values to the middle of the interval.
+
+### Text options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextOptions`](#textoptions-options).
+
+
+### TextX options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextXOptions`](#textxoptions-options).
+
+
+### TextY options
+
+Extends [`MarkDataOptional`](../spec/common-marks#markdataoptional), [`TextYOptions`](#textyoptions-options).
+
+
+### ImageOptions options
+
+Options for the image mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position channel specifying the image’s center; typically bound to the *x* scale.
+
+**y** (`ChannelValueSpec`) — The vertical position channel specifying the image’s center; typically bound to the *y* scale.
+
+**width** (`ChannelValue | ParamRef`) — The image width in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive width are not drawn.
+
+**height** (`ChannelValue | ParamRef`) — The image height in pixels. When a number, it is interpreted as a constant radius in pixels; otherwise it is interpreted as a channel. Also sets the default **height**; if neither are set, defaults to 16. Images with a nonpositive height are not drawn.
+
+**r** (`ChannelValue | ParamRef`) — The image clip radius, for circular images. If null (default), images are not clipped; when a number, it is interpreted as a constant in pixels; otherwise it is interpreted as a channel, typically bound to the *r* scale. Also defaults **height** and **width** to twice its value.
+
+**rotate** (`ChannelValue | ParamRef`) — The rotation angle, in degrees clockwise. When a number, it is interpreted as a constant; otherwise it is interpreted as a channel.
+
+**src** (`ChannelValue | ParamRef`) — The required image URL (or relative path). If a string that starts with a dot, slash, or URL protocol (*e.g.*, “https:”) it is assumed to be a constant; otherwise it is interpreted as a channel.
+
+**preserveAspectRatio** (`string | ParamRef`) — The image [aspect ratio](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio); defaults to *xMidYMid meet*. To crop the image instead of scaling it to fit, use *xMidYMid slice*.
+
+**crossOrigin** (`string | ParamRef`) — The [cross-origin](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/crossorigin) behavior. See the [Plot.image notebook](https://observablehq.com/@observablehq/plot-image) for details.
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The frame anchor specifies defaults for **x** and **y** based on the plot’s frame; it may be one of the four sides (*top*, *right*, *bottom*, *left*), one of the four corners (*top-left*, *top-right*, *bottom-right*,
+*bottom-left*), or the *middle* of the frame.
+
+**imageRendering** (`string | ParamRef`) — The [image-rendering attribute](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/image-rendering); defaults to *auto* (bilinear). The option may be set to *pixelated* to disable bilinear interpolation for a sharper image; however, note that this is not supported in WebKit.
+
+### Image options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ImageOptions`](#imageoptions-options).
+
+
+### VectorOptions options
+
+Options for the vector mark.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**x** (`ChannelValueSpec`) — The horizontal position of the vector’s anchor point; an optional channel bound to the *x* scale. Default depends on the **frameAnchor**.
+
+**y** (`ChannelValueSpec`) — The vertical position of the vector’s anchor point; an optional channel bound to the *y* scale. Default depends on the **frameAnchor**.
+
+**r** (`number | ParamRef`) — The vector shape’s radius, such as half the width of the *arrow*’s head or the *spike*’s base; a constant number in pixels. Defaults to 3.5 pixels.
+
+**length** (`ChannelValueSpec`) — The vector’s length; either an optional channel bound to the *length* scale or a constant number in pixels. Defaults to 12 pixels.
+
+**rotate** (`ChannelValue`) — The vector’s orientation (rotation angle); either a constant number in degrees clockwise, or an optional channel (with no associated scale). Defaults to 0 degrees with the vector pointing up.
+
+**shape** (`VectorShape | ParamRef`) — The shape of the vector; a constant. Defaults to *arrow*.
+
+**anchor** (`'start' | 'middle' | 'end' | ParamRef`) — The vector’s position along its orientation relative to its anchor point; a constant. Assuming a default **rotate** angle of 0°, one of:
+
+- *start* - from [*x*, *y*] to [*x*, *y* - *l*]
+- *middle* (default) - from [*x*, *y* + *l* / 2] to [*x*, *y* - *l* / 2]
+- *end* - from [*x*, *y* + *l*] to [*x*, *y*]
+
+where [*x*, *y*] is the vector’s anchor point and *l* is the vector’s (possibly scaled) length in pixels.
+
+**frameAnchor** (`FrameAnchor | ParamRef`) — The vector’s frame anchor, to default **x** and **y** relative to the frame; a constant representing one of the frame corners (*top-left*,
+*top-right*, *bottom-right*, *bottom-left*), sides (*top*, *right*,
+*bottom*, *left*), or *middle* (default). Has no effect if both **x** and **y** are specified.
+
+### Vector options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### VectorX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### VectorY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### Spike options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`VectorOptions`](#vectoroptions-options).
+
+
+### WaffleOptions options
+
+Options for the waffleX and waffleY mark.
+
+**multiple** (`number | ParamRef`) — The number of cells per row or column; defaults to undefined for automatic.
+
+**unit** (`number | ParamRef`) — The quantity each cell represents; defaults to 1.
+
+**gap** (`number | ParamRef`) — The gap in pixels between cells; defaults to 1.
+
+**round** (`boolean | ParamRef`) — If true, round to integers to avoid partial cells.
+
+### WaffleX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarXOptions`](#barxoptions-options), [`WaffleOptions`](#waffleoptions-options).
+
+
+### WaffleY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`BarYOptions`](#baryoptions-options), [`WaffleOptions`](#waffleoptions-options).
+
+
+### VectorShapeName options
+
+```ts
+type VectorShapeName = 'arrow' | 'spike';
+```
+
+### VectorShape options
+
+```ts
+type VectorShape = VectorShapeName;
+```
+
+**`vectorX`:** Known JavaScript limitation: vectorX dispatches to the misspelled vectoX runtime type and rendering raises TypeError. Declarative and Python APIs accept and serialize vectorX, but rendering uses the same JavaScript runtime.
+
+**`vector`:** **Specification vocabulary: VectorShapeName**
+
+The built-in vector shape implementations; one of:
+
+- *arrow* - a straight line with an open arrowhead at the end (↑)
+- *spike* - an isosceles triangle with a flat base (▲)
+
+**Specification vocabulary: VectorShape**
+
+How to draw a vector: either a named shape or a custom implementation.
+
+### annotation examples
+
+`multiline-text`: [json](/templates/marks/annotation/multiline-text.json) · [yaml](/templates/marks/annotation/multiline-text.yaml) · [js](/templates/marks/annotation/multiline-text.js) · <a :href="withBase('/templates/marks/annotation/multiline-text.py')" download>Python</a>.

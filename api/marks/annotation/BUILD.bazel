@@ -1,0 +1,24 @@
+load("@rules_cue//cue:cue.bzl", "cue_instance")
+load("//build:cue.bzl", "cue_projection")
+
+cue_instance(
+    name = "package",
+    srcs = glob(["*.cue"]),
+    ancestor = "//cue.mod:module",
+    package_name = "annotation",
+    deps = [
+        "//api/model:package",
+        "//api/marks/annotation/model:package",
+        "//api/marks/basic/model:package",
+        "//api/marks/profile:package",
+        "//api/marks/render:package",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cue_projection(
+    name = "contribution",
+    instance = ":package",
+    expression = "contribution",
+    visibility = ["//visibility:public"],
+)

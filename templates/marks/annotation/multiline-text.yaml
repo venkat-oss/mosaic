@@ -1,0 +1,19 @@
+data:
+  annotation_data:
+    type: table
+    query: SELECT * FROM (VALUES (1,2,'First',3.5,90,'https://example.com/image.png'),(2,3,'Second',5.5,180,'https://example.com/other.png')) AS t(x,y,label,value,angle,src)
+plot:
+  - data:
+      from: annotation_data
+    mark: text
+    x: x
+    "y": "y"
+    text: label
+    fontSize: 14
+    textAnchor: start
+    lineAnchor: top
+    lineWidth: 5
+    textOverflow: ellipsis
+    rotate: 15
+width: 360
+height: 220

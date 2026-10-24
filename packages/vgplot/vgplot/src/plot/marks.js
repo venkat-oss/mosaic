@@ -32,7 +32,6 @@ export const dotX = (...args) => mark('dotX', ...args);
 export const dotY = (...args) => mark('dotY', ...args);
 export const circle = (...args) => mark('circle', ...args);
 export const hexagon = (...args) => mark('hexagon', ...args);
-
 export const text = (...args) => mark('text', ...args);
 export const textX = (...args) => mark('textX', ...args);
 export const textY = (...args) => mark('textY', ...args);
@@ -40,12 +39,10 @@ export const ruleX = (...args) => mark('ruleX', ...args);
 export const ruleY = (...args) => mark('ruleY', ...args);
 export const tickX = (...args) => mark('tickX', ...args);
 export const tickY = (...args) => mark('tickY', ...args);
-
 export const vector = (...args) => mark('vector', ...args);
 export const vectorX = (...args) => mark('vectoX', ...args);
 export const vectorY = (...args) => mark('vectorY', ...args);
 export const spike = (...args) => mark('spike', ...args);
-
 export const image = (...args) => mark('image', ...args);
 
 export const densityX = (...args) => explicitType(Density1DMark, 'areaX', ...args);
@@ -89,6 +86,5 @@ export const gridFy = (...args) => mark('gridFy', ...args);
 export const geo = (...args) => implicitType(GeoMark, ...args);
 export const sphere = (...args) => mark('sphere', ...args);
 export const graticule = (...args) => mark('graticule', ...args);
-
 export const waffleX = (...args) => mark('waffleX', ...args);
 export const waffleY = (...args) => mark('waffleY', ...args);
