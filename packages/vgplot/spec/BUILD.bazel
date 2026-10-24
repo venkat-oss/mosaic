@@ -24,6 +24,8 @@ mosaic_package_test(
     },
 )
 
+exports_files(["test/connected-marks.types.ts", "test/statistical-marks.types.ts"])
+
 mosaic_javascript(
     consumer_tests = [":package_test", ":browser_lint"],
     tests = True,
@@ -70,6 +72,8 @@ js_library(
     testonly = True,
     srcs = [
         "playwright.config.js",
+        "test/grid-templates.browser.js",
+        "test/util/grid-browser.js",
     ] + glob(["test/visual*.js", "test/visual*.html", "test/visual*.js-snapshots/**"]),
 )
 

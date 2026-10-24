@@ -409,17 +409,13 @@ Like raster, but with default options for accurate density estimation via smooth
 
 ## Hexbin
 
-The `hexbin` mark bins data into a hexagonal grid and visualizes aggregate functions per bin (e.g., `count` for binned density).
-Hexagonal binning and aggregation are pushed to the backing database.
-Aggregate functions can be used for the mark _fill_, _stroke_, or radius size _r_ options.
+### hexbin
 
-The supported _options_ are:
+`hexbin(data, options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _type_: The mark type to use (default [`hexagon`](#dot))
-- _binWidth_: The hexagon bin width in screen pixels (default `20`)
-- Any options accepted by the mark _type_, including _fill_, _stroke_, _r_.
+A hexbin mark that bins **x** and **y** data into a hexagonal grid and visualizes aggregate functions per bin (e.g., count for binned density). Aggregate functions can be used for fill, stroke, or r (radius) options.
+
+[Options](#hexbin-options).
 
 ## Hexgrid
 
@@ -481,15 +477,18 @@ Like line, except **y** defaults to the identity function and assumes that *data
 
 ## Regression
 
-The `regressionY` mark draws a regression line and optional confidence interval area for a linear regression fit.
-The regression calculation is pushed to the backing database.
+### regressionY
 
-The supported _options_ are:
+`regressionY(data, options)`
 
-- _x_: The x dimension (predictor) encoding channel
-- _y_: The y dimension (predicted) encoding channel
-- _ci_: The confidence level (default `0.95`) to visualize as a confidence band area; use zero or `null` to suppress
-- _precision_: The distance (in pixels) between samples of the confidence band (default `4`)
+A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
+
+The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
+
+Multiple regressions can be produced by specifying a **z**, **fill**, or
+**stroke** channel.
+
+[Options](#regressiony-options).
 
 ## Link
 
@@ -706,6 +705,32 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 **x** channel is not specified, the bar will span the horizontal extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
 
 [Options](#waffley-options).
+
+## Error Bar
+
+### errorbarX
+
+`errorbarX(data, options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbarx-options).
+
+### errorbarY
+
+`errorbarY(data, options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbary-options).
 
 </template>
 
@@ -1109,17 +1134,13 @@ Like raster, but with default options for accurate density estimation via smooth
 
 ## Hexbin
 
-The `hexbin` mark bins data into a hexagonal grid and visualizes aggregate functions per bin (e.g., `count` for binned density).
-Hexagonal binning and aggregation are pushed to the backing database.
-Aggregate functions can be used for the mark _fill_, _stroke_, or radius size _r_ options.
+### hexbin
 
-The supported _options_ are:
+`hexbin(data=None, **options)`
 
-- _x_: The x dimension encoding channel
-- _y_: The y dimension encoding channel
-- _type_: The mark type to use (default [`hexagon`](#dot))
-- _bin_width_: The hexagon bin width in screen pixels (default `20`)
-- Any options accepted by the mark _type_, including _fill_, _stroke_, _r_.
+A hexbin mark that bins **x** and **y** data into a hexagonal grid and visualizes aggregate functions per bin (e.g., count for binned density). Aggregate functions can be used for fill, stroke, or r (radius) options.
+
+[Options](#hexbin-options).
 
 ## Hexgrid
 
@@ -1181,15 +1202,18 @@ Like line, except **y** defaults to the identity function and assumes that *data
 
 ## Regression
 
-The `regression_y` mark draws a regression line and optional confidence interval area for a linear regression fit.
-The regression calculation is pushed to the backing database.
+### regression_y
 
-The supported _options_ are:
+`regression_y(data=None, **options)`
 
-- _x_: The x dimension (predictor) encoding channel
-- _y_: The y dimension (predicted) encoding channel
-- _ci_: The confidence level (default `0.95`) to visualize as a confidence band area; use zero or `null` to suppress
-- _precision_: The distance (in pixels) between samples of the confidence band (default `4`)
+A mark that draws [linear regression](https://en.wikipedia.org/wiki/Linear_regression) lines with confidence bands, representing the estimated relation of a dependent variable (*y*) on an independent variable (*x*).
+
+The linear regression line is fit using the [least squares](https://en.wikipedia.org/wiki/Least_squares) approach. See Torben Jansen’s [“Linear regression with confidence bands”](https://observablehq.com/@toja/linear-regression-with-confidence-bands) and [this StatExchange question](https://stats.stackexchange.com/questions/101318/understanding-shape-and-calculation-of-confidence-bands-in-linear-regression) for details on the confidence interval calculation.
+
+Multiple regressions can be produced by specifying a **z**, **fill**, or
+**stroke** channel.
+
+[Options](#regressiony-options).
 
 ## Link
 
@@ -1406,6 +1430,32 @@ The optional **x** ordinal channel specifies the horizontal position; it is typi
 **x** channel is not specified, the bar will span the horizontal extent of the plot’s frame. Because a waffle represents a discrete number of square cells, it may not use all of the available bandwidth.
 
 [Options](#waffley-options).
+
+## Error Bar
+
+### errorbar_x
+
+`errorbar_x(data=None, **options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*x*), potentially grouped by an independent variable (*y*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleY** mark with specified **x1** and **x2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbarx-options).
+
+### errorbar_y
+
+`errorbar_y(data=None, **options)`
+
+A mark that draws error bars for a calculated parametric confidence interval for a dependent variable (*y*), potentially grouped by an independent variable (*x*).
+
+This mark aggregates raw values to produce a [parametric confidence interval](https://en.wikipedia.org/wiki/Normal_distribution#Confidence_intervals) of the mean, assuming a normal distribution. To instead visualize pre-computed interval values or custom aggregations, use a **ruleX** mark with specified **y1** and **y2** channels.
+
+Multiple error bars can be produced by specifying a **z** or **stroke** channel. Set the **marker** option to `'tick'` to add small perpendicular lines at the start and end of the error interval.
+
+[Options](#errorbary-options).
 
 </template>
 
@@ -2598,3 +2648,108 @@ type GridInterpolate = 'none' | 'linear' | 'nearest' | 'barycentric' | 'random-w
 `raster`: [json](/templates/marks/grid/raster.json) · [yaml](/templates/marks/grid/raster.yaml) · [js](/templates/marks/grid/raster.js) · <a :href="withBase('/templates/marks/grid/raster.py')" download>Python</a>.
 
 JavaScript-only `native-interpolator`: [js](/templates/marks/grid/native-interpolator.js).
+
+## statistical mark options
+
+Options use their wire names below; Python keyword names use snake_case. See [common mark options](../spec/common-marks#markoptions) for shared channels and styles.
+
+### HexbinOptions options
+
+Options for the hexbin mark.
+
+Extends [`DotOptions`](#dotoptions-options), [`TextStyles`](../spec/common-marks#textstyles).
+
+**type** (`'dot' | 'circle' | 'hexagon' | 'text' | ParamRef`) — The basic mark type to use for hex-binned values. Defaults to a hexagon mark; dot and text marks are also supported.
+
+**binWidth** (`number | ParamRef`) — The distance between centers of neighboring hexagons, in pixels; defaults to 20. If also using a hexgrid mark, use matching **binWidth** values.
+
+**z** (`ChannelValue`) — How to subdivide bins. If not specified, defaults to the *fill* channel, if any, or the *stroke* channel, if any. If null, bins will not be subdivided.
+
+### Hexbin options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`HexbinOptions`](#hexbinoptions-options).
+
+
+### RegressionOptions options
+
+Options for regression marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions).
+
+**ci** (`number | ParamRef`) — The confidence interval in (0, 1), or 0 to hide bands; defaults to 0.95.
+
+**precision** (`number | ParamRef`) — The distance in pixels between samples of the confidence band; defaults to 4.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data into (possibly stacked) series, producing an independent regression for each group. If not specified, it defaults to **fill** if a channel, or **stroke** if a channel.
+
+### RegressionYOptions options
+
+Options for the regressionY mark.
+
+Extends [`RegressionOptions`](#regressionoptions-options).
+
+**x** (`ChannelValueSpec`) — The independent variable horizontal position channel, typically bound to the *x* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+**y** (`ChannelValueSpec`) — The dependent variable vertical position channel, typically bound to the
+*y* scale; defaults to identity, assuming that *data* = [*y₀*, *y₁*, *y₂*, …].
+
+### RegressionY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`RegressionYOptions`](#regressionyoptions-options).
+
+
+### ErrorBarOptions options
+
+Options for errorbar marks.
+
+Extends [`MarkOptions`](../spec/common-marks#markoptions), [`MarkerOptions`](../spec/common-marks#markeroptions).
+
+**ci** (`number | ParamRef`) — The confidence interval in (0, 1); defaults to 0.95.
+
+**z** (`ChannelValue`) — An optional ordinal channel for grouping data, producing an independent error bar for each group. If not specified, it defaults to **stroke** if a channel.
+
+### ErrorBarXOptions options
+
+Options for the errorbarX mark.
+
+Extends [`ErrorBarOptions`](#errorbaroptions-options).
+
+**x** (`ChannelValueSpec`) — The dependent variable horizontal position channel, typically bound to the
+*x* scale.
+
+**y** (`ChannelValueSpec`) — The independent variable vertical position channel, typically bound to the *y* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+### ErrorBarX options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ErrorBarXOptions`](#errorbarxoptions-options).
+
+
+### ErrorBarYOptions options
+
+Options for the errorbarY mark.
+
+Extends [`ErrorBarOptions`](#errorbaroptions-options).
+
+**x** (`ChannelValueSpec`) — The independent variable horizontal position channel, typically bound to the *x* scale; defaults to the zero-based index of the data [0, 1, 2, …].
+
+**y** (`ChannelValueSpec`) — The dependent variable vertical position channel, typically bound to the
+*y* scale.
+
+### ErrorBarY options
+
+Extends [`MarkData`](../spec/common-marks#markdata), [`ErrorBarYOptions`](#errorbaryoptions-options).
+
+
+**`hexbin`, `regressionY`, `errorbarX`, `errorbarY`:** These statistical marks use SQL-backed sources. The starters create a small table through the configured Mosaic DuckDB connector. Native JavaScript calls require both the data/source argument and an options object; Python helpers retain their permissive serialization defaults.
+
+**`regressionY`:** The retained regression engine groups by stroke, z, fx, or fy. Fill alone does not create separate regressions. A confidence value of zero hides the band; confidence and precision parameters recompute the existing fit. SQL-backed regression requires explicit x and y fields despite the optional declarative types.
+
+**`errorbarX`, `errorbarY`:** errorbarX computes horizontal confidence bounds and renders ruleY; errorbarY computes vertical bounds and renders ruleX. Bounds use the normal quantile and standard error of the mean. The dependent x or y channel is required.
+
+**`hexbin`:** Hexbin aggregates in screen coordinates and excludes null x/y positions. Its retained constructor supports hexagon, dot, circle, and text. Text without a native text channel displays row indexes. SQL-backed binning requires explicit x and y fields.
+
+**`hexbin`:** Known parameter limitations: a Param type reaches the renderer as an object and throws Plot[type] is not a function; a Param binWidth computes a NaN default radius before unwrapping. An explicit radius avoids that default-radius issue. Confidence and precision parameters on the other statistical marks remain supported.
+
+### statistical examples
+
+`regressionY`: [json](/templates/marks/statistical/regressionY.json) · [yaml](/templates/marks/statistical/regressionY.yaml) · [js](/templates/marks/statistical/regressionY.js) · <a :href="withBase('/templates/marks/statistical/regressionY.py')" download>Python</a>.

@@ -52,12 +52,9 @@ export const contour = (...args) => implicitType(ContourMark, ...args);
 export const heatmap = (...args) => implicitType(HeatmapMark, ...args);
 export const raster = (...args) => implicitType(RasterMark, ...args);
 export const rasterTile = (...args) => implicitType(RasterTileMark, ...args);
-
 export const hexbin = (...args) => implicitType(HexbinMark, ...args);
 export const hexgrid = (...args) => mark('hexgrid', ...args);
-
 export const regressionY = (...args) => implicitType(RegressionMark, ...args);
-
 export const errorbarX = (...args) => explicitType(ErrorBarMark, 'ruleY', ...args);
 export const errorbarY = (...args) => explicitType(ErrorBarMark, 'ruleX', ...args);
 
