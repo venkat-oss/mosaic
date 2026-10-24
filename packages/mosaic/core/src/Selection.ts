@@ -41,7 +41,8 @@ type ResolvedPredicate = MaybeArray<string | boolean | ExprNode> | undefined;
 /**
  * Represents a dynamic set of query filter predicates.
  */
-export class Selection extends Param<SelectionClauseArray> {
+export class Selection extends Param<unknown> {
+  declare protected _value: SelectionClauseArray;
   _resolved: SelectionClauseArray;
   _resolver: SelectionResolver;
   _relay: Set<Selection>;
@@ -96,7 +97,7 @@ export class Selection extends Param<SelectionClauseArray> {
    */
   constructor(resolver = new SelectionResolver(), include: Selection[] = []) {
     super([]);
-    this._resolved = this._value!;
+    this._resolved = this._value;
     this._resolver = resolver;
     this._relay = new Set();
     if (Array.isArray(include)) {
@@ -112,7 +113,7 @@ export class Selection extends Param<SelectionClauseArray> {
    */
   clone(): Selection {
     const s = new Selection(this._resolver);
-    s._value = s._resolved = this._value!;
+    s._value = s._resolved = this._value;
     return s;
   }
 
@@ -150,7 +151,7 @@ export class Selection extends Param<SelectionClauseArray> {
    * The current array of selection clauses.
    */
   get clauses(): SelectionClauseArray {
-    return super.value!;
+    return this._value;
   }
 
   /**
@@ -164,7 +165,6 @@ export class Selection extends Param<SelectionClauseArray> {
    * The value corresponding to the current active selection clause.
    * This method ensures compatibility where a normal Param is expected.
    */
-  // @ts-expect-error return type differs from Param parent class
   get value(): unknown {
     return this.active?.value;
   }
@@ -183,7 +183,6 @@ export class Selection extends Param<SelectionClauseArray> {
    * @param clause The clause representing the potential activation.
    */
   activate(clause: SelectionClause): void {
-    // @ts-expect-error selection operates differently than scalar param
     this.emit('activate', clause);
     this._relay.forEach(sel => sel.activate(clause));
   }
@@ -193,7 +192,6 @@ export class Selection extends Param<SelectionClauseArray> {
    * @param clause The selection clause to add.
    * @returns This Selection instance.
    */
-  // @ts-expect-error selection and param use differing value types
   update(clause: SelectionClause): this {
     // we maintain an up-to-date list of all resolved clauses
     // this ensures consistent clause state across unemitted event values
@@ -227,7 +225,6 @@ export class Selection extends Param<SelectionClauseArray> {
    * @returns For value-typed events, returns the active clause
    *  values. Otherwise returns the input event value as-is.
    */
-  // @ts-expect-error selection and param use differing value types
   willEmit(type: string, value: unknown): unknown {
     if (type === 'value') {
       this._value = value as SelectionClauseArray;
@@ -244,14 +241,13 @@ export class Selection extends Param<SelectionClauseArray> {
    * @returns A dispatch queue filter function. For non-value events,
    *  returns a function that always returns null (no filtering).
    */
-  // @ts-expect-error selection and param use differing value types
   emitQueueFilter(
     type: string,
-    value: SelectionClauseArray
-  ): ((value: SelectionClauseArray) => boolean) | null {
-    return type === 'value'
-      ? this._resolver.queueFilter(value)
-      : null;
+    value: unknown
+  ): ((value: unknown) => boolean) | null {
+    if (type !== 'value' || !Array.isArray(value)) return null;
+    const filter = this._resolver.queueFilter(value);
+    return filter && (queued => Array.isArray(queued) && filter(queued));
   }
 
   /**

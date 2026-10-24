@@ -1,7 +1,38 @@
 import { describe, it, expect } from 'vitest';
-import { clauseNone, clausePoint, Selection } from '../src/index.js';
+import { clauseNone, clausePoint, type Param, Selection } from '../src/index.js';
 
 describe('Selection', () => {
+  it('emits active values and retains queued updates from distinct sources', async () => {
+    const selection = Selection.crossfilter();
+    const parameter: Param<unknown> = selection;
+    const values: unknown[] = [];
+    let release: () => void;
+    const blocked = new Promise<void>(resolve => { release = resolve; });
+    const complete = new Promise<void>(resolve => {
+      parameter.addEventListener('value', async value => {
+        values.push(value);
+        if (values.length === 1) await blocked;
+        if (value === 4) resolve();
+      });
+    });
+    const firstSource = {};
+    const secondSource = {};
+    const second = clausePoint('b', 2, { source: secondSource });
+    const latest = clausePoint('a', 4, { source: firstSource });
+    selection.update(clausePoint('a', 1, { source: firstSource }));
+    selection.update(second);
+    selection.update(clausePoint('a', 3, { source: firstSource }));
+    selection.update(latest);
+    release!();
+    await complete;
+    await parameter.pending('value');
+
+    expect(values).toEqual([1, 2, 4]);
+    expect(parameter.value).toBe(4);
+    expect([...selection.clauses]).toEqual([second, latest]);
+    expect(selection.active).toBe(latest);
+  });
+
   it('can be reset', () => {
     const selection = new Selection();
     const clause = clausePoint('column', 5, { source: {} });

@@ -2,6 +2,8 @@
 
 A `Selection` is a specialized [`Param`](./param) that manages a collection of Boolean-valued predicates that can be used to interactively filter a data source.
 
+In TypeScript, a selection is a `Param<unknown>`: its `value` and value events expose the active clause's value. Use `selection.clauses` for the full clause array, and `selection.update(clause)` to update a selection.
+
 Selections apply a _resolution_ strategy to merge clauses into client-specific predicates:
 
 - The `single` strategy simply includes only the most recent clause.
