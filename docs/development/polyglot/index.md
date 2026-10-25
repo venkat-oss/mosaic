@@ -4,19 +4,24 @@ import NativeCompiler from '../../.vitepress/components/NativeCompiler.vue';
 
 # Native Polyglot SQL architecture
 
-This is the implementation design for replacing Mosaic's SQL AST and SQL renderer
-with Polyglot's native expression tree and compiler. The compiler prerequisite is
-implemented; the runtime migration and additional backend remain in progress. Execute the [work packets](./work-packets.md) in their
-dependency order. The baseline is commit `088a88615a15b4faf5a248d04ed213ea8bad2a3a`.
+Mosaic now uses Polyglot's native expression tree and compiler through the normal
+SQL entry point. The old SQL AST, renderer and temporary adapter are removed from
+the implementation. The bounded PostgreSQL slice, installed downstream
+composition, full repository checks, browsers and docs build pass against the
+current public SDK pin. The final compiler audit still requires quantile and
+quoted-function boundary fixes from the isolated fork, followed by a replacement
+public SDK pin and final checks. See the
+[work packets](./work-packets.md). The migration baseline is commit
+`088a88615a15b4faf5a248d04ed213ea8bad2a3a`.
 
 The destination is one SQL representation, with Mosaic retaining query authoring,
 reactivity and interactive optimizations. DuckDB remains the first fully supported
 execution backend. PostgreSQL is the first additional execution target; other
 dialects remain compiler candidates until exercised against their databases.
 
-The temporary `/native` entry provides the compiler and migrated query path while
-the normal SQL entry retains its existing implementation. This example constructs a
-native expression tree and compiles it in the browser:
+The normal `@uwdata/mosaic-sql` entry exports the native query facade and
+compiler. There is no separate `/native` runtime. This example constructs a native
+expression tree and compiles it in the browser:
 
 <ClientOnly><NativeCompiler /></ClientOnly>
 
@@ -42,12 +47,13 @@ DSL retain their existing responsibilities; this migration replaces the SQL tree
 
 ## What the analysis established
 
-On 2026-10-24 the repository was reparsed with DuckDB **2.0.0** and the
+The migration analysis began on 2026-10-24. Fresh source checks on 2026-10-26
+reparsed the repository with DuckDB **2.0.0** and the
 **Sitting Duck 1.16.0** extension. Queries over `read_ast` output located SQL imports,
 class definitions, clause-field access and custom render methods. CodeGraph and
 direct source inspection supplied relationships and details beyond those queries.
 
-| Current owner | Behavior that must move |
+| Owner before migration | Responsibility |
 | --- | --- |
 | `packages/mosaic/sql/src/ast/`, `visit/`, `init.ts` | Node hierarchy, traversal, cloning, rewriting and global DuckDB renderer |
 | SQL `functions/`, `transforms/`, `load/` | Public authoring semantics and algorithmic query construction |
@@ -95,6 +101,10 @@ WHERE a.type = 'member_expression'
 ORDER BY 1, 2;
 ```
 
+The fresh retirement queries found no temporary SQL imports or legacy private
+clause accesses. The remaining `ParamNode` and `BinTransformNode` declarations
+belong to the visualization specification AST and remain intentionally.
+
 Temporary analysis databases and probes stay outside the repository. They are
 investigation tools, not new build inputs or migration tracking infrastructure.
 
@@ -128,8 +138,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`d75e21fccecd6d7362b263055d957ee711d318c9`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9)
+`4756eded300633541f8bdd7914cb3d4a89f193d7`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -139,8 +149,8 @@ The fork's Rust, WASM, SDK and packaged Node/browser tests pass. Supported
 portability cases also execute against DuckDB 2.0.0 and PostgreSQL 16. Strict
 PostgreSQL compilation rejects unsupported or unresolved operations, including
 non-throwing casts, schema-dependent GROUP BY ALL and unresolved epoch_ms
-overloads. This establishes the compiler boundary; PostgreSQL execution inside
-Mosaic remains P10 work.
+overloads. This establishes the compiler boundary. The Node PostgreSQL connector
+and its real-database tests implement the separately bounded P10 execution path.
 
 ## Representation and compatibility decisions
 
@@ -155,6 +165,10 @@ Mosaic remains P10 work.
   custom `toString(visitor)` extension API in a documented breaking release.
   Preserve useful type names as native aliases where accurate. Do not emulate
   legacy `instanceof` behavior with a second node hierarchy.
+- Preserve scalar SQL string coercion through one shared authoring prototype
+  calling the same native compiler with DuckDB defaults. Native variant keys and
+  serialized payloads stay unchanged; there is no per-node renderer or parallel
+  representation. Explicit contexts still control normal query submission.
 - Keep live `Param`/`Selection` objects and mark metadata in JavaScript-side
   binding registries. Use reserved native parameter placeholders with stable
   binding IDs, resolving scalar values, identifiers and delayed expressions
@@ -185,10 +199,10 @@ compiler extension API. They do not promise source compatibility for consumers
 that subclass `ExprNode` or mutate `_select` and other legacy fields. P01 documents
 the replacement extension API and migration examples before the first slice.
 
-`LegacyInputAdapter` admits existing field/predicate nodes and simple pilot
-SELECT/DESCRIBE queries. Native CTEs, sets, joins, samples and pivots are authored
-directly; complex legacy relational queries retain their existing execution path
-until their consumers migrate. P09 removes this bounded adapter.
+Selections, clauses, inputs, plots and specifications now author native expressions
+directly. The temporary legacy-input adapter and pilot ownership checks are
+deleted. `SqlContext` supplies the execution profile and connection generation; it
+does not manufacture a second set of selection classes.
 
 ## Raw SQL and compilation boundary
 
@@ -232,8 +246,9 @@ and the embedded widget JavaScript bundle 36.72 MB. Local measurements on
 
 Node used five fresh processes; browser cases used three fresh browsers each,
 with warm filesystem caches. Node/browser queries compiled a filtered count/sum;
-the widget fixture compiled a scalar predicate. The actual widget's query path
-moves in P08, so its first compiler call is measured through that fixture.
+the widget fixture compiled a scalar predicate. These P01 figures precede the
+actual widget-query migration completed in P08; the first compiler call in this
+baseline used the fixture.
 Compilation plus the first query against an already initialized DuckDB took
 133.3 ms in Node. An uncompressed WASM transfer over loopback HTTP took 67.9 ms;
 that does not predict an internet download. Widget timings exclude notebook
@@ -276,33 +291,34 @@ scalar/filter/group/order queries, metadata and documented preaggregation behavi
 Other features either have tested lowerings or fail before execution. A dialect
 name advertised by Polyglot does not establish complete Mosaic backend support.
 
-## Transition and retirement
+## Runtime and retirement
 
-Only one internal native pilot path and one one-way legacy-input adapter are
-allowed while slices migrate. Native pilot coordinators use native clause
-construction and isolated Selection graphs; native fields never reach legacy
-clause helpers. The adapter normalizes an explicitly admitted legacy clause once,
-using a context-owned memo shared by its fields, predicate and query consumers.
-It never converts native queries back to legacy trees or renders/reparses generated
-SQL. Existing clients remain on the old path until their slice moves. Native
-failures do not retry through the old compiler.
+The normal SQL package contains the native implementation. The legacy SQL
+`ast/`, renderer visitors, global initialization, duplicate traversal workers and
+temporary `/native` export are removed. Visualization AST classes remain because
+they describe charts and specifications rather than SQL compiler nodes.
 
-P02 introduces this boundary; later families author native trees directly.
-P09 removes the boundary and every legacy SQL representation. P03 enables native
-consolidation using structural keys, a shared submission snapshot and captured
-SQL/context cache keys. Unsupported grouping shapes use the original native
-query. The existing consolidator branch still serves unmigrated clients and is
-deleted in P09. P04 enables native DuckDB preaggregation with semantic aggregate
-and window factories, scoped lineage and submission-time scalar snapshots.
-Unsafe nested grouping, deduplication or filter boundaries run their original
-native queries. Materialization failures also fall back through the native path.
-The legacy preaggregator branches remain for unmigrated clients until P09.
+Core uses native structural keys, binding-aware scoped analysis and one snapshot
+per submitted query or consolidation group. Consolidation retains each original
+query's cache identity; a fully cached group does not reach the connector.
+Preaggregation uses semantic aggregate/window factories and the same execution
+context. Unsafe nested grouping, deduplication or filter boundaries execute the
+original native query. Materialization failures also fall back through that path.
 
-Per-slice packets identify code to delete immediately and shared code whose final
-owner is P09. Keep behavior tests; remove temporary comparisons and tests whose
-only purpose was asserting the old representation. Use ordinary source diffs,
-Bazel checks and these documents. No receipts, seals, progress registries,
-generated migration manifests or additional status systems are needed.
+The Node PostgreSQL connector declares its dialect, owns its sessions and returns
+Arrow IPC. Backend selection sets the target dialect and default preaggregation
+policy; PostgreSQL preaggregation is initially unsupported. Connector replacement
+increments the generation and clears pending reads and optimization state. The
+[connector guide](../../api/core/postgres.md) documents its tested boundary.
+
+Installed downstream tests exercise scalar string coercion, chart queries and
+actual component selection updates with Embedding Atlas 0.26. The repository
+build, protocol, browser and documentation checks pass against the current public
+SDK archive. The final compiler boundary fixes must still be published, pinned
+and checked before closing the migration.
+ Keep behavior tests and
+remove comparison-only fixtures. Use ordinary source diffs, Bazel checks and
+these documents without a separate migration tracking system.
 
 ## Sources
 

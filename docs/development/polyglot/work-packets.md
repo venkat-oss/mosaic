@@ -1,18 +1,24 @@
 # Native Polyglot implementation packets
 
-These packets implement the [target architecture](./index.md). P00 is complete
-on the isolated private Polyglot branch `mosaic-native-ast` at
-`d75e21fccecd6d7362b263055d957ee711d318c9`. Its built SDK is distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9); Polyglot source remains private.
-P01–P07 implement compiler loading, the reactive Slider slice, relational queries,
-consolidation, aggregates, windows, native DuckDB preaggregation and plot,
-collection, loading and spatial consumers. Installed SQL/core consumers execute
-these paths against DuckDB and Arrow. Startup
-measurements are recorded in the architecture. Mosaic's default SQL runtime still
-uses its existing implementation. Native plots execute histograms, connected-line
-M4, density, statistical, grid, raster and geographic queries through metadata,
-selection, Arrow and rendering. P08–P10 remain: expression/spec/input/widget
-integration, the default switch, compiler retirement and the PostgreSQL connector.
+These packets implement the [target architecture](./index.md). Mosaic's
+P01–P10 integrations are implemented: native compilation, reactive selections,
+consolidation, preaggregation, plot/input families, raw expression ingress,
+specifications, Python serialization, widget execution and the Node PostgreSQL
+backend.
+
+P09's legacy SQL AST, renderer, adapter and pilot branches are deleted. Installed
+Embedding Atlas composition, repository checks, real PostgreSQL 18.6 execution,
+matching-container browser suites and the docs build pass against the current
+public SDK pin. The final P00/P08 compiler audit uncovered discrete-quantile and
+quoted-function boundary issues in the fork. Complete those fixes, publish and
+pin the replacement compiled SDK, then run the final affected checks before
+closing the migration goal.
+
+Mosaic pins the compiled SDK from isolated private Polyglot revision
+`4756eded300633541f8bdd7914cb3d4a89f193d7`, distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7).
+Polyglot source remains private. Startup measurements in the architecture record
+the earlier P01 baseline rather than the current artifact.
 
 Each packet includes its runtime consumer, meaningful tests, documentation and
 deletion work. Use normal source changes and reviewable commits. Do not create a
@@ -46,6 +52,9 @@ New file and target names below are proposed implementation locations. Existing
 commands are identified separately from targets that a packet must add.
 
 ## Shared implementation rules
+
+The temporary boundaries below describe the implemented migration order. P09
+removes them; do not recreate the `/native` export or legacy adapter.
 
 - The normal `@uwdata/mosaic-sql` API stays on its current implementation until
   P09. P01 introduces a temporary declared `/native` compiler entry; P02 extends
@@ -458,6 +467,8 @@ DuckDB runtime engines, extension setup or published schema history.
 
 ## P08 — Expression ingress, specifications, Python and widgets
 
+Implemented. The default-path retirement belongs to P09.
+
 **Owners:** SQL `functions/{sql-template-tag,literal}.ts`, native raw-input parsing;
 spec `ast/{ExpressionNode,TransformNode,WindowFrameNode}.js` and expression/config
 adapters; remaining Menu/Search/Table input query paths; widget `src/index.js`;
@@ -505,6 +516,10 @@ Preserve visualization AST classes and Python serialization/runtime modules.
 
 ## P09 — Switch the default and delete the superseded compiler
 
+The native default, retirement, installed downstream composition and repository
+checks pass against the current public SDK. The replacement compiler artifact
+from the final P00/P08 audit still needs its final pin and checks.
+
 **Owners:** SQL public entry points/types, core submission/clause types, remaining
 legacy-input sites, shared generated exports, native targets and migration guide.
 This is a breaking compiler-extension release with high-level authoring preserved.
@@ -549,6 +564,13 @@ container, and `pnpm docs:build`. Rebuild/check generated artifacts using their
 normal commands. The four DuckDB server implementations retain their behavior.
 
 ## P10 — Execute one additional database backend
+
+The package checks, installed connector consumer and real PostgreSQL 18.6
+integration test pass against the public SDK archive. The integration covers
+rendered Table selection updates, aggregates/windows/QUALIFY, live scalar and
+identifier parameters, microsecond timestamps, exact decimals, conservative
+nullability, cancellation, isolated sessions and cleanup. Final repository-wide
+validation remains part of closing the migration.
 
 **Owners:** a new Node-only PostgreSQL adapter under `packages/server/postgres/`,
 a declared optional Node connector entry alongside the existing Node DuckDB
