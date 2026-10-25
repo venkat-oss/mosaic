@@ -47,9 +47,9 @@ export class ExpressionNode extends ASTNode {
     let str = '';
     const n = params.length;
     for (let i = 0; i < n; ++i) {
-      str += spans[i] + '${' + params[i].codegen(ctx) + '}';
+      str += templateSpan(spans[i]) + '${' + params[i].codegen(ctx) + '}';
     }
-    str += spans[n];
+    str += templateSpan(spans[n]);
 
     return `${ctx.ns()}${SQL}\`${str}\``;
   }
@@ -57,4 +57,8 @@ export class ExpressionNode extends ASTNode {
   toJSON() {
     return { [SQL]: this.value };
   }
+}
+
+function templateSpan(value) {
+  return value.replaceAll('\\', '\\\\').replaceAll('`', '\\`').replaceAll('${', '\\${');
 }

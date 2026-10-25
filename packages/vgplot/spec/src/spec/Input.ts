@@ -58,7 +58,7 @@ export interface Menu {
 
 
 /**
- * A search input component.
+ * A case-insensitive text search input component.
  */
 export interface Search {
   /**

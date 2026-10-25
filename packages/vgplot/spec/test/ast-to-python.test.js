@@ -11,6 +11,16 @@ import { parseSpec } from '../src/index.js';
 const ast = json => ({ toJSON: () => json });
 
 describe('astToPython literals', () => {
+  it('round trips raw SQL, identifier parameters and window frames through Python', async () => {
+    const parsed = await validatedAST({
+      params: { field: 'x', offset: 2 },
+      plot: [{ mark: 'dot', data: { from: 'rows' },
+        x: { sql: "$$field + $offset + length('a` ${literal} \\ c')" },
+        y: { avg: 'x', orderby: 'x', rows: [1, 0] } }]
+    });
+    expect(pythonJSON(parsed)).toEqual(parsed.toJSON());
+  });
+
   it('round trips quotes, backslashes and control characters through Python', () => {
     const parsed = parseSpec({
       input: 'menu',
@@ -142,7 +152,7 @@ describe('astToPython transforms', () => {
   });
 });
 
-const validateSpec = readFile(new URL('../dist/mosaic-schema.json', import.meta.url), 'utf8').then(text => {
+const validateSpec = await readFile(new URL('../dist/mosaic-schema.json', import.meta.url), 'utf8').then(text => {
   const validator = new Ajv({ strict: false });
   addFormats.default(validator);
   return validator.compile(JSON.parse(text));

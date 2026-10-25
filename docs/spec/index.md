@@ -61,14 +61,9 @@ The `parseSpec()` method parses a specification in JSON format into an _abstract
 
 Given a parsed AST, the generator method `astToDOM()` instantiates a running web application, returning Mosaic-backed Document Object Model (DOM) elements that can be added to a web page.
 
-The API context supplies the data loaders used during instantiation. To use the
-native SQL preview, pass `astToDOM(ast, { api: createAPIContext({ coordinator }) })`
-with a coordinator that owns a `NativeSqlContext`. Table-query definitions are
-parsed into native queries, and file and inline-object definitions use the
-[native loaders](/api/sql/data-loading). Relative file paths still resolve
-against `baseURL`, and required DuckDB extensions load before the datasets.
-Generated JavaScript calls `createTable` through its API namespace so table
-setup follows the runtime context as well.
+The API context supplies the data loaders used during instantiation. To use the native SQL preview, pass `astToDOM(ast, { coordinator })` with a coordinator that owns a `NativeSqlContext`. Table-query definitions are parsed into native queries, and file and inline-object definitions use the [native loaders](/api/sql/data-loading). Relative file paths still resolve against `baseURL`, and required DuckDB extensions load before the datasets. Generated JavaScript calls `createTable` through its API namespace so table setup follows the runtime context as well.
+
+SQL expressions and window frames also use that context. In an expression such as `{ sql: "$$field + $offset" }`, `$$field` binds a live column name and `$offset` binds a live scalar value. The JSON/YAML specification and Python authoring syntax remain the same; JavaScript instantiation parses SQL into the native tree. Selections created by the specification belong to its coordinator.
 
 Meanwhile, the `astToESM()` method instead generates JavaScript code, in the form of an ECMAScript Module (ESM), that uses the `vgplot` API. The JavaScript code listed in the examples above was generated using this method, and `astToPython()` similarly generates equivalent Python code for the [`vgplot` Python API](/vgplot/?lang=python).
 

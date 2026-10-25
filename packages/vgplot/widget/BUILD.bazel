@@ -5,6 +5,7 @@ load("@npm//:eslint/package_json.bzl", eslint_bin = "bin")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//packages/vgplot/widget:esbuild/package_json.bzl", esbuild_bin = "bin")
 load("//build/python:widget.bzl", "mosaic_widget_python")
+load("@rules_python//python:py_binary.bzl", "py_binary")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -24,6 +25,7 @@ js_run_binary(
         ":node_modules/@polyglot-sql/sdk",
         ":node_modules/@uwdata/mosaic-core",
         ":node_modules/@uwdata/mosaic-spec",
+        ":node_modules/@uwdata/mosaic-sql",
         ":node_modules/uuid",
     ],
     args = [
@@ -43,6 +45,22 @@ js_run_binary(
 )
 
 mosaic_widget_python(bundle = ":bundle")
+
+py_binary(
+    name = "wheel_browser_asset_extractor",
+    testonly = True,
+    srcs = ["test/wheel_asset.py"],
+    main = "test/wheel_asset.py",
+)
+
+genrule(
+    name = "wheel_browser_asset",
+    testonly = True,
+    srcs = [":wheel"],
+    outs = ["wheel-browser.js"],
+    cmd = "$(execpath :wheel_browser_asset_extractor) $(location :wheel) $@",
+    tools = [":wheel_browser_asset_extractor"],
+)
 
 js_run_binary(
     name = "compiler_browser_bundle",
@@ -73,13 +91,13 @@ js_test(
     timeout = "long",
     entry_point = "browser-tests.mjs",
     args = [
-        "$(rlocationpath :mosaic_widget/static/index.js)",
+        "$(rlocationpath :wheel-browser.js)",
         "$(rlocationpath :compiler-browser.js)",
     ],
-    data = [":mosaic_widget/static/index.js", ":compiler-browser.js", "//:node_modules/@playwright/test"],
+    data = [":wheel-browser.js", ":compiler-browser.js", "test/render.js", "//:node_modules/@playwright/test", "//packages/server/duckdb:sources"],
     env = {"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"},
     exec_properties = {"container-image": "docker://" + PLAYWRIGHT_IMAGE},
-    tags = ["requires-browser"],
+    tags = ["requires-browser", "requires-network"],
     visibility = ["//visibility:public"],
 )
 
@@ -103,7 +121,7 @@ ts_project(
     root_dir = ".",
     tsc = "//:tsc",
     supports_workers = 0,
-    deps = [":node_modules/@polyglot-sql/sdk", ":node_modules/@uwdata/mosaic-core", ":node_modules/@uwdata/mosaic-spec", ":node_modules/anywidget", ":node_modules/uuid"],
+    deps = [":node_modules/@polyglot-sql/sdk", ":node_modules/@uwdata/mosaic-core", ":node_modules/@uwdata/mosaic-spec", ":node_modules/@uwdata/mosaic-sql", ":node_modules/anywidget", ":node_modules/uuid"],
 )
 
 js_library(

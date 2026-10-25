@@ -102,11 +102,10 @@ describe('parameter parser and retained runtime', () => {
     expect(expression.toJSON()).toEqual({ sql: "$$field + $offset + length('$ignored')" });
   });
 
-  it('preserves the existing direct column-reference JSON method interpolation defect', () => {
+  it('serializes direct column references using the identifier parameter syntax', () => {
     const node = new ColumnParamRefNode(new ParamRefNode('field'));
     expect(node.codegen(new CodegenContext)).toBe('vg.column($field)');
-    expect(node.toJSON()).toMatch(/^\$toJSON\(\) \{\s+return .*toParamRef.*\(this\.name\);\s+\}$/);
-    expect(node.toJSON()).not.toBe('$$field');
+    expect(node.toJSON()).toBe('$$field');
   });
 
   it('uses caller supplied parameter identities and keeps parser contexts local', async () => {

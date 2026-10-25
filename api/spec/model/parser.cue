@@ -35,7 +35,8 @@ parserAPIs: [...#ParserAPI] & [
 		asynchronous: true
 		description:  "Load data, instantiate parameters and selections, and create the running application as DOM content using the supplied vgplot API context."
 		options: [
-			{name: "api", type: "API context", default: "createAPIContext()", description: "API context providing the coordinator, named plots and extension methods. The default context uses the global coordinator and a fresh named-plots map."},
+			{name: "coordinator", type: "Coordinator | undefined", default: "undefined", description: "Coordinator used to create the API context when api is omitted. If neither is supplied, the global coordinator is used. A supplied api takes precedence."},
+			{name: "api", type: "API context", default: "createAPIContext({coordinator})", description: "API context providing the coordinator, named plots and extension methods. The default context uses the supplied or global coordinator and a fresh named-plots map."},
 			{name: "params", type: "Map<string, Param | Selection>", default: "new Map()", description: "Live instances to reuse across specifications. Definitions whose names are already present do not replace the supplied instances."},
 			{name: "baseURL", type: "string | null", default: "null", description: "Base URL used when loading data files."},
 		]

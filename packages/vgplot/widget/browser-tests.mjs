@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { chromium } from '@playwright/test';
+import { DuckDB } from '../../server/duckdb/src/index.js';
+import { exerciseWidget } from './test/render.js';
 
 const root = process.env.RUNFILES_DIR || process.env.JS_BINARY__RUNFILES;
 const [widgetPath, compilerPath] = process.argv.slice(2);
@@ -14,7 +16,10 @@ const server = createServer((request, response) => {
 });
 await new Promise(done => server.listen(0, '127.0.0.1', done));
 const browser = await chromium.launch();
+const database = new DuckDB(':memory:', {}, 'INSTALL nanoarrow FROM community; LOAD nanoarrow');
+let databaseQueue = Promise.resolve();
 try {
+  await database._init;
   for (const [source, kind] of [[widget, 'widget'], [compiler, 'compiler']]) {
     const page = await browser.newPage();
     const errors = [];
@@ -67,6 +72,47 @@ try {
     }
   }
 
+  const rendered = await browser.newPage();
+  const renderErrors = [];
+  rendered.on('pageerror', error => renderErrors.push(error.message));
+  await rendered.exposeFunction('widgetQuery', query => {
+    const response = databaseQueue.then(async () => {
+      if (query.type === 'exec') {
+        await database.exec(query.sql);
+        return {};
+      }
+      const buffers = await database.arrowBuffer(query.sql);
+      assert.equal(buffers.length, 1);
+      return { bytes: Array.from(buffers[0]) };
+    });
+    databaseQueue = response.catch(() => {});
+    return response;
+  });
+  try {
+    await rendered.goto(`http://127.0.0.1:${server.address().port}`);
+    const result = await rendered.evaluate(exerciseWidget, widget);
+    assert.deepEqual(result.initial, { rows: 3, x: [1, 2, 3], predicate: '', ownParam: 7, isolated: true });
+    assert.deepEqual(result.filtered, { rows: 1, circles: 1, rowsInOtherWidget: 3 });
+    assert.deepEqual(await database.query(`SELECT count(*) AS n FROM widget_first WHERE ${result.predicate}`), [{ n: '1' }]);
+    assert.equal(result.empty, '');
+    assert.notEqual(result.activeScalarPredicate, result.predicate);
+    assert.match(result.activeScalarPredicate, /\+\s*2/);
+    assert.deepEqual(await database.query(`SELECT count(*) AS n FROM widget_first WHERE ${result.activeIdentifierPredicate}`), [{ n: '0' }]);
+    assert.equal(result.activeIdentifierRows, 0);
+    assert.deepEqual(result.bindings, { x: 62, rows: 1, otherX: 1 });
+    assert.deepEqual(result.cleanup, { handlers: 0, unchanged: true });
+    assert.equal(result.otherRows, 1);
+    assert.deepEqual(result.repeated, { rows: 3, aExecutions: 2, bExecutions: 0, saves: 1 });
+    assert.deepEqual(result.replacement, { rows: 1, x: 101, oldDisconnected: true });
+    assert.deepEqual(result.recovered, { failures: 1, rows: 3 });
+    assert.deepEqual(result.finalHandlers, [0, 0, 0, 0]);
+    assert.equal(result.closedBeforeRender, true);
+    assert.ok(result.padded > 0);
+    assert.deepEqual(renderErrors, []);
+  } finally {
+    await rendered.close();
+  }
+
   const page = await browser.newPage();
   try {
     await page.goto(`http://127.0.0.1:${server.address().port}`);
@@ -99,5 +145,7 @@ try {
   }
 } finally {
   await browser.close();
+  await databaseQueue;
+  database.close();
   await new Promise(done => server.close(done));
 }

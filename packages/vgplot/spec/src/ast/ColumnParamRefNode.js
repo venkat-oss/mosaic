@@ -16,6 +16,6 @@ export class ColumnParamRefNode extends ASTNode {
   }
 
   toJSON() {
-    return `$${this.param.toJSON}`;
+    return `$${this.param.toJSON()}`;
   }
 }

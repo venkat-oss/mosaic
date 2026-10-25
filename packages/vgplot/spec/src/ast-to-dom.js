@@ -60,9 +60,11 @@ export class InstantiateContext {
    * @param {any[]} [options.plotDefaults] Array of default plot attributes.
    * @param {Map<string, Param>} [options.params] A map of predefined Params/Selections.
    * @param {ReturnType<typeof createAPIContext>} [options.api] The context to be used for vgplot API methods.
+   * @param {import('@uwdata/mosaic-core').Coordinator} [options.coordinator] The coordinator to use when creating an API context.
    */
   constructor({
-    api = createAPIContext(),
+    coordinator = undefined,
+    api = createAPIContext({ coordinator }),
     plotDefaults = [],
     params = new Map,
     baseURL = null

@@ -1,4 +1,3 @@
-import { WindowFrameNode as WindowFrame } from '@uwdata/mosaic-sql';
 import { WINDOW_FRAME } from '../constants.js';
 import { FRAME_KINDS } from '../generated/window.js';
 import { isObject, paramRef } from '../util.js';
@@ -36,7 +35,8 @@ export class WindowFrameNode extends ASTNode {
     const ex = Array.isArray(extent)
       ? extent.map(v => v.instantiate(ctx))
       : extent.instantiate(ctx);
-    return new WindowFrame(type, ex, exclude?.toUpperCase());
+    const fn = FRAME_KINDS.find(frame => frame.type === type).javascript;
+    return ctx.api[fn](ex, exclude?.toUpperCase());
   }
 
   codegen(ctx) {

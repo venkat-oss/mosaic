@@ -1,5 +1,6 @@
 import './compiler.js';
-import { coordinator, isSelection } from '@uwdata/mosaic-core';
+import { Coordinator, NativeSqlContext, isSelection } from '@uwdata/mosaic-core';
+import { and, isExpression } from '@uwdata/mosaic-sql/native';
 import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 import './style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,159 +10,144 @@ import { v4 as uuidv4 } from 'uuid';
  *
  * @typedef Model
  * @property {import('@uwdata/mosaic-spec').Spec} spec
- *  The current Mosaic specification.
- * @property {string} preagg_schema The database schema in which to store
- *  pre-aggregated materialized views (default 'mosaic').
- * @property {Params} params The current params.
+ * @property {string} preagg_schema
+ * @property {Params} params
  */
 
 /** @type {import('anywidget/types').AnyWidget<Model>} */
 export default {
-  initialize(view) {
-    view.model.set('preagg_schema', coordinator().preaggregator.schema);
-  },
-
   render(view) {
     view.el.classList.add('mosaic-widget');
-    const getSpec = () => view.model.get('spec');
-    const getPreaggSchema = () => view.model.get('preagg_schema');
-    const logger = coordinator().logger();
-
-    /** @type Map<string, {query: Record<any, unknown>, startTime: number, resolve: (value: any) => void, reject: (reason?: any) => void}> */
+    const native = new NativeSqlContext();
+    let disposed = false;
+    /** @type {Promise<Awaited<ReturnType<typeof astToDOM>> | null> | undefined} */
+    let pending;
+    /** @type {Array<() => void>} */
+    let paramListeners = [];
+    /** @type {Map<string, {query: import('@uwdata/mosaic-core').ConnectorQueryRequest, startTime: number, resolve: (value: any) => void, reject: (reason?: any) => void}>} */
     const openQueries = new Map();
-
-    /**
-     * @param {Record<any, unknown>} query the query to send
-     * @param {(value: any) => void} resolve the promise resolve callback
-     * @param {(reason?: any) => void} reject the promise reject callback
-     */
-    function send(query, resolve, reject) {
-      const uuid = uuidv4();
-
-      openQueries.set(uuid, {
-        query,
-        startTime: performance.now(),
-        resolve,
-        reject,
-      });
-      view.model.send({ ...query, uuid });
-    }
+    const canceled = () => new DOMException('Widget query canceled.', 'AbortError');
 
     /** @type {import('@uwdata/mosaic-core').Connector} */
     const connector = {
-      query(query) {
-        return new Promise((resolve, reject) => send(query, resolve, reject));
-      },
-    };
-
-    function reset() {
-      coordinator().clear();
-    }
-
-    /**
-     * Serialize a selection's resolved predicate — a single expression or an
-     * implicitly conjunctive array — to a SQL string.
-     * @param {import('@uwdata/mosaic-core').Selection<import('@uwdata/mosaic-core').SelectionExpression>} selection
-     * @returns {string}
-     */
-    function predicateSQL(selection) {
-      if (selection.owner !== null) {
-        throw new TypeError('Widget predicate export requires a selection from the default SQL API.');
-      }
-      const predicate = selection.predicate(undefined) ?? [];
-      const parts = (Array.isArray(predicate) ? predicate : [predicate]).map(String);
-      return parts.length > 1 ? parts.map(s => `(${s})`).join(' AND ') : (parts[0] ?? '');
-    }
-
-    let appliedSpecJSON;
-
-    async function updateSpec() {
-      const spec = getSpec();
-      const specJSON = JSON.stringify(spec);
-      if (specJSON === appliedSpecJSON) return;
-      appliedSpecJSON = specJSON;
-      reset();
-      logger.log('Setting spec:', spec);
-      const dom = await instantiateSpec(spec);
-      view.el.replaceChildren(dom.element);
-
-      /** @type Params */
-      let params = {};
-
-      for (const [name, param] of dom.params) {
-        params[name] = {
-          value: param.value,
-          ...(isSelection(param) ? { predicate: predicateSQL(param) } : {}),
-        };
-
-        param.addEventListener('value', (value) => {
-          params = Object.freeze({
-            ...params,
-            [name]: {
-              value,
-              ...(isSelection(param) ? { predicate: predicateSQL(param) } : {})
-            }
-          })
-          view.model.set('params', params);
-          view.model.save_changes();
+      /** @param {import('@uwdata/mosaic-core').ConnectorQueryOptions} [options] */
+      query(query, options = {}) {
+        const { signal } = options;
+        if (disposed || signal?.aborted) return Promise.reject(signal?.reason ?? canceled());
+        return new Promise((resolve, reject) => {
+          const uuid = uuidv4();
+          const settle = (callback, value) => {
+            if (!openQueries.delete(uuid)) return;
+            signal?.removeEventListener('abort', abort);
+            callback(value);
+          };
+          const abort = () => entry.reject(signal?.reason ?? canceled());
+          const entry = {
+            query, startTime: performance.now(),
+            resolve: value => settle(resolve, value),
+            reject: error => settle(reject, error)
+          };
+          openQueries.set(uuid, entry);
+          signal?.addEventListener('abort', abort, { once: true });
+          try { view.model.send({ ...query, uuid }); }
+          catch (error) { entry.reject(error); }
         });
       }
-
-      params = Object.freeze(params);
-      view.model.set('params', params);
-      view.model.save_changes();
-    }
-
-    view.model.on('change:spec', () => updateSpec());
-
-    function configureCoordinator() {
-      coordinator().preaggregator.schema = getPreaggSchema();
-    }
-
-    view.model.on('change:preagg_schema', () => configureCoordinator());
-
-    view.model.on('msg:custom', (msg, buffers) => {
-      logger.group(`query ${msg.uuid}`);
-      logger.log('received message', msg, buffers);
-
-      const query = openQueries.get(msg.uuid);
-      openQueries.delete(msg.uuid);
-
-      logger.log(query.query.sql, (performance.now() - query.startTime).toFixed(1));
-
-      if (msg.error) {
-        query.reject(msg.error);
-        logger.error(msg.error);
-      } else {
-        switch (msg.type) {
-          case 'arrow': {
-            logger.log('arrow bytes', buffers[0].buffer.byteLength);
-            query.resolve(buffers[0].buffer);
-            break;
-          }
-          default: {
-            query.resolve({});
-            break;
-          }
-        }
-      }
-      logger.groupEnd();
-    });
-
-    coordinator().databaseConnector(connector);
+    };
+    const coordinator = new Coordinator(connector, { native });
+    const logger = coordinator.logger();
+    if (!view.model.get('preagg_schema')) view.model.set('preagg_schema', coordinator.preaggregator.schema);
+    const configureCoordinator = () => { coordinator.preaggregator.schema = view.model.get('preagg_schema'); };
     configureCoordinator();
+
+    /** @param {Awaited<ReturnType<typeof astToDOM>>['params']} params */
+    function serializeParams(params) {
+      /** @type {import('@uwdata/mosaic-sql/native').SqlRoot[]} */
+      const roots = [];
+      const active = [];
+      const entries = Array.from(params, ([name, param]) => {
+        if (!isSelection(param)) return [name, { value: param.value }];
+        if (param.owner !== native) throw new TypeError('Widget predicate export requires its own native SQL context.');
+        const predicate = param.predicate(undefined);
+        const predicates = (Array.isArray(predicate) ? predicate : [predicate]).filter(value => value != null);
+        if (!predicates.every(isExpression)) throw new TypeError('Widget predicates require native SQL expressions.');
+        const entry = { value: param.value, predicate: '' };
+        if (predicates.length) {
+          active.push(entry);
+          roots.push(and(predicates));
+        }
+        return [name, entry];
+      });
+      const statements = native.compileBatch(roots);
+      if (statements.length !== active.length) throw new Error('Widget predicate compilation must produce one expression per selection.');
+      statements.forEach((statement, index) => { active[index].predicate = statement; });
+      return Object.freeze(Object.fromEntries(entries));
+    }
+
+    const detachParams = () => { paramListeners.forEach(remove => remove()); paramListeners = []; };
+    let requestedSpecJSON;
+    function updateSpec() {
+      if (disposed) return;
+      const spec = view.model.get('spec');
+      const serialized = JSON.stringify(spec);
+      if (serialized === requestedSpecJSON) return;
+      requestedSpecJSON = serialized;
+      detachParams();
+      coordinator.clear();
+      const request = Promise.resolve().then(() => pending === request && !disposed
+        ? astToDOM(parseSpec(spec), { coordinator }) : null);
+      pending = request;
+      request.then(dom => {
+        if (!dom || disposed || pending !== request) return;
+        view.el.replaceChildren(dom.element);
+        const publish = () => {
+          if (disposed || pending !== request) return;
+          view.model.set('params', serializeParams(dom.params));
+          view.model.save_changes();
+        };
+        for (const param of dom.params.values()) {
+          param.addEventListener('value', publish);
+          paramListeners.push(() => param.removeEventListener('value', publish));
+        }
+        publish();
+      }).catch(error => {
+        if (disposed || pending !== request) return;
+        requestedSpecJSON = undefined;
+        logger.error(error);
+      });
+    }
+
+    function receive(msg, buffers) {
+      const query = openQueries.get(msg.uuid);
+      if (!query) return;
+      logger.group(`query ${msg.uuid}`);
+      logger.log(query.query.sql, (performance.now() - query.startTime).toFixed(1));
+      if (msg.error) {
+        query.reject(new Error(msg.error));
+        logger.error(msg.error);
+      } else if (msg.type === 'arrow') {
+        const buffer = buffers?.[0];
+        if (buffer instanceof ArrayBuffer) query.resolve(buffer);
+        else if (ArrayBuffer.isView(buffer)) query.resolve(new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength));
+        else query.reject(new TypeError('Widget Arrow response requires a binary buffer.'));
+      } else query.resolve(undefined);
+      logger.groupEnd();
+    }
+
+    view.model.on('change:spec', updateSpec);
+    view.model.on('change:preagg_schema', configureCoordinator);
+    view.model.on('msg:custom', receive);
     updateSpec();
 
     return () => {
-      // cleanup
-      reset();
+      disposed = true;
+      pending = undefined;
+      detachParams();
+      view.model.off('change:spec', updateSpec);
+      view.model.off('change:preagg_schema', configureCoordinator);
+      view.model.off('msg:custom', receive);
+      coordinator.clear();
+      for (const query of openQueries.values()) query.reject(canceled());
     };
-  },
+  }
 };
-
-function instantiateSpec(spec) {
-  // parse specification, and instantiate it
-  // astToDOM creates a new vgplot API context with the
-  // standard coordinator and a custom namedPlots map
-  return astToDOM(parseSpec(spec));
-}

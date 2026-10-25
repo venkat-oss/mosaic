@@ -39,6 +39,12 @@ The widget constructor take three arguments which are all optional.
 
 A widget has a `spec` traitlet that can be used to set the Mosaic specification. A widget automatically updates when the specification changes. A widget also has a `params` traitlet, which updates automatically with params in the widget. The params are a dictionary from parameter name to the current `value` of the parameter and the `predicate` which can be used as the WHERE clause in a SQL query.
 
+Each frontend view owns its coordinator, so separate widgets keep their queries
+and selections independent. Specifications create native Polyglot SQL trees in
+the browser; queries and exported selection predicates compile with the view's
+DuckDB context and current parameter values. The kernel connection and
+`widget.data()` remain backed by DuckDB.
+
 ## Example
 
 In this example, we create a Mosaic plot over the Seattle weather dataset. This will render [an interactive view of Seattle’s weather, including maximum temperature, amount of precipitation, and type of weather](/examples/weather.html). You can try a live example on [Google Colab](https://colab.research.google.com/drive/1Txy6L_of8_lJFImKEkhUCqZX70yKpYnv#scrollTo=leuzblN47K-T&line=1&uniqifier=1).

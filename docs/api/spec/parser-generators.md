@@ -64,7 +64,8 @@ The supported options are:
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `api` | `API context` | `createAPIContext()` | API context providing the coordinator, named plots and extension methods. The default context uses the global coordinator and a fresh named-plots map. |
+| `coordinator` | `Coordinator \| undefined` | `undefined` | Coordinator used to create the API context when api is omitted. If neither is supplied, the global coordinator is used. A supplied api takes precedence. |
+| `api` | `API context` | `createAPIContext({coordinator})` | API context providing the coordinator, named plots and extension methods. The default context uses the supplied or global coordinator and a fresh named-plots map. |
 | `params` | `Map<string, Param \| Selection>` | `new Map()` | Live instances to reuse across specifications. Definitions whose names are already present do not replace the supplied instances. |
 | `baseURL` | `string \| null` | `null` | Base URL used when loading data files. |
 
