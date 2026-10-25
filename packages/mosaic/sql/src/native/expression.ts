@@ -16,15 +16,19 @@ export function asNode(value: unknown): SqlExpression {
 }
 
 export function asLiteral(value: unknown): SqlExpression {
+  return expressionValue(value, new Set());
+}
+
+function expressionValue(value: unknown, ancestors: Set<object>): SqlExpression {
   if (syntax.isExpressionValue(value)) return isQueryExpression(value) ? native.subquery(value) : value;
   if (isExpressionHandle(value)) {
     const expression = value.expression;
     return isQueryExpression(expression) ? native.subquery(expression) : expression;
   }
   if (isParamLike(value)) {
-    return bind({ kind: 'scalar', parameters: [value], resolve: read => literalValue(read(value)) });
+    return bind({ kind: 'scalar', parameters: [value], resolve: read => literal(read(value)) });
   }
-  return literalValue(value);
+  return literalValue(value, child => expressionValue(child, ancestors), ancestors);
 }
 
 export function isQueryExpression(expression: SqlExpression): boolean {
@@ -33,10 +37,12 @@ export function isQueryExpression(expression: SqlExpression): boolean {
 }
 
 export function literal(value: unknown): SqlExpression {
-  return literalValue(value);
+  const ancestors = new Set<object>();
+  const convert = (item: unknown): SqlExpression => literalValue(item, convert, ancestors);
+  return convert(value);
 }
 
-function literalValue(value: unknown): SqlExpression {
+export function literalValue(value: unknown, child: (value: unknown) => SqlExpression, ancestors: Set<object>): SqlExpression {
   if (value == null || typeof value === 'number' && !Number.isFinite(value)) {
     return native.literal(null);
   }
@@ -54,7 +60,25 @@ function literalValue(value: unknown): SqlExpression {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint' || typeof value === 'boolean') {
     return native.literal(value);
   }
-  throw new TypeError('Native scalar bindings require a SQL literal value.');
+  const tag = Object.prototype.toString.call(value);
+  if (tag === '[object ArrayBuffer]' || ArrayBuffer.isView(value) && (tag === '[object Uint8Array]' || tag === '[object DataView]')) {
+    const buffer = value as ArrayBuffer | ArrayBufferView;
+    const bytes = ArrayBuffer.isView(buffer) ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength) : new Uint8Array(buffer);
+    return native.literal({ literal_type: 'hex_string', value: Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('') });
+  }
+  if (typeof value !== 'object') throw new TypeError('Native literals require SQL data values.');
+  const array = Array.isArray(value) || ArrayBuffer.isView(value);
+  if (!array && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+    throw new TypeError('Native literals require arrays, plain records or scalar data values.');
+  }
+  if (ancestors.has(value)) throw new TypeError('Native literal data cannot contain cycles.');
+  ancestors.add(value);
+  try {
+    return array ? native.array(Array.from(value as ArrayLike<unknown>, child))
+      : native.struct(Object.entries(value).map(([name, item]) => [name, child(item)]));
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 export function tableRef(...ids: (string | readonly string[])[]) {

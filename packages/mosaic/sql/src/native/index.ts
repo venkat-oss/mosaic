@@ -1,6 +1,10 @@
 export { Dialect, native, createExecutionContext } from './runtime.js';
 export type { SqlExecutionContext } from './runtime.js';
 export { asLiteral, asNode, column, deferred, isExpression, isExpressionHandle, literal, tableRef, toExpression } from './expression.js';
+export { parseExpression, parseColumnRef, parseTableRef } from './ingress.js';
+export type { SqlIngressOptions } from './ingress.js';
+export { sql, SqlTemplate, verbatim } from './template.js';
+export type { SqlTag, TemplateValue } from './template.js';
 export type { ExprValue, SqlExpression, SqlExpressionHandle, SqlRoot, SqlValue, ParamLike, ParamReader } from './types.js';
 export { BindingScope, StructuralKeyScope, bindingOf, cloneExpression, fields, params, rootExpression, snapshot, snapshotAll } from './bindings.js';
 export type { SqlBinding, SqlField } from './bindings.js';

@@ -1,6 +1,7 @@
 import { createTable } from './create.js';
 import type { CreateTableOptions } from './create.js';
-import { asLiteral, isExpression, isExpressionHandle, tableRef } from './expression.js';
+import { asLiteral, isExpression, isExpressionHandle, literal, literalValue, tableRef } from './expression.js';
+import { isParamLike } from '../util/type-check.js';
 import { rootExpression } from './bindings.js';
 import { parseExpression } from './ingress.js';
 import { from, type TableArg } from './relational.js';
@@ -22,18 +23,14 @@ function tableName(name: TableArg) {
   return typeof name === 'string' || Array.isArray(name) ? tableRef(name)! : name as SqlRoot;
 }
 
-function optionValue(value: unknown): SqlExpression {
+function optionValue(value: unknown, ancestors = new Set<object>()): SqlExpression {
   if (isExpressionHandle(value)) return rootExpression(value);
   if (isExpression(value)) {
     const payload: unknown = Object.values(value)[0];
     if (payload === null || typeof payload === 'object' && !Array.isArray(payload)) return value;
   }
-  if (Array.isArray(value)) return native.array(value.map(optionValue));
-  if (value && typeof value === 'object' && !(value instanceof Date) && !(value instanceof RegExp)
-      && !('addEventListener' in value)) {
-    return native.struct(Object.entries(value).map(([key, item]) => [key, optionValue(item)]));
-  }
-  return asLiteral(value);
+  if (isParamLike(value)) return asLiteral(value);
+  return literalValue(value, child => optionValue(child, ancestors), ancestors);
 }
 
 function project(query: Query, select?: readonly (string | SqlRoot)[]) {
@@ -86,7 +83,7 @@ export function sqlFrom(data: readonly Readonly<Record<string, unknown>>[], { co
     : Object.entries(columns);
   if (!mapping.length) throw new Error('Can not create table from empty column set.');
   if (!data.length) throw new Error('Can not create table from empty row set.');
-  return Query.unionAll(data.map(datum => Query.select(mapping.map(([key, name]) => [name, optionValue(datum[key])] as const))));
+  return Query.unionAll(data.map(datum => Query.select(mapping.map(([key, name]) => [name, literal(datum[key])] as const))));
 }
 
 export function loadObjects(name: TableArg, data: readonly Readonly<Record<string, unknown>>[], options: LoadOptions = {}): Query {

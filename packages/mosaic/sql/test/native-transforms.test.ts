@@ -16,6 +16,19 @@ beforeAll(async () => {
 afterAll(() => db.close());
 
 describe('native numeric, text and temporal expressions', () => {
+  it('executes integer division and bit operations without changing zero-divisor behavior', async () => {
+    const query = sql.Query.select({
+      quotient: sql.idiv(5, 2), negative: sql.idiv(-5, 2), fractional: sql.idiv(5.5, 2),
+      empty: sql.idiv(5, sql.nullif(0, 0)), and: sql.bitAnd(6, 3), or: sql.bitOr(6, 3),
+      left: sql.bitLeft(3, 2), right: sql.bitRight(12, 2), not: sql.bitNot(6)
+    });
+    expect(await execute(query)).toEqual([{
+      quotient: 2, negative: -2, fractional: 2.75, empty: null,
+      and: 2, or: 7, left: 12, right: 3, not: -7
+    }]);
+    await expect(execute(sql.Query.select({ value: sql.idiv(5, 0) }))).rejects.toThrow(/zero/i);
+  });
+
   it('executes finite checks, null-aware extrema and scalar rounding', async () => {
     expect(await execute(sql.Query.select({
       nan: sql.isNaN(sql.cast(sql.literal('NaN'), 'DOUBLE')),

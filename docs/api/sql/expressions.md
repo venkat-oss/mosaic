@@ -139,6 +139,23 @@ sql`${column("foo")} + ${param}`
 
 SQL expressions may be nested, in which case all nested column dependencies and parameter updates are still extractable via the collection visitors.
 
+The native preview parses complete SQL expressions or statements with Polyglot.
+`sql({ sourceDialect: Dialect.MySQL })` creates a tag for another source dialect;
+its execution context must use the same source dialect. The target dialect is
+chosen by the coordinator. Plain interpolated strings remain SQL text; use
+`asLiteral` for string values and `column` for live identifier parameters.
+Nested fragments may contain partial syntax, such as ``sql`SUM(` ``, and are
+parsed together at the enclosing complete expression. Structured interpolations
+must occupy complete expression or relation positions; interpolating them inside
+quotes, function names, alias names or qualifier prefixes rejects explicitly.
+Identifiers beginning with `__mosaic_sql_` are reserved for template substitution.
+
+Native `verbatim(source, { sourceDialect })` has the same parsing boundary.
+Unparseable input fails explicitly. Backend-specific commands that need no
+structural analysis can still be submitted as strings to `coordinator.exec`
+when the source and target dialects match; these strings do not participate in
+tree rewrites or cross-dialect compilation.
+
 ## star
 
 `star(table, options)`
@@ -185,6 +202,14 @@ The temporary `@uwdata/mosaic-sql/native` entry exposes `SqlExpression`, an alia
 for Polyglot's native expression union. Query and aggregate handles expose their
 tree through `.expression`; use native helpers instead of legacy node classes or
 underscore-prefixed query fields.
+
+Native `literal` converts data recursively: arrays become lists, plain records
+become structs, and `Uint8Array`, `ArrayBuffer` and `DataView` become binary
+values. It preserves record keys that happen to match SQL node names.
+`asLiteral` additionally accepts native expressions, handles and live Params;
+use `literal` when an object must be treated entirely as data. Table selections
+use Arrow schema information to distinguish nested byte lists from binary
+values. Cross-dialect compilation still rejects unsupported collection types.
 
 `walk(root, callback)` visits original JavaScript expression objects, passing the
 nearest expression parent as its second argument. Each shared node is visited

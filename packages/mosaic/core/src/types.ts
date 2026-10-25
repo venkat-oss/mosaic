@@ -1,5 +1,5 @@
 import type { CreateQuery, CreateSchemaQuery, DescribeQuery, ExprNode, MaybeArray, Query } from '@uwdata/mosaic-sql';
-import type { Query as NativeQuery, SqlExpression, SqlRoot, TableArg } from '@uwdata/mosaic-sql/native';
+import type { SqlExpression, SqlRoot, TableArg } from '@uwdata/mosaic-sql/native';
 import type { QueryResult } from './util/query-result.js';
 
 /** Arrow IPC bytes as returned by a connector. */
@@ -12,7 +12,7 @@ export type QueryType =
   | CreateQuery
   | CreateSchemaQuery
   | DescribeQuery
-  | NativeQuery;
+  | SqlRoot;
 
 export type SelectionExpression = ExprNode | SqlExpression;
 

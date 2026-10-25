@@ -1,7 +1,7 @@
 import type { SqlExpression, SqlRoot } from './types.js';
 import type { CompileAstOptions, SqlExecutionContext, TranspileResult } from './runtime.js';
 import { compileAst } from './runtime.js';
-import { assertResolved, snapshotAll } from './bindings.js';
+import { assertResolved, assertSourceDialect, snapshotAll } from './bindings.js';
 
 export type SqlCompileOptions = Omit<
   CompileAstOptions,
@@ -26,6 +26,7 @@ export function compileResolved(
   options: SqlCompileOptions = {}
 ): string[] {
   expressions.forEach(assertResolved);
+  expressions.forEach(expression => assertSourceDialect(expression, context.sourceDialect));
   const result = compileAst(expressions, {
     ...options,
     sourceDialect: context.sourceDialect,
@@ -41,6 +42,7 @@ export function compile(
   context: SqlExecutionContext,
   options: SqlCompileOptions = {}
 ): string[] {
+  inputs.forEach(input => assertSourceDialect(input, context.sourceDialect));
   return compileResolved(snapshotAll(inputs), context, options);
 }
 
@@ -53,6 +55,7 @@ export function compileBatch(
     throw new TypeError('Raw exec SQL requires matching source and target dialects.');
   }
   const roots = inputs.filter((value): value is SqlRoot => value != null && typeof value !== 'string');
+  roots.forEach(input => assertSourceDialect(input, context.sourceDialect));
   const expressions = snapshotAll(roots);
   const statements: string[] = [];
   let position = 0;

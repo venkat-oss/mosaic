@@ -1,9 +1,14 @@
 import { ast, native } from './runtime.js';
+import type { Dialect } from './runtime.js';
 import { columnParts, mapTree, walk, type CloneMemo } from './tree.js';
 import type { ParamLike, ParamReader, SqlExpression, SqlRoot } from './types.js';
 
 const PREFIX = '__mosaic_binding_';
-const metadata = new WeakMap<SqlExpression, SqlBinding>();
+interface NodeMetadata {
+  readonly binding?: SqlBinding;
+  readonly sourceDialect?: Dialect;
+}
+const metadata = new WeakMap<SqlExpression, NodeMetadata>();
 
 export interface SqlBinding {
   readonly kind: 'scalar' | 'identifier' | 'deferred';
@@ -22,16 +27,42 @@ export function rootExpression(value: SqlRoot): SqlExpression {
 }
 
 export function bindingOf(node: SqlExpression): SqlBinding | undefined {
-  return metadata.get(node);
+  return metadata.get(node)?.binding;
 }
 
 export function bindTemplate(node: SqlExpression, binding: SqlBinding): void {
   if ('parameter' in node || binding.kind !== 'deferred') throw new TypeError('Native templates require a structured expression and deferred binding.');
-  metadata.set(node, binding);
+  metadata.set(node, { ...metadata.get(node), binding });
 }
 
 export function unbindTemplate(node: SqlExpression): void {
-  if (!('parameter' in node)) metadata.delete(node);
+  if (!('parameter' in node)) {
+    const sourceDialect = metadata.get(node)?.sourceDialect;
+    if (sourceDialect === undefined) metadata.delete(node);
+    else metadata.set(node, { sourceDialect });
+  }
+}
+
+export function markSourceDialect(node: SqlExpression, sourceDialect: Dialect): void {
+  const authored = metadata.get(node)?.sourceDialect;
+  if (authored !== undefined && authored !== sourceDialect) {
+    throw new TypeError('SQL fragments must use the same source dialect.');
+  }
+  metadata.set(node, { ...metadata.get(node), sourceDialect });
+}
+
+export function assertSourceDialect(input: SqlRoot, sourceDialect: Dialect): void {
+  for (const node of walk(rootExpression(input))) {
+    const authored = metadata.get(node)?.sourceDialect;
+    if (authored !== undefined && authored !== sourceDialect) {
+      throw new TypeError(`SQL authored for ${authored} requires the same execution source dialect; received ${sourceDialect}.`);
+    }
+  }
+}
+
+function copySourceDialect(source: SqlExpression, target: SqlExpression): void {
+  const sourceDialect = metadata.get(source)?.sourceDialect;
+  if (sourceDialect !== undefined) markSourceDialect(target, sourceDialect);
 }
 
 function bindingName(node: SqlExpression): string | undefined {
@@ -41,8 +72,8 @@ function bindingName(node: SqlExpression): string | undefined {
 }
 
 export function copyBinding(source: SqlExpression, target: SqlExpression) {
-  const binding = metadata.get(source);
-  if (binding) metadata.set(target, binding);
+  const record = metadata.get(source);
+  if (record) metadata.set(target, record);
 }
 
 export function cloneExpression(input: SqlRoot, memo: CloneMemo = new Map()): SqlExpression {
@@ -59,7 +90,7 @@ export class BindingScope {
 
   bind(binding: SqlBinding): SqlExpression {
     const expression = native.parameter(this.nextName());
-    metadata.set(expression, binding);
+    metadata.set(expression, { binding });
     this.ids.set(expression.parameter.name!, binding);
     return expression;
   }
@@ -75,7 +106,7 @@ export class BindingScope {
     return mapTree(rootExpression(input), node => {
       const name = bindingName(node);
       if (!name) return;
-      const binding = metadata.get(node);
+      const binding = bindingOf(node);
       if (!binding) throw new Error(`Unresolved native SQL binding: ${name}`);
       const adopted = this.adoptedSlots.get(node);
       if (adopted) return adopted;
@@ -86,7 +117,7 @@ export class BindingScope {
         return node;
       }
       const replacement = native.parameter(this.nextName());
-      metadata.set(replacement, binding);
+      metadata.set(replacement, { ...metadata.get(node), binding });
       this.ids.set(replacement.parameter.name!, binding);
       this.adoptedSlots.set(node, replacement);
       return replacement;
@@ -108,7 +139,7 @@ export class BindingScope {
     };
     const resolve = (expression: SqlExpression): SqlExpression => mapTree(expression, node => {
       const name = bindingName(node);
-      const binding = metadata.get(node);
+      const binding = bindingOf(node);
       if (!binding) {
         if (name) throw new Error(`Unresolved native SQL binding: ${name}`);
         return;
@@ -119,10 +150,11 @@ export class BindingScope {
       if (active.has(key)) throw new Error('Cyclic native SQL binding.');
       active.add(key);
       const value = resolve(rootExpression(binding.resolve(read, node)));
+      copySourceDialect(node, value);
       active.delete(key);
       resolved.set(key, value);
       return value;
-    }, memo, true);
+    }, memo, true, copySourceDialect);
     return inputs.map(input => resolve(this.adopt(input)));
   }
 
@@ -148,7 +180,7 @@ export function assertResolved(input: SqlRoot): void {
   for (const node of walk(rootExpression(input))) {
     const name = bindingName(node);
     if (name) throw new Error(`Unresolved native SQL binding: ${name}`);
-    if (metadata.has(node)) throw new Error('Unresolved native SQL template.');
+    if (bindingOf(node)) throw new Error('Unresolved native SQL template.');
   }
 }
 
@@ -179,10 +211,11 @@ export class StructuralKeyScope {
       if (memo.has(value)) continue;
       if (!visited) {
         const node = ast.isExpressionValue(value) ? value : undefined;
-        const binding = node ? metadata.get(node) : undefined;
+        const record = node ? metadata.get(node) : undefined;
+        const binding = record?.binding;
         if (binding && node) {
           const token = JSON.stringify([
-            'binding', binding.kind, this.identity(binding), this.identity(binding.resolve),
+            'binding', record?.sourceDialect, binding.kind, this.identity(binding), this.identity(binding.resolve),
             binding.field ? this.identity(binding.field) : null, binding.qualifier, binding.frame ?? false,
             binding.parameters.map(param => this.identity(param))
           ]);
@@ -191,6 +224,8 @@ export class StructuralKeyScope {
             continue;
           }
           templates.set(value, token);
+        } else if (record?.sourceDialect !== undefined) {
+          templates.set(value, JSON.stringify(['source', record.sourceDialect]));
         }
         if (active.has(value)) throw new TypeError('Native SQL expressions must be acyclic.');
         active.add(value);
@@ -219,7 +254,7 @@ export class StructuralKeyScope {
 export function params(input: SqlRoot): ParamLike[] {
   const parameters = new Set<ParamLike>();
   for (const node of walk(rootExpression(input))) {
-    for (const param of metadata.get(node)?.parameters ?? []) parameters.add(param);
+    for (const param of bindingOf(node)?.parameters ?? []) parameters.add(param);
   }
   return [...parameters];
 }
@@ -247,7 +282,7 @@ export function fields(input: SqlRoot): SqlField[] {
       pending.push(...Object.values(node).reverse());
       continue;
     }
-    const binding = metadata.get(node);
+    const binding = bindingOf(node);
     if (binding?.frame) continue;
     if (binding?.field) {
       result.push({ node, ...binding.field(read) });

@@ -22,7 +22,7 @@ import { createRequire } from 'node:module';
 import { Coordinator, makeClient, NativeSqlContext, Param, Selection } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
-import { asLiteral, count, cte, gte, Query, sum } from '@uwdata/mosaic-sql/native';
+import { asLiteral, count, cte, gte, Query, sql, sum } from '@uwdata/mosaic-sql/native';
 const db = new DuckDB();
 const coordinator = new Coordinator(await NodeConnector.make(db), { logger: null });
 const table = await coordinator.query('SELECT 42::INTEGER AS value');
@@ -76,6 +76,10 @@ const query = Query.select({ rows: count() }).from('native_consumer').where(gte(
 assert.equal(Number(Array.from(await nativeCoordinator.query(query))[0].rows), 2);
 await bound.update(3);
 assert.equal(Number(Array.from(await nativeCoordinator.query(query))[0].rows), 1);
+const template = sql(['SELECT amount FROM native_consumer WHERE amount >= ', ' ORDER BY amount'], bound);
+assert.deepEqual(Array.from(await nativeCoordinator.query(template), row => row.amount), [3]);
+await bound.update(2);
+assert.deepEqual(Array.from(await nativeCoordinator.query(template), row => row.amount), [2, 3]);
 const description = await nativeCoordinator.query(Query.from('native_consumer').describe());
 assert.equal(Array.from(description)[0].column_name, 'amount');
 const child = Query.from('native_consumer');
@@ -95,7 +99,7 @@ db.close();
 writeFileSync(join(directory, 'consumer.ts'), `
 import { Coordinator, makeClient, NativeSqlContext, Param, Selection } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import { count, Query } from '@uwdata/mosaic-sql/native';
+import { count, Query, sql } from '@uwdata/mosaic-sql/native';
 const coordinator = new Coordinator(new NodeConnector());
 const result: PromiseLike<unknown> = coordinator.query('SELECT 1');
 const value: number | undefined = Param.value(7).value;
@@ -104,8 +108,9 @@ const native = new NativeSqlContext();
 const nativeCoordinator = new Coordinator(new NodeConnector(), { native });
 const selection = native.selection();
 const nativeResult: PromiseLike<unknown> = nativeCoordinator.query(Query.select({ rows: count() }));
+const templateResult: PromiseLike<unknown> = nativeCoordinator.query(sql(['SELECT ', ' AS value'], Param.value(7)));
 makeClient({ coordinator: nativeCoordinator, selection, query: filter => Query.from('rows').where(filter ?? []) });
-void nativeResult;
+void [nativeResult, templateResult];
 `);
 writeFileSync(join(directory, 'tsconfig.json'), JSON.stringify({
   compilerOptions: { strict: true, noEmit: true, module: 'Node16', target: 'ES2022', skipLibCheck: true, types: [] },

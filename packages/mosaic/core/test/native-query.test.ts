@@ -1,6 +1,6 @@
 import { DuckDB } from '@uwdata/mosaic-duckdb';
 import { Query as LegacyQuery, count as legacyCount, column as legacyColumn } from '@uwdata/mosaic-sql';
-import { asLiteral, column, count, deferred, gte, native, Query, sum } from '@uwdata/mosaic-sql/native';
+import { asLiteral, column, count, deferred, gte, native, Query, sql, sum, verbatim } from '@uwdata/mosaic-sql/native';
 import type { SqlExpression } from '@uwdata/mosaic-sql/native';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Coordinator } from '../src/Coordinator.js';
@@ -30,6 +30,27 @@ function setup() {
 }
 
 describe('native query coordination', () => {
+  it('executes parsed statements and reactive result templates through the native boundary', async () => {
+    const { ready } = setup();
+    const coordinator = await ready;
+    const field = Param.value('x value');
+    const lower = Param.value(2);
+    const query = sql`WITH rows AS (SELECT * FROM ${column(source)}) SELECT ${column(field)} AS value FROM rows WHERE ${column(field)} >= ${lower} ORDER BY value`;
+    try {
+      await coordinator.exec(verbatim('CREATE OR REPLACE TEMP TABLE native_template_output AS SELECT 42 AS value'));
+      expect(Array.from(await coordinator.query(query))).toEqual([{ value: 2 }, { value: 3 }]);
+      field.update('y value');
+      lower.update(25);
+      expect(Array.from(await coordinator.query(query))).toEqual([{ value: 30 }, { value: 40 }]);
+      expect(Array.from(await coordinator.query(native.select([native.alias(asLiteral(7), 'value')])))).toEqual([{ value: 7 }]);
+      await expect(coordinator.query(verbatim('DROP TABLE native_template_output'))).rejects.toThrow('result-producing query');
+      await expect(new Coordinator(await connector, { logger: null }).query(query)).rejects.toThrow('native coordinator');
+      await expect(coordinator.query(verbatim('SELECT FROM'))).rejects.toThrow(SyntaxError);
+    } finally {
+      coordinator.clear();
+    }
+  });
+
   it('executes reactive count/sum selections through Arrow without changing the legacy coordinator', async () => {
     const { native, ready } = setup();
     const coordinator = await ready;

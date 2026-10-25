@@ -12,8 +12,12 @@ export const add = (left: ExprValue, right: ExprValue): SqlExpression => binary(
 export const sub = (left: ExprValue, right: ExprValue): SqlExpression => binary('sub', left, right);
 export const mul = (left: ExprValue, right: ExprValue): SqlExpression => binary('mul', left, right);
 export const div = (left: ExprValue, right: ExprValue): SqlExpression => binary('div', left, right);
+export const idiv = (left: ExprValue, right: ExprValue): SqlExpression => native.scalarBinary('int_div', asNode(left), asNode(right));
 export const mod = (left: ExprValue, right: ExprValue): SqlExpression => binary('mod', left, right);
 export const bitAnd = (left: ExprValue, right: ExprValue): SqlExpression => binary('bitwise_and', left, right);
+export const bitOr = (left: ExprValue, right: ExprValue): SqlExpression => binary('bitwise_or', left, right);
+export const bitLeft = (left: ExprValue, right: ExprValue): SqlExpression => binary('bitwise_left_shift', left, right);
+export const bitRight = (left: ExprValue, right: ExprValue): SqlExpression => binary('bitwise_right_shift', left, right);
 export const pow = (left: ExprValue, right: ExprValue): SqlExpression => native.scalarBinary('power', asNode(left), asNode(right));
 export const eq = (left: ExprValue, right: ExprValue): SqlExpression => binary('eq', left, right);
 export const neq = (left: ExprValue, right: ExprValue): SqlExpression => binary('neq', left, right);
@@ -38,6 +42,10 @@ function logical(operator: 'and' | 'or', values: SqlExpression[]): SqlExpression
 
 export function not(value: ExprValue): SqlExpression {
   return native.unary('not', asNode(value));
+}
+
+export function bitNot(value: ExprValue): SqlExpression {
+  return native.unary('bitwise_not', asNode(value));
 }
 
 export function isNull(value: ExprValue): SqlExpression {

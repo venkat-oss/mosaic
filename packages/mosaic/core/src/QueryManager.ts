@@ -1,5 +1,5 @@
 import type { ExtractionOptions } from '@uwdata/flechette';
-import { isQuery as isNativeQuery, isResultQuery } from '@uwdata/mosaic-sql/native';
+import { isExpression, isExpressionHandle, isResultQuery } from '@uwdata/mosaic-sql/native';
 import type { SqlExecutionContext } from '@uwdata/mosaic-sql/native';
 import type { NativeSqlContext } from './native-sql.js';
 import { QueryError } from './util/query-error.js';
@@ -364,13 +364,13 @@ export class QueryManager {
   ): string {
     const inputs = Array.isArray(query) ? query.filter(value => value) : [query];
     if (!context || !execution) {
-      if (inputs.some(isNativeQuery)) {
+      if (inputs.some(input => isExpression(input) || isExpressionHandle(input))) {
         throw new TypeError('Native SQL queries require a native coordinator.');
       }
       return inputs.map(input => String(input)).join(';\n');
     }
     const admitted = inputs.map(input => {
-      if (isNativeQuery(input)) {
+      if (isExpression(input) || isExpressionHandle(input)) {
         if (type === 'arrow' && !isResultQuery(input)) {
           throw new TypeError('Native Arrow requests require a result-producing query.');
         }
