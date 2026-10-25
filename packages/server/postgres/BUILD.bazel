@@ -1,0 +1,60 @@
+load("//build:javascript.bzl", "mosaic_javascript", "mosaic_package_test")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+mosaic_javascript(
+    tests = True,
+    consumer_tests = [":package_test"],
+    deps = [
+        ":node_modules/@types/node",
+        ":node_modules/@types/pg",
+        ":node_modules/@uwdata/flechette",
+        ":node_modules/pg",
+    ],
+    test_deps = [
+        ":node_modules/@uwdata/mosaic-core",
+        ":node_modules/@uwdata/mosaic-duckdb",
+        ":node_modules/@uwdata/mosaic-inputs",
+        ":node_modules/@uwdata/mosaic-sql",
+        "//:node_modules/jsdom",
+        "//packages/mosaic/core:sources",
+        "//packages/mosaic/sql:sources",
+        "//packages/server/duckdb:sources",
+        "//packages/vgplot/inputs:sources",
+    ],
+)
+
+vitest_bin.vitest_test(
+    name = "integration_test",
+    size = "large",
+    timeout = "long",
+    args = ["run", "--config", "vitest.integration.config.ts"],
+    chdir = "packages/server/postgres",
+    data = [":test_sources", "vitest.integration.config.ts"],
+    copy_data_to_bin = False,
+    tags = ["local", "no-remote", "no-sandbox", "requires-docker", "requires-network"],
+    visibility = ["//visibility:public"],
+)
+
+_PACKAGES = {
+    "@uwdata/mosaic-postgres": ":tarball",
+    "@uwdata/mosaic-core": "//packages/mosaic/core:tarball",
+    "@uwdata/mosaic-sql": "//packages/mosaic/sql:tarball",
+    "@uwdata/mosaic-duckdb": "//packages/server/duckdb:tarball",
+}
+
+_LINKS = {
+    "pg": "//packages/server/postgres:node_modules/pg",
+    "@types/pg": "//packages/server/postgres:node_modules/@types/pg",
+    "@polyglot-sql/sdk": "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
+    "@types/emscripten": "//packages/mosaic/core:node_modules/@types/emscripten",
+    "@duckdb/node-api": "//packages/server/duckdb:node_modules/@duckdb/node-api",
+    "@duckdb/duckdb-wasm": "//packages/mosaic/core:node_modules/@duckdb/duckdb-wasm",
+    "@uwdata/flechette": "//packages/server/postgres:node_modules/@uwdata/flechette",
+}
+
+mosaic_package_test(
+    package = "@uwdata/mosaic-postgres",
+    packages = _PACKAGES,
+    links = _LINKS,
+    entry_point = "test/installed.mjs",
+)

@@ -28,6 +28,7 @@ js_library(
         "//packages/mosaic/sql:manifest",
         "//packages/mosaic/core:manifest",
         "//packages/server/duckdb:manifest",
+        "//packages/server/postgres:manifest",
         "//packages/vgplot/inputs:manifest",
         "//packages/vgplot/plot:manifest",
         "//packages/vgplot/vgplot:manifest",
@@ -146,6 +147,7 @@ test_suite(
 _JAVASCRIPT_PACKAGES = [
     "//packages/mosaic/sql",
     "//packages/server/duckdb",
+    "//packages/server/postgres",
     "//packages/mosaic/core",
     "//packages/vgplot/inputs",
     "//packages/vgplot/plot",

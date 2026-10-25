@@ -12,7 +12,7 @@ The Mosaic `core` API includes a central _coordinator_ as well as _params_ and _
 <img v-else src="/architecture.png"/>
 
 The figure above illustrates a typical Mosaic setup.
-The coordinator collects queries from clients, compiles them for its database, and returns Arrow results. DuckDB is the default backend.
+The coordinator collects queries from clients, compiles them for its database, and returns Arrow results. DuckDB is the default; the [PostgreSQL Node connector](/api/core/postgres) supplies an additional backend.
 User interactions with a client can populate selections with filter clauses.
 Upon selection updates, the coordinator determines filter queries and updates clients with the filtered data.
 

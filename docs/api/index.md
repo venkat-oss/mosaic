@@ -7,6 +7,7 @@ Mosaic API Reference.
 - [Client](/api/core/client)
 - [Coordinator](/api/core/coordinator)
 - [Connectors](/api/core/connectors)
+- [PostgreSQL Connector](/api/core/postgres)
 - [Param](/api/core/param)
 - [Selection](/api/core/selection)
 

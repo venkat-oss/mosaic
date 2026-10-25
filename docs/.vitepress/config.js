@@ -230,6 +230,7 @@ export default defineConfig({
             { text: 'Client', link: '/api/core/client' },
             { text: 'Coordinator', link: '/api/core/coordinator' },
             { text: 'Connectors', link: '/api/core/connectors' },
+            { text: 'PostgreSQL Connector', link: '/api/core/postgres' },
             { text: 'Param', link: '/api/core/param' },
             { text: 'Selection', link: '/api/core/selection' },
             { text: 'Multi-Database Support', link: '/api/core/multi-database-support' }

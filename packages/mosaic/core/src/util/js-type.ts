@@ -22,6 +22,8 @@ export function jsType(type: string): JSType {
     case 'INT': case 'INT2': case 'INT4': case 'INT8':
     case 'FLOAT4': case 'FLOAT8':
     case 'DOUBLE':
+    case 'DOUBLE PRECISION':
+    case 'OID':
     case 'FLOAT':
     case 'REAL':
       return 'number';
@@ -37,6 +39,8 @@ export function jsType(type: string): JSType {
     case 'BOOL':
       return 'boolean';
     case 'VARCHAR':
+    case 'NAME':
+    case '"CHAR"':
     case 'UUID':
     case 'JSON':
     case 'JSONB': case 'TEXT': case 'CHAR': case 'CHARACTER': case 'CHARACTER VARYING':
@@ -57,7 +61,7 @@ export function jsType(type: string): JSType {
         return 'number';
       } else if (type.startsWith('STRUCT') || type.startsWith('MAP')) {
         return 'object';
-      } else if (/^TIMESTAMP\(\d+\)( WITH(?:OUT)? TIME ZONE)?$/.test(type)) {
+      } else if (/^(?:TIME|TIMESTAMP)(?:\(\d+\))?(?: WITH(?:OUT)? TIME ZONE)?$/.test(type)) {
         return 'date';
       } else if (/^(?:CHAR|VARCHAR|CHARACTER(?: VARYING)?)\(\d+\)$/.test(type)) {
         return 'string';

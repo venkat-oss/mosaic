@@ -38,6 +38,13 @@ next update can rebuild the materialization. Unsupported plans and failed
 materializations also use the original query. Changing selection fields,
 scale/bin settings or the execution context clears incompatible plans.
 
+A connector with a declared database dialect selects its default `SqlContext`.
+The PostgreSQL Node connector uses DuckDB source semantics and PostgreSQL target
+SQL. Replacing a connector updates that backend profile and connection generation.
+An explicit constructor `sql` context takes precedence during initial setup.
+DuckDB preaggregation is enabled by default; PostgreSQL disables it and rejects an
+explicit enable request. See the [PostgreSQL connector](./postgres).
+
 ## Query cache
 
 `lruCache(options)`

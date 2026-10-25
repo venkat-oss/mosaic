@@ -20,6 +20,10 @@
     "./node-connector": {
       "types": "./dist/src/connectors/NodeConnector.d.ts",
       "default": "./dist/src/connectors/NodeConnector.js"
+    },
+    "./postgres-connector": {
+      "types": "./dist/src/connectors/PostgresConnector.d.ts",
+      "default": "./dist/src/connectors/PostgresConnector.js"
     }
   },
   "files": [
@@ -44,13 +48,18 @@
     "@uwdata/mosaic-sql": "workspace:^"
   },
   "devDependencies": {
-    "@uwdata/mosaic-duckdb": "workspace:^"
+    "@uwdata/mosaic-duckdb": "workspace:^",
+    "@uwdata/mosaic-postgres": "workspace:^"
   },
   "peerDependencies": {
-    "@uwdata/mosaic-duckdb": "workspace:^"
+    "@uwdata/mosaic-duckdb": "workspace:^",
+    "@uwdata/mosaic-postgres": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@uwdata/mosaic-duckdb": {
+      "optional": true
+    },
+    "@uwdata/mosaic-postgres": {
       "optional": true
     }
   }

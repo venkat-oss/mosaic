@@ -16,7 +16,8 @@ The [native Polyglot design](./polyglot/index.md) and its
 migration. The normal SQL entry consumes a pinned, prebuilt Polyglot SDK archive
 with its matching WebAssembly binary. Browser builds emit that asset;
 the Jupyter bundle embeds it. Mosaic builds consume the archive without compiling
-Polyglot's Rust sources. DuckDB remains the default execution backend.
+Polyglot's Rust sources. DuckDB remains the default backend; the optional
+Node PostgreSQL connector has a separately tested execution profile.
 VitePress keeps the SDK external during server rendering, using the declared
 root development dependency so its Node module and WASM remain together.
 
@@ -46,8 +47,10 @@ Standalone Cargo users can choose the package's `bundled` feature instead.
 | Generate / check CUE-owned API files | `bazelisk run //:generate` / `bazelisk test //:api_check` |
 | Develop the gallery | `bazelisk run //:dev` |
 
-Select an affected package's `:check` target during development. CI selects `//:node_checks`, `//:python_checks`, `//:browser_tests`, the Go/Rust
-package targets. Browser tests remain separate from normal checks because they
+Select an affected package's `:check` target during development. CI selects
+`//:node_checks`, `//:python_checks`, `//:browser_tests`, the Go/Rust package
+targets and `//packages/server/postgres:integration_test`. Browser tests remain
+separate from normal checks because they
 need their matching container. The browser helper caches a derived Playwright
 image with GCC and C headers, which Bazel's Python tooling requires when building
 the docs fixtures. Source hot reload uses `:dev`; restart after changing

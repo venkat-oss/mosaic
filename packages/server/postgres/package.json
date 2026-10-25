@@ -1,0 +1,35 @@
+{
+  "name": "@uwdata/mosaic-postgres",
+  "version": "0.34.0",
+  "description": "A Node.js PostgreSQL connector for Mosaic with Arrow IPC results.",
+  "license": "BSD-3-Clause",
+  "author": "Jeffrey Heer (https://idl.uw.edu)",
+  "type": "module",
+  "exports": {
+    "types": "./dist/src/index.d.ts",
+    "default": "./dist/src/index.js"
+  },
+  "files": ["dist", "!dist/tsconfig.tsbuildinfo"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uwdata/mosaic.git"
+  },
+  "scripts": {
+    "build": "bazelisk build //packages/server/postgres:tarball",
+    "lint": "bazelisk test //packages/server/postgres:lint",
+    "typecheck": "bazelisk test //packages/server/postgres:test_types_typecheck_test",
+    "test": "bazelisk test //packages/server/postgres:check"
+  },
+  "dependencies": {
+    "@types/pg": "8.23.1",
+    "@uwdata/flechette": "catalog:",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@uwdata/mosaic-core": "workspace:*",
+    "@uwdata/mosaic-duckdb": "workspace:*",
+    "@uwdata/mosaic-inputs": "workspace:*",
+    "@uwdata/mosaic-sql": "workspace:*"
+  }
+}

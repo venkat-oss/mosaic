@@ -85,3 +85,16 @@ jobs:
           cache-save: ${{ github.event_name != 'pull_request' }}
       - run: bazelisk build --config=ci //packages/server/duckdb-server-go:duckdb-server
       - run: bazelisk test --config=ci //packages/server/duckdb-server-go:check //packages/server:protocol_go
+
+  postgres:
+    name: Test PostgreSQL connector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: bazel-contrib/setup-bazel@0.19.1
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+          disk-cache: true
+          cache-save: ${{ github.event_name != 'pull_request' }}
+      - run: bazelisk test --config=ci //packages/server/postgres:integration_test

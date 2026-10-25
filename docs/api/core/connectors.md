@@ -15,6 +15,11 @@ For the `"arrow"` type, a connector returns the raw Arrow IPC bytes as an `Arrow
 
 Once instantiated, register a connector with the coordinator using the [`coordinator.databaseConnector()`](coordinator#databaseconnector) method.
 
+The Node-only [PostgreSQL connector](./postgres) is available from
+`@uwdata/mosaic-core/postgres-connector` with the optional
+`@uwdata/mosaic-postgres` package. Its dialect profile selects PostgreSQL
+compilation automatically; the normal browser entry does not load the Node driver.
+
 ## decodeIPC
 
 `decodeIPC(data, options)`

@@ -6,17 +6,18 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@bazel_lib//lib:copy_file.bzl", "copy_file")
 
-def mosaic_package_test(package, packages, links):
+def mosaic_package_test(package, packages, links, entry_point = "//build:npm_render_entry"):
     links = links | {
         "@polyglot-sql/sdk": "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
         "@types/emscripten": "//packages/mosaic/core:node_modules/@types/emscripten",
     }
     js_test(
         name = "package_test",
-        entry_point = "//build:npm_render_entry",
+        entry_point = entry_point,
         args = [package],
         data = packages.values() + links.values() + [
-            "//build:npm_render_entry",
+            entry_point,
+            "//build:npm_install_sources",
             "//:node_modules/jsdom",
             "//:tsc",
             "@pnpm//:pnpm",

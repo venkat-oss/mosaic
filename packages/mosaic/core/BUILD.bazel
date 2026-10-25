@@ -6,5 +6,6 @@ mosaic_javascript(tests = True, consumer_tests = ["//build:npm_core_consumer"], 
     ":node_modules/@uwdata/flechette",
     ":node_modules/@uwdata/mosaic-duckdb",
     ":node_modules/@uwdata/mosaic-sql",
+    ":node_modules/@uwdata/mosaic-postgres",
     "//packages/server/duckdb:node_modules/@types/node",
 ])
