@@ -4,20 +4,17 @@ import NativeCompiler from '../../.vitepress/components/NativeCompiler.vue';
 
 # Native Polyglot SQL architecture
 
-Mosaic now uses Polyglot's native expression tree and compiler through the normal
-SQL entry point. The old SQL AST, renderer and temporary adapter are removed from
-the implementation. The bounded PostgreSQL slice, installed downstream
-composition, full repository checks, browsers and docs build pass against the
-current public SDK pin. The final compiler audit still requires quantile and
-quoted-function boundary fixes from the isolated fork, followed by a replacement
-public SDK pin and final checks. See the
-[work packets](./work-packets.md). The migration baseline is commit
+Mosaic uses Polyglot's native expression tree and compiler through the normal SQL
+entry point. The SQL AST, renderer and temporary adapter they replaced are
+removed. The [P00–P10 work packets](./work-packets.md) cover the completed compiler,
+runtime, consumer and PostgreSQL migration. The migration baseline is commit
 `088a88615a15b4faf5a248d04ed213ea8bad2a3a`.
 
-The destination is one SQL representation, with Mosaic retaining query authoring,
-reactivity and interactive optimizations. DuckDB remains the first fully supported
-execution backend. PostgreSQL is the first additional execution target; other
-dialects remain compiler candidates until exercised against their databases.
+The runtime has one SQL representation, with Mosaic retaining query authoring,
+reactivity and interactive optimizations. DuckDB is the default execution backend.
+The additional PostgreSQL Node connector supports the operations documented in
+its [guide](../../api/core/postgres.md). Other dialects remain compiler candidates
+until exercised against their databases.
 
 The normal `@uwdata/mosaic-sql` entry exports the native query facade and
 compiler. There is no separate `/native` runtime. This example constructs a native
@@ -138,8 +135,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`4756eded300633541f8bdd7914cb3d4a89f193d7`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7)
+`7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -300,7 +297,9 @@ they describe charts and specifications rather than SQL compiler nodes.
 
 Core uses native structural keys, binding-aware scoped analysis and one snapshot
 per submitted query or consolidation group. Consolidation retains each original
-query's cache identity; a fully cached group does not reach the connector.
+query's cache identity; a fully cached group does not reach the connector. Generic
+function calls, qualified calls and row-expanding `unnest` keep their original
+queries because their result shapes cannot be safely combined.
 Preaggregation uses semantic aggregate/window factories and the same execution
 context. Unsafe nested grouping, deduplication or filter boundaries execute the
 original native query. Materialization failures also fall back through that path.
@@ -314,10 +313,9 @@ increments the generation and clears pending reads and optimization state. The
 Installed downstream tests exercise scalar string coercion, chart queries and
 actual component selection updates with Embedding Atlas 0.26. The repository
 build, protocol, browser and documentation checks pass against the current public
-SDK archive. The final compiler boundary fixes must still be published, pinned
-and checked before closing the migration.
- Keep behavior tests and
-remove comparison-only fixtures. Use ordinary source diffs, Bazel checks and
+SDK archive. The compiler preserves quoted and qualified function identity and
+discrete quantile semantics through the shared native pipeline. Keep behavior
+tests rather than comparison-only fixtures. Use ordinary source diffs, Bazel checks and
 these documents without a separate migration tracking system.
 
 ## Sources

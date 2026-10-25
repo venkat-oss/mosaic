@@ -1,22 +1,22 @@
 # Native Polyglot implementation packets
 
-These packets implement the [target architecture](./index.md). Mosaic's
-P01–P10 integrations are implemented: native compilation, reactive selections,
-consolidation, preaggregation, plot/input families, raw expression ingress,
-specifications, Python serialization, widget execution and the Node PostgreSQL
-backend.
+These packets record the completed [native Polyglot migration](./index.md).
+P00–P10 provide native compilation, reactive selections, consolidation,
+preaggregation, plot/input families, raw expression ingress, specifications,
+Python serialization, widget execution and the bounded Node PostgreSQL backend.
 
-P09's legacy SQL AST, renderer, adapter and pilot branches are deleted. Installed
+P09's SQL AST, renderer, adapter and pilot branches are deleted. Installed
 Embedding Atlas composition, repository checks, real PostgreSQL 18.6 execution,
-matching-container browser suites and the docs build pass against the current
-public SDK pin. The final P00/P08 compiler audit uncovered discrete-quantile and
-quoted-function boundary issues in the fork. Complete those fixes, publish and
-pin the replacement compiled SDK, then run the final affected checks before
-closing the migration goal.
+matching-container browser suites and the docs build exercise the public SDK pin.
+The compiler's final quantile and quoted-function corrections are included in
+that artifact. Unsupported optimizer shapes execute their original native queries.
+
+The packet instructions below retain the implementation order, including
+transitional paths removed in P09. They are not additional runtime paths to create.
 
 Mosaic pins the compiled SDK from isolated private Polyglot revision
-`4756eded300633541f8bdd7914cb3d4a89f193d7`, distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7).
+`7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0`, distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0).
 Polyglot source remains private. Startup measurements in the architecture record
 the earlier P01 baseline rather than the current artifact.
 
@@ -54,7 +54,7 @@ commands are identified separately from targets that a packet must add.
 ## Shared implementation rules
 
 The temporary boundaries below describe the implemented migration order. P09
-removes them; do not recreate the `/native` export or legacy adapter.
+removed them; do not recreate the `/native` export or legacy adapter.
 
 - The normal `@uwdata/mosaic-sql` API stays on its current implementation until
   P09. P01 introduces a temporary declared `/native` compiler entry; P02 extends
@@ -517,8 +517,8 @@ Preserve visualization AST classes and Python serialization/runtime modules.
 ## P09 — Switch the default and delete the superseded compiler
 
 The native default, retirement, installed downstream composition and repository
-checks pass against the current public SDK. The replacement compiler artifact
-from the final P00/P08 audit still needs its final pin and checks.
+checks pass against the final public SDK. Generic calls and row-expanding queries
+retain a direct native path when their shapes are ineligible for optimization.
 
 **Owners:** SQL public entry points/types, core submission/clause types, remaining
 legacy-input sites, shared generated exports, native targets and migration guide.
@@ -569,8 +569,9 @@ The package checks, installed connector consumer and real PostgreSQL 18.6
 integration test pass against the public SDK archive. The integration covers
 rendered Table selection updates, aggregates/windows/QUALIFY, live scalar and
 identifier parameters, microsecond timestamps, exact decimals, conservative
-nullability, cancellation, isolated sessions and cleanup. Final repository-wide
-validation remains part of closing the migration.
+nullability, supported time boundaries, cancellation, isolated sessions and
+cleanup. The repository-wide checks include the connector package; CI also runs
+its real database integration target.
 
 **Owners:** a new Node-only PostgreSQL adapter under `packages/server/postgres/`,
 a declared optional Node connector entry alongside the existing Node DuckDB
