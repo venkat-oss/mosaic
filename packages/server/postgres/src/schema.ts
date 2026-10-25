@@ -68,8 +68,10 @@ function dateValue(source: string): number {
 function timeValue(source: string): bigint {
   const match = /^(\d\d):(\d\d):(\d\d)(?:\.(\d{1,6}))?$/.exec(source);
   if (!match) throw new RangeError(`Unsupported PostgreSQL time: ${source}`);
-  return BigInt(Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3])) * 1_000_000n
+  const value = BigInt(Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3])) * 1_000_000n
     + BigInt((match[4] ?? '').padEnd(6, '0'));
+  if (value < 0n || value >= MICROS_PER_DAY) throw new RangeError('Time exceeds Arrow time64 day range.');
+  return value;
 }
 
 export function decimalValue(source: string, precision: number, scale: number): bigint {

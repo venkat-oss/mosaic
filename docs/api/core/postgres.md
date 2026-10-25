@@ -105,6 +105,9 @@ base-projection hint locally, without adding fields to HTTP query payloads.
 - Booleans, signed integers, OIDs, floats, text, UUID, JSON text, bytea, dates and
   time values have explicit mappings. Unsupported OIDs, non-finite fixed decimals,
   unrepresentable timestamps and decimal precision beyond 76 reject explicitly.
+- Time values range from `00:00:00` through `23:59:59.999999`. PostgreSQL's
+  `TIME '24:00:00'` rejects because [Arrow Time64](https://github.com/apache/arrow/blob/main/format/Schema.fbs#L240-L253)
+  excludes the end-of-day boundary.
 
 Use `decodeIPC(bytes, { useBigInt: true, useBigIntTimestamp: true,
 useDecimalInt: true })` for exact integer representations outside a coordinator,

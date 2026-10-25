@@ -68,6 +68,14 @@ describe('PostgreSQL Arrow schema', () => {
     expect(() => timestampValue('294276-12-31 23:59:59.999999', false)).toThrow(/Arrow microsecond range/);
   });
 
+  it('preserves time-of-day endpoints and rejects the exclusive day boundary', () => {
+    const fields = [definition('time', 1083)];
+    const table = decode(fields, [['00:00:00'], ['23:59:59.999999']]);
+    expect(Array.from(table.getChild('time')!)).toEqual([0n, 86399999999n]);
+    expect(table.schema.fields[0].type).toMatchObject({ typeId: Type.Time, unit: TimeUnit.MICROSECOND, bitWidth: 64 });
+    expect(() => decode(fields, [['24:00:00']])).toThrow(/Arrow time64 day range/);
+  });
+
   it('retains binary bounds, prototype field names and null values', () => {
     const table = decode([definition('__proto__', 23), definition('bytes', 17), definition('yes', 16)], [['7', '\\x0041ff', 't'], [null, null, null]]);
     expect(table.names).toEqual(['__proto__', 'bytes', 'yes']);

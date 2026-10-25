@@ -88,6 +88,10 @@ describe('PostgreSQL 18.6 execution', () => {
     const numeric = decode(await connector.query({ type: 'arrow', sql: 'SELECT AVG(id) AS mean FROM postgres_types' }));
     expect(numeric.schema.fields[0].type.typeId).toBe(Type.Utf8);
     expect(String(numeric.getChild('mean')!.at(0))).toMatch(/^9223372036854775807(?:\.0+)?$/);
+    const times = decode(await connector.query({ type: 'arrow', sql: "SELECT TIME '00:00:00' AS beginning, TIME '23:59:59.999999' AS ending" }));
+    expect(times.getChild('beginning')!.at(0)).toBe(0n);
+    expect(times.getChild('ending')!.at(0)).toBe(86399999999n);
+    await expect(connector.query({ type: 'arrow', sql: "SELECT TIME '24:00:00' AS boundary" })).rejects.toThrow(/Arrow time64 day range/);
     const coordinator = new Coordinator(connector, { logger: null, cache: false });
     try {
       await connector.query({ type: 'exec', sql: `CREATE TABLE postgres_scalars(
