@@ -1,19 +1,18 @@
 import { toDataColumns } from '@uwdata/mosaic-core';
-import { binLinear1d, isBetween } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { max, sum } from 'd3';
 import { Transient } from '../symbols.js';
-import { binExpr, nativeBinExpr } from './util/bin-expr.js';
+import { binExpr } from './util/bin-expr.js';
 import { dericheConfig, dericheConv1d } from './util/density.js';
 import { extentX, extentY, xext, yext } from './util/extent.js';
 import { grid1d } from './util/grid.js';
 import { handleParam } from './util/handle-param.js';
-import { Mark, channelOption, markQuery, nativeMarkQuery } from './Mark.js';
+import { Mark, channelOption, markQuery } from './Mark.js';
 
 const GROUPBY = { fill: 1, stroke: 1, z: 1 };
 
 export class Density1DMark extends Mark {
-  constructor(type, source, options, sqlContext = null) {
+  constructor(type, source, options) {
     const {
       bins = 1024,
       bandwidth = 20,
@@ -23,7 +22,7 @@ export class Density1DMark extends Mark {
     } = options;
     const dim = type.endsWith('X') ? 'y' : 'x';
 
-    super(type, source, channels, dim === 'x' ? xext : yext, sqlContext);
+    super(type, source, channels, dim === 'x' ? xext : yext);
     this.dim = dim;
 
     /** @type {number} */
@@ -56,31 +55,17 @@ export class Density1DMark extends Mark {
 
   query(filter = []) {
     if (this.hasOwnData()) throw new Error('Density1DMark requires a data source');
-    if (this.sqlContext) return this.nativeQuery(filter);
-    const { bins, channels, dim } = this;
-    const extent = this.extent = (dim === 'x' ? extentX : extentY)(this, filter);
-    const [x, bx] = binExpr(this, dim, bins, extent);
-    const q = markQuery(channels, this.sourceTable(), [dim])
-      .where(filter.concat(isBetween(bx, extent)));
-    const v = this.channelField('weight') ? 'weight' : null;
-    const g = this.groupby = channels.flatMap(c => {
-      return (GROUPBY[c.channel] && c.field) ? c.as : [];
-    });
-    return binLinear1d(q, x, v, g);
-  }
-
-  nativeQuery(filter) {
     const { bins, dim } = this;
     const channels = this.queryChannels();
     const extent = this.extent = (dim === 'x' ? extentX : extentY)(this, filter);
-    const [x, field] = nativeBinExpr(this, dim, bins, extent);
-    const query = nativeMarkQuery(channels, this.sourceTable(), [dim])
-      .where(filter, nativeSQL.isBetween(field, extent.map(Number)));
+    const [x, field] = binExpr(this, dim, bins, extent);
+    const query = markQuery(channels, this.sourceTable(), [dim])
+      .where(filter, sql.isBetween(field, extent.map(Number)));
     const weight = this.channelField('weight')?.as;
     const groups = this.groupby = [...new Set(channels.flatMap(entry =>
       (GROUPBY[entry.channel] || entry.channel === 'fx' || entry.channel === 'fy') && entry.field ? [entry.as] : []
     ))];
-    return nativeSQL.binLinear1d(query, x, weight, groups).orderby(groups, 'index');
+    return sql.binLinear1d(query, x, weight, groups).orderby(groups, 'index');
   }
 
   queryResult(data) {

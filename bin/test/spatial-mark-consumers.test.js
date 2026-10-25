@@ -1,6 +1,7 @@
 import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFile}from'node:fs/promises';import{resolve}from'node:path';import{fileURLToPath}from'node:url';import test from'node:test';import{JSDOM}from'jsdom';import{geoMercator}from'd3';import{Ajv}from'ajv';import addFormats from'ajv-formats';import{parse as parseYAML}from'yaml';
 import{NodeConnector}from'@uwdata/mosaic-core/node-connector';
 import{astToDOM,astToESM,astToPython,parseSpec}from'@uwdata/mosaic-spec';
+import{compile,createExecutionContext}from'@uwdata/mosaic-sql';
 import * as vg from'../../packages/vgplot/vgplot/src/index.js';
 import{GeoMark}from'@uwdata/mosaic-plot';
 import{Mark}from'@uwdata/mosaic-plot';
@@ -24,7 +25,7 @@ test('strict data/geometry and initializer boundaries remain unchanged',async()=
  const spec=JSON.parse(await source('geo-polygons','json'));spec.plot[0].data={type:'FeatureCollection',features:[]};assert.equal(validate(spec),false);spec.plot[0].data=[];spec.plot[0].geometry={notGeometry:1};assert.equal(validate(spec),false);const initializer=JSON.parse(await source('geo-polygons','json'));initializer.projectionType={stream:'native'};assert.equal(validate(initializer),false);
 });
 test('Geo implicit constructor and decorator argument policies preserve their distinct effects',()=>{
- let observed;const plot={addMark:m=>observed=m};const options={};factories.geo(vg.from('spatial_data'),options,{ignored:true})(plot);assert.ok(observed instanceof GeoMark);assert.ok(Object.hasOwn(options,'geometry'));assert.equal(String(options.geometry),'st_asgeojson("geom")');assert.deepEqual(observed.reqs,{});
+ let observed;const plot={addMark:m=>observed=m};const options={};factories.geo(vg.from('spatial_data'),options,{ignored:true})(plot);assert.ok(observed instanceof GeoMark);assert.deepEqual(options,{});assert.deepEqual(compile([observed.channelField('geometry').field],createExecutionContext()),['ST_ASGEOJSON("geom")']);assert.deepEqual(observed.reqs,{});
  for(const name of['sphere','graticule']){factories[name]({stroke:'steelblue'})(plot);assert.equal(observed.source,null);assert.equal(observed.channel('stroke').value,'steelblue');}
  for(const name of['voronoi','voronoiMesh','delaunayLink','delaunayMesh','hull']){factories[name]({x:1})(plot);assert.equal(observed.data.numRows,1);assert.equal(observed.channel('x').value,1);}
 });
@@ -47,7 +48,7 @@ test('Geo table sources query default geometry as decoded GeoJSON',async()=>{
  const coordinator=new vg.Coordinator(await database,{logger:null});const errors=[];coordinator.logger({...coordinator.logger(),error:error=>errors.push(error)});const api=vg.createAPIContext({coordinator,extensions:factories});
  try{
   await coordinator.exec('DROP TABLE IF EXISTS spatial_data');const result=await astToDOM(parseSpec(spec),{api});await clientsReady(result.element);
-  assert.deepEqual(errors,[]);const mark=result.element.value.marks[0];assert.match(String(mark.query()),/st_asgeojson/);
+  assert.deepEqual(errors,[]);const mark=result.element.value.marks[0];assert.match(compile([mark.query()],coordinator.sqlContext.execution)[0],/ST_ASGEOJSON\("geom"\)/);
   assert.deepEqual(mark.data.columns.geometry,[{type:'Point',coordinates:[-20,0]},{type:'Point',coordinates:[20,10]}]);
   geometry(result.element,{mark:'geo',kind:'polygons'});
  }finally{coordinator.clear();}

@@ -25,9 +25,9 @@ for (const name of ['intervalX', 'intervalY', 'intervalXY'])
       await p.mouse.down();
       await p.mouse.move(coords.left + coords.x2, coords.top + coords.y2, { steps: 4 });
       await p.mouse.up();
-      const selected = await p.evaluate(() => ({ value: window['brushSelection'].value, predicate: String(window['brushSelection'].active.predicate), rect: document.querySelector('rect.selection').getAttribute('fill-opacity') }));
+      const selected = await p.evaluate(async () => { const sqlModule = '/packages/mosaic/sql/src/index.ts'; const { compile, createExecutionContext } = await import(sqlModule); return { value: window['brushSelection'].value, predicate: compile([window['brushSelection'].active.predicate], createExecutionContext()).join(';\n'), rect: document.querySelector('rect.selection').getAttribute('fill-opacity') }; });
       assert.ok(Array.isArray(selected.value));
-      assert.match(selected.predicate, /BETWEEN/);
+      assert.match(selected.predicate, />=.*AND.*<=/);
       assert.equal(selected.rect, '0.3');
       await p.mouse.click(coords.left + coords.clearX, coords.top + coords.clearY);
       assert.equal(await p.evaluate(() => window['brushSelection'].value), undefined);
@@ -44,7 +44,7 @@ test('region pointer brush selects actual SVG geometry and publishes backing val
     await p.mouse.down();
     await p.mouse.move(box.x + box.width + 3, box.y + box.height + 3, { steps: 4 });
     await p.mouse.up();
-    const selected = await p.evaluate(() => ({ value: window['brushSelection'].value, predicate: String(window['brushSelection'].active.predicate), source: window['brushSelection'].active.source === window['brushPlot'].interactors[0] }));
+    const selected = await p.evaluate(async () => { const sqlModule = '/packages/mosaic/sql/src/index.ts'; const { compile, createExecutionContext } = await import(sqlModule); return { value: window['brushSelection'].value, predicate: compile([window['brushSelection'].active.predicate], createExecutionContext()).join(';\n'), source: window['brushSelection'].active.source === window['brushPlot'].interactors[0] }; });
     assert.deepEqual(selected.value, [['A']]);
     assert.match(selected.predicate, /g.*IN/);
     assert.equal(selected.source, true);

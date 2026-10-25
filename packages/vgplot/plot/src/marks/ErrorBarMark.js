@@ -1,12 +1,13 @@
+import * as sql from '@uwdata/mosaic-sql';
 import { erfinv } from './util/stats.js';
-import { Mark, markPlotSpec, markQuery, nativeMarkQuery } from './Mark.js';
+import { Mark, markPlotSpec, markQuery } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class ErrorBarMark extends Mark {
-  constructor(type, source, options, sqlContext = null) {
+  constructor(type, source, options) {
     const dim = type.endsWith('X') ? 'y' : 'x';
     const { ci = 0.95, ...channels } = options;
-    super(type, source, channels, undefined, sqlContext);
+    super(type, source, channels, undefined);
     this.dim = dim;
     this.field = this.channelField(dim).field;
     this.channels = this.channels.filter(c => c.channel !== dim);
@@ -18,7 +19,7 @@ export class ErrorBarMark extends Mark {
   }
 
   query(filter = []) {
-    return errorBarQuery(this, this.sql, filter);
+    return errorBarQuery(this, filter);
   }
 
   plotSpecs() {
@@ -37,7 +38,7 @@ export class ErrorBarMark extends Mark {
   }
 }
 
-function errorBarQuery(mark, sql, filter) {
+function errorBarQuery(mark, filter) {
   const { field } = mark;
   const { avg, count, div, sqrt, stddev } = sql;
   const channels = mark.queryChannels();
@@ -45,6 +46,6 @@ function errorBarQuery(mark, sql, filter) {
     { field: avg(field), as: '__avg__' },
     { field: div(stddev(field), sqrt(count(field))), as: '__se__', }
   ]);
-  const query = mark.sqlOwner ? nativeMarkQuery(fields, mark.sourceTable()) : markQuery(fields, mark.sourceTable());
+  const query = markQuery(fields, mark.sourceTable());
   return query.where(filter);
 }

@@ -9,18 +9,18 @@
   <button id="null">Select null</button>
   <output id="result"></output>
   <script type="module">
-    import { Coordinator, makeClient, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
-    import { Query, count, max, min, sum } from '@uwdata/mosaic-sql/native';
+    import { Selection, clauseNone, clausePoint } from '@uwdata/mosaic-core';
+    import { Coordinator, makeClient, RestConnector } from '@uwdata/mosaic-core';
+    import { Query, count, max, min, sum } from '@uwdata/mosaic-sql';
     import { Slider } from '@uwdata/mosaic-inputs';
 
     window.nativeReady = (async () => {
-      const native = new NativeSqlContext();
+
       const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
-        native,
         logger: null
       });
       await coordinator.exec('CREATE OR REPLACE TEMP TABLE native_slider_rows AS SELECT * FROM (VALUES (0), (1), (2), (3), (4), (NULL)) AS t("a""b")');
-      const selection = native.selection({ cross: true });
+      const selection = Selection.intersect({ cross: true });
       const slider = new Slider({
         element: document.querySelector('#slider'),
         from: 'native_slider_rows',
@@ -30,7 +30,7 @@
         min: 0,
         step: 1,
         value: 2
-      }, native);
+      });
       const events = [];
       slider.slider.addEventListener('input', () => events.push(slider.slider.value));
       coordinator.connect(slider);
@@ -47,8 +47,8 @@
         },
         queryError: error => { throw error; }
       });
-      document.querySelector('#clear').onclick = () => selection.update(native.clear(slider));
-      document.querySelector('#null').onclick = () => selection.update(native.point('a"b', null, { source: slider }));
+      document.querySelector('#clear').onclick = () => selection.update(clauseNone(slider));
+      document.querySelector('#null').onclick = () => selection.update(clausePoint('a"b', null, { source: slider }));
       await Promise.all([slider.pending, client.pending]);
       return { coordinator, selection, slider, client, events };
     })();

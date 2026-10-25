@@ -9,14 +9,15 @@
   <button id="clip">Clip</button>
   <output id="summary"></output>
   <script type="module">
-    import { Coordinator, NativeSqlContext, Param, RestConnector } from '@uwdata/mosaic-core';
-    import { column } from '@uwdata/mosaic-sql/native';
+    import { Selection, clauseInterval } from '@uwdata/mosaic-core';
+    import { Coordinator, Param, RestConnector } from '@uwdata/mosaic-core';
+    import { column } from '@uwdata/mosaic-sql';
     import { createAPIContext } from '@uwdata/vgplot';
 
     window.nativeMarksReady = (async () => {
-      const native = new NativeSqlContext();
+
       const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
-        native, logger: null, cache: false, consolidate: false
+        logger: null, cache: false, consolidate: false
       });
       const errors = [];
       coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error.message) });
@@ -33,7 +34,7 @@
         INSERT INTO native_browser_dense VALUES ('A','a',0,0),('A','a',1,4),('B','b',0,4),('B','b',1,0)
       `);
       const api = createAPIContext({ coordinator });
-      const selection = native.selection();
+      const selection = Selection.intersect();
       const normalize = Param.value(false);
       const connected = api.plot(
         api.lineY(api.from('native_browser_connected', { optimize: true }), {
@@ -73,7 +74,7 @@
         await update();
       };
       document.querySelector('#clip').onclick = async () => {
-        selection.update(native.interval('t', [0.2, 0.8], { source: document.querySelector('#clip') }));
+        selection.update(clauseInterval('t', [0.2, 0.8], { source: document.querySelector('#clip') }));
         await selection.pending('value');
         await raster.pending;
         await update();

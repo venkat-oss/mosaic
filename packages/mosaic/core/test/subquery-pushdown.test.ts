@@ -1,331 +1,209 @@
-import { describe, it, expect } from 'vitest';
-import { Query, ScalarSubqueryNode, TableRefNode, cast, column, columns, cross_join, star, count, FromClauseNode, gt, join, least, sql, sum } from '@uwdata/mosaic-sql';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DuckDB } from '@uwdata/mosaic-duckdb';
+import * as sql from '@uwdata/mosaic-sql';
 import { subqueryPushdown } from '../src/preagg/subquery-pushdown.js';
+import { Coordinator } from '../src/Coordinator.js';
 import { NodeConnector } from '../src/connectors/NodeConnector.js';
-import { decodeIPC } from '../src/index.js';
 
-async function columnNames(sql: string): Promise<string[]> {
-  const db = await NodeConnector.make();
-  await db.query({ type: 'exec', sql: 'CREATE TABLE t AS SELECT 1 AS k, 2 AS a, 3 AS b' });
-  const ipc = await db.query({ type: 'arrow', sql: `SELECT column_name FROM (DESCRIBE ${sql})` });
-  return decodeIPC(ipc).toArray().map(d => d.column_name);
-}
+const db = new DuckDB();
+let coordinator: Coordinator;
+beforeAll(async () => {
+  await db.exec(`
+    CREATE TABLE data AS SELECT * FROM (VALUES
+      (1,10,100,2,3,4,1,'cat',5,9),(2,20,200,12,13,14,2,'cat',7,19)
+    ) t(x,y,z,a,b,c,k,category,value,other);
+    CREATE TABLE other AS SELECT 10 AS x,100 AS y,1000 AS z,20 AS a,30 AS b,40 AS c,1 AS k;
+    CREATE TABLE t AS SELECT 1 AS k,2 AS a,3 AS b;
+    CREATE TABLE t1 AS SELECT 1 AS num1,2 AS num2;
+    CREATE TABLE t2 AS SELECT 10 AS num1,20 AS num2;
+    CREATE SCHEMA s1; CREATE SCHEMA s2;
+    CREATE TABLE s1.t AS SELECT 1 AS k,2 AS a,3 AS b;
+    CREATE TABLE s2.t AS SELECT 1 AS k,20 AS a,30 AS b;
+  `);
+  coordinator = new Coordinator(await NodeConnector.make(db), { logger: null, consolidate: false });
+});
+afterAll(() => { coordinator.clear(); db.close(); });
 
-function pushdown(query: Query, source: string | string[], cols: string[]) {
-  subqueryPushdown(query, new TableRefNode(source), cols);
-  return `${query}`;
+function push(query: sql.Query, source: string | readonly string[], columns: string[], supported = true): sql.Query {
+  expect(subqueryPushdown(query, sql.tableRef(source)!, columns)).toBe(supported);
+  return query;
 }
+const rows = async (query: sql.Query) => Array.from(await coordinator.query(query));
+const names = async (query: sql.Query) => (await coordinator.query(query)).schema.fields.map(field => field.name);
 
 describe('subqueryPushdown', () => {
-  it('pushes columns into an aggregate query over the source', () => {
-    const q = Query
-      .select('category', { sum: sum('value') })
-      .from('data')
-      .groupby('category');
-    expect(pushdown(q, 'data', ['other'])).toBe(
-      'SELECT "category", sum("value") AS "sum", "other" FROM "data" GROUP BY "category", "other"'
-    );
+  it('pushes dimensions into aggregate queries without duplicating case-insensitive columns', async () => {
+    const query = sql.Query.from('data').select('category', { sum: sql.sum('value') }).groupby('category');
+    expect(await rows(push(query, 'data', ['other']).orderby('other'))).toEqual([
+      { category: 'cat', sum: 5, other: 9 }, { category: 'cat', sum: 7, other: 19 }
+    ]);
+    const existing = sql.Query.from('data').select('category', 'other', { sum: sql.sum('value') }).groupby('category', 'other');
+    push(existing, 'data', ['CATEGORY', 'other']);
+    expect(sql.inspectSelect(existing).group_by?.expressions).toHaveLength(2);
+    expect(await names(existing)).toEqual(['category', 'other', 'sum']);
   });
 
-  it('matches existing columns case-insensitively', () => {
-    const q = Query
-      .select('Category', { sum: sum('value') })
-      .from('data')
-      .groupby('Category');
-    expect(pushdown(q, 'data', ['category'])).toBe(
-      'SELECT "Category", sum("value") AS "sum" FROM "data" GROUP BY "Category"'
-    );
-    const s = Query.select(star(null, { exclude: ['A'] })).from('data');
-    expect(pushdown(s, 'data', ['a'])).toBe(
-      'SELECT * EXCLUDE ("A"), "a" FROM "data"'
-    );
+  it('keeps nonaggregate and star queries ungrouped and appends only missing dimensions', async () => {
+    const plain = push(sql.Query.from('data').select('x'), 'data', ['a']);
+    expect(sql.inspectSelect(plain).group_by).toBeNull();
+    expect(await rows(plain.orderby('x'))).toEqual([{ x: 1, a: 2 }, { x: 2, a: 12 }]);
+    const star = push(sql.Query.from('data').select('*'), 'data', ['a']);
+    expect(await names(star)).toEqual(['x', 'y', 'z', 'a', 'b', 'c', 'k', 'category', 'value', 'other']);
   });
 
-  it('does not duplicate existing columns', () => {
-    const q = Query
-      .select('category', 'other', { sum: sum('value') })
-      .from('data')
-      .groupby('category', 'other');
-    expect(pushdown(q, 'data', ['other'])).toBe(
-      'SELECT "category", "other", sum("value") AS "sum" FROM "data" GROUP BY "category", "other"'
-    );
+  it('restores excluded and renamed columns while retaining replacement expressions', async () => {
+    const query = sql.Query.from('data').select(sql.star(null, {
+      exclude: ['A'], rename: { b: 'b2' }, replace: { c: sql.add('c', 1) }
+    }));
+    push(query, 'data', ['a', 'b', 'c', 'x']);
+    expect(await names(query)).toEqual(['x', 'y', 'z', 'b2', 'c', 'k', 'category', 'value', 'other', 'a', 'b']);
+    const result = await rows(query.orderby('x'));
+    expect(result.map(row => [row.a, row.b, row.b2, row.c])).toEqual([[2, 3, 3, 5], [12, 13, 13, 15]]);
   });
 
-  it('does not add a group by to non-aggregate queries', () => {
-    const q = Query.select('x').from('data');
-    expect(pushdown(q, 'data', ['a'])).toBe('SELECT "x", "a" FROM "data"');
+  it('keeps COLUMNS expansion on the root and rejects hidden subquery dimensions', async () => {
+    const direct = push(sql.Query.from('data').select(sql.columns('^[ab]$')), 'data', ['a']);
+    expect(await names(direct)).toEqual(['a', 'b']);
+    const expanded = () => sql.Query.from('data').select(sql.columns('^[xy]$'));
+    push(sql.Query.from(expanded()).select('x'), 'data', ['a'], false);
+    const visible = sql.Query.from('data').select(sql.columns('^[xy]$'), 'A');
+    expect(await rows(push(sql.Query.from(visible).select('x'), 'data', ['a']).orderby('x')))
+      .toEqual([{ x: 1, a: 2 }, { x: 2, a: 12 }]);
+    push(sql.Query.from(sql.Query.unionAll(expanded(), sql.Query.from('data').select('x', 'y'))).select('x'), 'data', ['a'], false);
   });
 
-  it('does not add select columns to star queries', () => {
-    const q = Query.select('*').from('data');
-    expect(pushdown(q, 'data', ['a'])).toBe('SELECT * FROM "data"');
+  it('leaves other sources and scalar subquery scopes unchanged', async () => {
+    const query = sql.Query.from('other').select('x', {
+      total: sql.subquery(sql.Query.from('data').select({ total: sql.sum('y') }))
+    });
+    expect(await rows(push(query, 'data', ['c']))).toEqual([{ x: 10, total: 30 }]);
+    expect(await names(push(sql.Query.from('other').select('x'), 'data', ['a']))).toEqual(['x']);
   });
 
-  it('adds columns removed by star modifiers', () => {
-    const q = Query
-      .select(star(null, { exclude: ['a'], rename: { b: 'b2' }, replace: { c: sql`c + 1` } }))
-      .from('data');
-    expect(pushdown(q, 'data', ['a', 'b', 'c', 'd'])).toBe(
-      'SELECT * EXCLUDE ("a") REPLACE (c + 1 AS "c") RENAME ("b" AS "b2"), "a", "b" FROM "data"'
-    );
+  it('matches complete schema-qualified source paths', async () => {
+    const query = sql.Query.from(sql.tableRef(['s1', 't'])!).select('k');
+    expect(await rows(push(query, ['s1', 't'], ['a']))).toEqual([{ k: 1, a: 2 }]);
+    expect(await names(push(sql.Query.from(sql.tableRef(['s2', 't'])!).select('k'), ['s1', 't'], ['a'])))
+      .toEqual(['k']);
   });
 
-  it('does not add select columns to COLUMNS queries', () => {
-    const q = Query.select(columns('^[ab]$')).from('data');
-    expect(pushdown(q, 'data', ['a'])).toBe('SELECT COLUMNS(\'^[ab]$\') FROM "data"');
+  it('pushes through CTEs and sets while leaving unrelated CTE definitions intact', async () => {
+    const query = sql.Query.with({
+      unused: sql.Query.from('other').select('x'),
+      part: sql.Query.unionAll(sql.Query.from('data').select('x'), sql.Query.from('data').select('x')),
+      relay: sql.Query.from('part').select('x')
+    }).from('relay').select('x');
+    expect(await rows(push(query, 'data', ['c']).orderby('x', 'c'))).toEqual([
+      { x: 1, c: 4 }, { x: 1, c: 4 }, { x: 2, c: 14 }, { x: 2, c: 14 }
+    ]);
+    const unused = sql.inspectSelect(query).with!.ctes.find(cte => cte.alias.name === 'unused')!;
+    expect(sql.selectEntries(unused.this).map(entry => entry.alias)).toEqual(['x']);
   });
 
-  it('reports failure to push down into COLUMNS subqueries', () => {
-    const q = (sub: Query) => subqueryPushdown(
-      Query.select('x').from(sub), new TableRefNode('data'), ['a']
-    );
-    expect(q(Query.select(columns('^[xy]$')).from('data'))).toBe(false);
-    expect(q(Query.select(columns('^[xy]$'), 'A').from('data'))).toBe(true);
-    expect(q(Query.unionAll(
-      Query.select(columns('^[xy]$')).from('data'),
-      Query.select('x', 'y').from('data')
-    ))).toBe(false);
-    expect(subqueryPushdown(
-      Query.select(columns('^[ab]$')).from('data'), new TableRefNode('data'), ['a']
-    )).toBe(true);
+  it('respects source shadowing and nested CTE scopes', async () => {
+    const shadowed = sql.Query.with({ data: sql.Query.from('other').select('x') }).from('data').select('x');
+    expect(await rows(push(shadowed, 'data', ['c']))).toEqual([{ x: 10 }]);
+    const inner = sql.Query.with({ local: sql.Query.from('data').select('x') }).from('local').select('x');
+    const outer = sql.Query.with({ local: sql.Query.from('other').select('x') })
+      .from(sql.from(inner, 'derived'), sql.from('local', 'outside'))
+      .select({ value: sql.column('x', 'derived') });
+    expect(await rows(push(outer, 'data', ['c']).orderby('value'))).toEqual([{ value: 1, c: 4 }, { value: 2, c: 14 }]);
   });
 
-  it('leaves queries over other tables unchanged', () => {
-    const q = Query.select('x').from('other');
-    expect(pushdown(q, 'data', ['a'])).toBe('SELECT "x" FROM "other"');
+  it('pushes through filtered FROM subqueries and join inputs', async () => {
+    const aggregate = sql.Query.from(sql.Query.from('data').select('x').where(sql.gt('x', 0)))
+      .select({ n: sql.count() });
+    expect(await rows(push(aggregate, 'data', ['c']).orderby('c'))).toEqual([{ n: 1, c: 4 }, { n: 1, c: 14 }]);
+    const joined = sql.Query.from(sql.join(
+      sql.from(sql.Query.from('data').select('x', 'k'), 'l'),
+      sql.from(sql.Query.from('other').select('y', 'k'), 'r'), { using: ['k'] }
+    )).select('x', 'y');
+    expect(await rows(push(joined, 'data', ['c']))).toEqual([{ x: 1, y: 100, c: 4 }]);
   });
 
-  it('matches schema-qualified source tables', () => {
-    const q = Query.select('x').from(new TableRefNode(['main', 'data']));
-    expect(pushdown(q, ['main', 'data'], ['a'])).toBe(
-      'SELECT "x", "a" FROM "main"."data"'
-    );
+  it.each(['t1', 't2', 'T1'])('applies star modifier qualifier %s to its relation', async excluded => {
+    const query = sql.Query.from(sql.cross_join('t1', 't2'))
+      .select(sql.star(null, { exclude: [sql.column('num1', excluded)] }));
+    push(query, 't1', ['num1']);
+    expect((await names(query)).filter(name => name === 'num1')).toHaveLength(excluded.toLowerCase() === 't1' ? 2 : 1);
+    expect(sql.selectEntries(query)).toHaveLength(excluded.toLowerCase() === 't1' ? 2 : 1);
   });
 
-  it('pushes columns through CTEs and set operations', () => {
-    const q = Query
-      .with({
-        values: Query.unionAll(
-          Query
-            .select({ raw_value: cast('initial_tokens', 'DOUBLE'), round: sql`'Initial'` })
-            .from('Eval_Runs')
-            .where(gt('initial_tokens', 0)),
-          Query
-            .select({ raw_value: cast('total_tokens', 'DOUBLE'), round: sql`'Final'` })
-            .from('Eval_Runs')
-            .where(gt('total_tokens', 0))
-        ),
-        capped: Query
-          .select('raw_value', 'round', { p95: sql`quantile_cont("raw_value", 0.95) OVER ()` })
-          .from('values')
-      })
-      .select({ input_tokens: least('raw_value', 'p95') }, 'round')
-      .from('capped');
-    expect(pushdown(q, 'Eval_Runs', ['sweep', 'analytical'])).toBe(
-      'WITH "values" AS (SELECT ("initial_tokens")::DOUBLE AS "raw_value", \'Initial\' AS "round", "sweep", "analytical" FROM "Eval_Runs" WHERE ("initial_tokens" > 0) UNION ALL SELECT ("total_tokens")::DOUBLE AS "raw_value", \'Final\' AS "round", "sweep", "analytical" FROM "Eval_Runs" WHERE ("total_tokens" > 0)), "capped" AS (SELECT "raw_value", "round", quantile_cont("raw_value", 0.95) OVER () AS "p95", "sweep", "analytical" FROM "values") SELECT least("raw_value", "p95") AS "input_tokens", "round", "sweep", "analytical" FROM "capped"'
-    );
+  it.each([['s1', 't'], ['s2', 't'], ['t']].map(excluded => ({ excluded })))('matches star modifier schema path $excluded', async ({ excluded }) => {
+    const query = sql.Query.from(sql.cross_join(['s1', 't'], ['s2', 't']))
+      .select(sql.star(null, { exclude: [sql.column('a', excluded)] }));
+    push(query, ['s1', 't'], ['a']);
+    expect(sql.selectEntries(query)).toHaveLength(excluded[0] === 's2' ? 1 : 2);
+    if (excluded.length > 1) expect((await names(query)).filter(name => name === 'a')).toHaveLength(excluded[0] === 's1' ? 2 : 1);
   });
 
-  it('skips CTEs not on a lineage path to the source', () => {
-    const q = Query
-      .with({
-        a: Query.select('x').from('data'),
-        b: Query.select('y').from('other'),
-        unused: Query.select('z').from('data')
-      })
-      .select('x', 'y')
-      .from('a', 'b');
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'WITH "a" AS (SELECT "x", "c" FROM "data"), "b" AS (SELECT "y" FROM "other"), "unused" AS (SELECT "z" FROM "data") SELECT "x", "y", "a"."c" AS "c" FROM "a", "b"'
-    );
+  it('retains implicit-alias scope and rejects ambiguous backend qualifiers', async () => {
+    const excluded = sql.column('a', ['s2', 't']);
+    const implicit = sql.Query.from(sql.cross_join(sql.from(sql.tableRef(['s1', 't'])!, 'T'), ['s2', 't']))
+      .select(sql.star(null, { exclude: [excluded] }));
+    push(implicit, ['s1', 't'], ['a']);
+    expect(sql.selectEntries(implicit)).toHaveLength(1);
+    const projection = sql.selectEntries(implicit)[0].expr;
+    if (!('star' in projection)) throw new TypeError('Expected a wildcard projection.');
+    expect(projection.star.except?.[0]).toBe(excluded);
+    await expect(coordinator.query(implicit)).rejects.toThrow(/ambiguous/i);
+    await expect(coordinator.query('SELECT * EXCLUDE(s2.t.a) FROM s1.t AS T CROSS JOIN s2.t'))
+      .rejects.toThrow(/ambiguous/i);
+    const selfJoin = () => sql.join(sql.from('t', 'x'), 't', { using: ['k'] });
+    for (const alias of ['x', 't']) {
+      const query = sql.Query.from(selfJoin()).select(sql.star(null, { exclude: [sql.column('a', alias)] }));
+      push(query, 't', ['a']);
+      expect(await names(query)).toEqual(alias === 'x' ? ['k', 'b', 'a', 'b'] : ['k', 'a', 'b', 'b']);
+    }
   });
 
-  it('respects CTE shadowing of the source table', () => {
-    const q = Query
-      .with({ data: Query.select('x').from('other') })
-      .select('x')
-      .from('data');
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'WITH "data" AS (SELECT "x" FROM "other") SELECT "x" FROM "data"'
-    );
+  it('rejects ambiguous self-join dimensions and accepts existing qualified grouping', async () => {
+    const selfJoin = () => sql.join(sql.from('t', 'x'), 't', { using: ['k'] });
+    push(sql.Query.from(selfJoin()).select(sql.star(null, { exclude: [sql.column('a', 'x'), sql.column('a', 't')] })), 't', ['a'], false);
+    push(sql.Query.from(selfJoin()).select({ n: sql.count() }), 't', ['a'], false);
+    push(sql.Query.from(selfJoin()).select('*', { n: sql.count() }).groupby('k'), 't', ['a'], false);
+    const grouped = sql.Query.from(selfJoin()).select({ a: sql.column('a', 'x'), n: sql.count() }).groupby(sql.column('a', 'x'));
+    expect(await rows(push(grouped, 't', ['a']))).toEqual([{ a: 2, n: 1 }]);
   });
 
-  it('resolves nested CTEs by scope', () => {
-    const inner = Query
-      .with({ t: Query.select('x').from('data') })
-      .select('x')
-      .from('t');
-    const q = Query
-      .with({ t: Query.select('x').from('other') })
-      .select('x')
-      .from(inner, 't');
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'WITH "t" AS (SELECT "x" FROM "other") SELECT "x", "c" FROM (WITH "t" AS (SELECT "x", "c" FROM "data") SELECT "x", "c" FROM "t"), "t"'
-    );
+  it('qualifies source dimensions absent from other-table stars or aggregate grouping', async () => {
+    const star = sql.Query.from(sql.cross_join('t1', 't2')).select(sql.star('t2'));
+    push(star, 't1', ['num1']);
+    expect(sql.columnParts(sql.selectEntries(star).at(-1)!.expr)).toEqual(['t1', 'num1']);
+    expect(await names(star)).toEqual(['num1', 'num2', 'num1']);
+    const aggregate = sql.Query.from(sql.cross_join('t1', 't2')).select({ n: sql.count() }).groupby(sql.column('num1', 't2'));
+    expect(await rows(push(aggregate, 't1', ['num1']))).toEqual([{ n: 1, num1: 1 }]);
   });
 
-  it('pushes columns through FROM subqueries', () => {
-    const q = Query
-      .select({ n: count() })
-      .from(Query.select('x').from('data').where(gt('x', 0)));
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'SELECT count(*) AS "n", "c" FROM (SELECT "x", "c" FROM "data" WHERE ("x" > 0)) GROUP BY "c"'
-    );
+  it('pads non-source set branches and retains already-visible wildcard positions', async () => {
+    const query = sql.Query.unionAll(sql.Query.from('data').select('x'), sql.Query.from('other').select('x'));
+    expect(await rows(push(query, 'data', ['c']).orderby('x'))).toEqual([{ x: 1, c: 4 }, { x: 2, c: 14 }, { x: 10, c: null }]);
+    const stars = sql.Query.unionAll(sql.Query.from('t2').select(sql.star('t2')), sql.Query.from('t1').select(sql.star('t1')));
+    push(stars, 't1', ['num1']);
+    expect(await names(stars)).toEqual(['num1', 'num2']);
+    expect(await rows(stars)).toEqual([{ num1: 10, num2: 20 }, { num1: 1, num2: 2 }]);
   });
 
-  it('pushes columns through join inputs', () => {
-    const q = Query
-      .select('x', 'y')
-      .from(join(
-        new FromClauseNode(Query.select('x', 'k').from('data'), 'l'),
-        new FromClauseNode(Query.select('y', 'k').from('other'), 'r'),
-        { using: ['k'] }
-      ));
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'SELECT "x", "y", "l"."c" AS "c" FROM (SELECT "x", "k", "c" FROM "data") AS "l" JOIN (SELECT "y", "k" FROM "other") AS "r" USING ("k")'
-    );
+  it('rejects unknown wildcard positions while accepting aligned explicit outputs', () => {
+    const query = (a: sql.Query, b: sql.Query, supported: boolean) =>
+      push(sql.Query.unionAll(a, b), 'data', ['a'], supported);
+    query(sql.Query.from('data').select('x'), sql.Query.from('data').select('*'), false);
+    query(sql.Query.from('data').select('x'), sql.Query.from('other').select('*'), false);
+    query(sql.Query.from('other').select('x'), sql.Query.from('data').select(sql.star('data')), false);
+    query(sql.Query.from('data').select('*'), sql.Query.from('data').select('*'), true);
+    query(sql.Query.from('data').select('x'), sql.Query.from('other').select('y'), true);
   });
 
-  it('applies table-qualified star modifiers only to their tables', () => {
-    const q = (exclude: string) => Query
-      .select(star(null, { exclude: [column('num1', exclude)] }))
-      .from(cross_join('t1', 't2'));
-    expect(pushdown(q('t2'), 't1', ['num1'])).toBe(
-      'SELECT * EXCLUDE ("t2"."num1") FROM "t1" CROSS JOIN "t2"'
+  it('aligns pushed dimensions by position across differently named set inputs', async () => {
+    const query = sql.Query.unionAll(
+      sql.Query.from('data').select({ s: 'a', v: 'x' }),
+      sql.Query.from('data').select('b', 'y'),
+      sql.Query.from('other').select('c', 'z')
     );
-    expect(pushdown(q('t1'), 't1', ['num1'])).toBe(
-      'SELECT * EXCLUDE ("t1"."num1"), "t1"."num1" AS "num1" FROM "t1" CROSS JOIN "t2"'
-    );
-  });
-
-  it('matches star modifier qualifiers by schema', () => {
-    const q = (exclude: string[]) => Query
-      .select(star(null, { exclude: [column('a', exclude)] }))
-      .from(cross_join(['s1', 't'], ['s2', 't']));
-    const from = 'FROM "s1"."t" CROSS JOIN "s2"."t"';
-    expect(pushdown(q(['s2', 't']), ['s1', 't'], ['a'])).toBe(
-      `SELECT * EXCLUDE ("s2"."t"."a") ${from}`
-    );
-    expect(pushdown(q(['s1', 't']), ['s1', 't'], ['a'])).toBe(
-      `SELECT * EXCLUDE ("s1"."t"."a"), "s1"."t"."a" AS "a" ${from}`
-    );
-    expect(pushdown(q(['t']), ['s1', 't'], ['a'])).toBe(
-      `SELECT * EXCLUDE ("t"."a"), "s1"."t"."a" AS "a" ${from}`
-    );
-  });
-
-  it('matches star modifier qualifiers case-insensitively', () => {
-    const q = Query
-      .select(star(null, { exclude: [column('num1', 'T1')] }))
-      .from(cross_join('t1', 't2'));
-    expect(pushdown(q, 't1', ['num1'])).toBe(
-      'SELECT * EXCLUDE ("T1"."num1"), "t1"."num1" AS "num1" FROM "t1" CROSS JOIN "t2"'
-    );
-  });
-
-  it('treats an alias matching the table name case-insensitively as implicit', () => {
-    const q = Query
-      .select(star(null, { exclude: [column('a', ['s2', 't'])] }))
-      .from(cross_join(new FromClauseNode(new TableRefNode(['s1', 't']), 'T'), ['s2', 't']));
-    expect(pushdown(q, ['s1', 't'], ['a'])).toBe(
-      'SELECT * EXCLUDE ("s2"."t"."a") FROM "s1"."t" AS "T" CROSS JOIN "s2"."t"'
-    );
-  });
-
-  it('matches star modifier qualifiers against aliases', async () => {
-    const q = (exclude: string[]) => Query
-      .select(star(null, { exclude: exclude.map(t => column('a', t)) }))
-      .from(join(new FromClauseNode(new TableRefNode('t'), 'x'), 't', { using: ['k'] }));
-    const from = 'FROM "t" AS "x" JOIN "t" USING ("k")';
-    const sql = pushdown(q(['t']), 't', ['a']);
-    expect(sql).toBe(`SELECT * EXCLUDE ("t"."a") ${from}`);
-    expect(await columnNames(sql)).toStrictEqual(['k', 'a', 'b', 'b']);
-    expect(pushdown(q(['x']), 't', ['a'])).toBe(`SELECT * EXCLUDE ("x"."a") ${from}`);
-  });
-
-  it('reports failure to push down ambiguous self-join columns', async () => {
-    const selfJoin = () => join(new FromClauseNode(new TableRefNode('t'), 'x'), 't', { using: ['k'] });
-    const push = (q: Query) => subqueryPushdown(q, new TableRefNode('t'), ['a']);
-    const excludeBoth = Query
-      .select(star(null, { exclude: [column('a', 'x'), column('a', 't')] }))
-      .from(selfJoin());
-    expect(push(excludeBoth)).toBe(false);
-    expect(push(Query.select({ n: count() }).from(selfJoin()))).toBe(false);
-    expect(push(Query.select('*', { n: count() }).from(selfJoin()).groupby('k'))).toBe(false);
-
-    const grouped = Query
-      .select({ a: column('a', 'x'), n: count() })
-      .from(selfJoin())
-      .groupby(column('a', 'x'));
-    expect(push(grouped)).toBe(true);
-    expect(await columnNames(`${grouped}`)).toStrictEqual(['a', 'n']);
-  });
-
-  it('adds columns not output by table-qualified stars', () => {
-    const q = Query.select(star('t2')).from(cross_join('t1', 't2'));
-    expect(pushdown(q, 't1', ['num1'])).toBe(
-      'SELECT "t2".*, "t1"."num1" AS "num1" FROM "t1" CROSS JOIN "t2"'
-    );
-  });
-
-  it('qualifies columns pushed into aggregate joins', () => {
-    const q = Query
-      .select({ n: count() })
-      .from(cross_join('t1', 't2'))
-      .groupby(column('num1', 't2'));
-    expect(pushdown(q, 't1', ['num1'])).toBe(
-      'SELECT count(*) AS "n", "t1"."num1" AS "num1" FROM "t1" CROSS JOIN "t2" GROUP BY "t2"."num1", "t1"."num1"'
-    );
-  });
-
-  it('pads set operation inputs not derived from the source', () => {
-    const q = Query.unionAll(
-      Query.select('x').from('data'),
-      Query.select('x').from('other')
-    );
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'SELECT "x", "c" FROM "data" UNION ALL SELECT "x", NULL AS "c" FROM "other"'
-    );
-  });
-
-  it('does not pad set operation inputs that already output a column', () => {
-    const q = Query.unionAll(
-      Query.select(star('other')).from('other'),
-      Query.select(star('data')).from('data')
-    );
-    expect(pushdown(q, 'data', ['a'])).toBe(
-      'SELECT "other".* FROM "other" UNION ALL SELECT "data".* FROM "data"'
-    );
-  });
-
-  it('reports failure to append to set operation inputs with stars', () => {
-    const q = (a: Query, b: Query) => subqueryPushdown(
-      Query.unionAll(a, b), new TableRefNode('data'), ['a']
-    );
-    expect(q(Query.select('x').from('data'), Query.select('*').from('data'))).toBe(false);
-    expect(q(Query.select('x').from('data'), Query.select('*').from('other'))).toBe(false);
-    expect(q(Query.select('x').from('other'), Query.select(star('data')).from('data'))).toBe(false);
-    expect(q(Query.select('*').from('data'), Query.select('*').from('data'))).toBe(true);
-    expect(q(Query.select('x').from('data'), Query.select('y').from('other'))).toBe(true);
-  });
-
-  it('aligns set operation inputs by position', () => {
-    const q = Query.unionAll(
-      Query.select({ s: 'a', v: 'x' }).from('data'),
-      Query.select('b', 'y').from('data'),
-      Query.select('c', 'z').from('other')
-    );
-    expect(pushdown(q, 'data', ['a', 'y'])).toBe(
-      'SELECT "a" AS "s", "x" AS "v", "a", "y" FROM "data" UNION ALL SELECT "b", "y", "a", "y" FROM "data" UNION ALL SELECT "c", "z", NULL AS "a", NULL AS "y" FROM "other"'
-    );
-  });
-
-  it('ignores scalar subqueries', () => {
-    const q = Query
-      .select('x', { m: new ScalarSubqueryNode(Query.select({ m: sum('y') }).from('data')) })
-      .from('other');
-    expect(pushdown(q, 'data', ['c'])).toBe(
-      'SELECT "x", (SELECT sum("y") AS "m" FROM "data") AS "m" FROM "other"'
-    );
+    expect(await rows(push(query, 'data', ['a', 'y']).orderby('s'))).toEqual([
+      { s: 2, v: 1, a: 2, y: 10 }, { s: 3, v: 10, a: 2, y: 10 },
+      { s: 12, v: 2, a: 12, y: 20 }, { s: 13, v: 20, a: 12, y: 20 },
+      { s: 40, v: 1000, a: null, y: null }
+    ]);
   });
 });

@@ -26,10 +26,12 @@ The `int32(expression)`, `float32(expression)`, and `float64(expression)` functi
 
 ## column
 
-`column(name)`
+`column(name, table)`
 
 Create an expression AST node that references a column by _name_.
-Upon string coercion, the column name will be properly quoted.
+Compilation and string coercion quote the column name. Pass a live `Param` as
+_name_ to resolve the
+identifier at submission; the optional second argument supplies its table qualifier.
 
 ## columns
 
@@ -64,23 +66,34 @@ Create an AST node for a lambda function, rendered as `lambda x, y: body` (requi
 The _params_ argument is a parameter name string or an array of names.
 The _body_ argument is a callback that receives a parameter reference for each name and returns the body expression.
 Parameter references are distinct from column references: `collectColumns` and other column analyses ignore them, while column references in the body are still collected.
-Lambdas can be included among the arguments of a `FunctionNode`:
+Lambdas can be included among the arguments of a native function expression:
 
 ``` js
 // list_transform("names", lambda "x": upper("x"))
-new FunctionNode("list_transform", [column("names"), lambda("x", x => upper(x))])
+native.call("list_transform", [column("names"), lambda("x", x => upper(x))])
 ```
 
-The _body_ may instead be an expression that references parameters using `LambdaVarNode` instances, which is useful when translating from another AST.
+The callback receives native identifier expressions. Reuse these references when
+building the body so the lambda arguments remain distinct from free columns.
 
 ## literal
 
 `literal(value)`
 
 Create an expression AST node that references a literal _value_.
-Upon string coercion, an appropriate SQL value will be produced.
+Compilation and string coercion produce an appropriate SQL value.
 For example, string literals will be properly quoted and JavaScript `Date` objects that match an exact UTC date will be converted to the SQL Date definitions.
-The supported primitive types are: boolean, null, number, string, regexp, and Date (maps to SQL Date or Timestamp depending on the value). A regular expression serializes its pattern as an escaped SQL string; for example, `literal(/O'Reilly/)` becomes `'O''Reilly'`.
+Supported scalar values include booleans, null, numbers, bigint, strings, regular
+expressions and dates. Non-finite numbers and invalid dates become SQL NULL. A
+regular expression contributes its escaped pattern; for example,
+`literal(/O'Reilly/)` compiles to `'O''Reilly'`.
+
+Arrays and typed lists become SQL lists, plain records become structs, and
+`Uint8Array`, `ArrayBuffer` and `DataView` become binary values. Conversion is
+recursive and treats every record key as data, even keys matching AST node names.
+Cyclic data and unsupported object instances reject. `asLiteral` additionally
+accepts native expressions, handles and live Params recursively; use `literal`
+when an object must be treated entirely as data.
 
 ## namedArg
 
@@ -88,10 +101,10 @@ The supported primitive types are: boolean, null, number, string, regexp, and Da
 
 Create an AST node for a named function argument, rendered as `name := expression`.
 String-valued _expression_ arguments are interpreted as column references; use [`literal`](#literal) for string values.
-Named arguments can be included among the arguments of a `FunctionNode`, for example to create struct values:
+Named arguments can be included among the arguments of a native function expression, for example to create struct values:
 
 ``` js
-new FunctionNode("struct_pack", [namedArg("x", 1), namedArg("y", column("foo"))])
+native.call("struct_pack", [namedArg("x", 1), namedArg("y", column("foo"))])
 ```
 
 ## nullif
@@ -124,8 +137,9 @@ As the referenced column is not named, `collectColumns` reports a positional ref
 
 ``sql`...` ``
 
-A template tag for arbitrary SQL expressions that do not require deep analysis.
-Creates an expression AST node with only a partially structured form consisting of unstructured text and interpolated values.
+A template tag for user-authored SQL expressions or statements. It parses the
+complete input with Polyglot and substitutes structured expressions and bindings
+into the resulting native tree.
 Interpolated values may be strings, other SQL expressions (such as [`column` references](#column) or [operators](./operators)), or [`Param`](../core/param) values.
 
 The snippet below creates a dynamic expression that adds a Param value to a column.
@@ -139,7 +153,7 @@ sql`${column("foo")} + ${param}`
 
 SQL expressions may be nested, in which case all nested column dependencies and parameter updates are still extractable via the collection visitors.
 
-The native preview parses complete SQL expressions or statements with Polyglot.
+Parsing happens when the complete template is first consumed.
 `sql({ sourceDialect: Dialect.MySQL })` creates a tag for another source dialect;
 its execution context must use the same source dialect. The target dialect is
 chosen by the coordinator. Plain interpolated strings remain SQL text; use
@@ -150,7 +164,7 @@ must occupy complete expression or relation positions; interpolating them inside
 quotes, function names, alias names or qualifier prefixes rejects explicitly.
 Identifiers beginning with `__mosaic_sql_` are reserved for template substitution.
 
-Native `verbatim(source, { sourceDialect })` has the same parsing boundary.
+`verbatim(source, { sourceDialect })` has the same parsing boundary.
 Unparseable input fails explicitly. Backend-specific commands that need no
 structural analysis can still be submitted as strings to `coordinator.exec`
 when the source and target dialects match; these strings do not participate in
@@ -187,7 +201,9 @@ Query.from("t").select(star(null, {
 }))
 ```
 
-A star is a column reference with the column name `*`, so `collectColumns` reports it as referencing all columns, along with any columns referenced by replacement expressions.
+`collectColumns` reports a wildcard for a star, along with any columns
+referenced by replacement expressions. The canonical tree retains its native
+star variant and modifiers.
 
 ## tryCast
 
@@ -196,20 +212,14 @@ A star is a column reference with the column name `*`, so `collectColumns` repor
 Like [`cast`](#cast), but returns `NULL` if the cast fails rather than raising an error.
 Maps to `TRY_CAST(expression AS type)`.
 
-## Native tree inspection and rewriting
+## Tree inspection and rewriting {#native-tree-inspection-and-rewriting}
 
-The temporary `@uwdata/mosaic-sql/native` entry exposes `SqlExpression`, an alias
-for Polyglot's native expression union. Query and aggregate handles expose their
-tree through `.expression`; use native helpers instead of legacy node classes or
-underscore-prefixed query fields.
-
-Native `literal` converts data recursively: arrays become lists, plain records
-become structs, and `Uint8Array`, `ArrayBuffer` and `DataView` become binary
-values. It preserves record keys that happen to match SQL node names.
-`asLiteral` additionally accepts native expressions, handles and live Params;
-use `literal` when an object must be treated entirely as data. Table selections
-use Arrow schema information to distinguish nested byte lists from binary
-values. Cross-dialect compilation still rejects unsupported collection types.
+`SqlExpression` is Polyglot's native plain-data expression union. `Query`,
+`Aggregate`, `Window` and `SqlTemplate` handles expose their tree through
+`.expression`. Factories under `native` supply complete variant defaults; compose
+their returned objects to extend SQL construction. Mosaic factory results share
+a string-coercion prototype; it adds no keys to the native payload, and JSON
+serialization retains the ordinary Polyglot expression shape.
 
 `walk(root, callback)` visits original JavaScript expression objects, passing the
 nearest expression parent as its second argument. Each shared node is visited
@@ -222,7 +232,7 @@ input tree unchanged. `deepClone(root)` copies the tree with a shared memo and
 retains live binding metadata.
 
 ``` js
-import { column, Query, rewrite } from '@uwdata/mosaic-sql/native';
+import { column, Query, rewrite } from '@uwdata/mosaic-sql';
 
 const amount = column('amount');
 const query = Query.from('sales').select({ value: amount });
@@ -236,7 +246,7 @@ inspection. `fields(root)` returns `{ node, column, table }` dependencies, and
 `params(root)` returns the original live Param objects. Inspecting fields can read
 a dynamic identifier's current value.
 
-The native entry also provides `list`, `lambda`, `namedArg`, `subscript`, `slice`,
+The package also provides `list`, `lambda`, `namedArg`, `subscript`, `slice`,
 `star`, `columns` and `all`. Lambda parameters are canonical identifiers, so they
 are excluded from free column dependencies. Stars retain qualified EXCLUDE and
 RENAME references; their REPLACE expressions retain live bindings and contribute
@@ -252,3 +262,51 @@ fields become unqualified subquery output columns.
 `filterPushdown(query, table, filter)` returns a query with filtered base-table
 sources while respecting CTE shadowing and scalar subquery scope. The curried
 form `filterQuery(query, table)` returns a function that accepts the filter.
+
+## Compilation and bindings
+
+`compile(roots, executionContext)`
+
+Resolve one snapshot of live bindings and compile each expression or statement in
+order. Scalar roots are supported directly, including selection predicates.
+`createExecutionContext()` supplies DuckDB defaults; set `sourceDialect`,
+`targetDialect`, `backend` and `generation` for a different execution context.
+Unsupported target semantics raise `SqlCompilationError` before query execution.
+
+```js
+import { compile, createExecutionContext, native, column, literal } from '@uwdata/mosaic-sql';
+
+const expression = native.call('my_function', [column('amount'), literal(2)]);
+const statements = compile([expression], createExecutionContext());
+```
+
+Extensions that previously subclassed SQL nodes or supplied renderer visitors
+should instead compose native factories. For example, a reusable expression
+helper needs no custom node or rendering callback:
+
+```js
+import { asLiteral, asNode, native, Query } from '@uwdata/mosaic-sql';
+
+const twice = value => native.binary('mul', asNode(value), asLiteral(2));
+const query = Query.from('sales').select({ adjusted_amount: twice('amount') });
+```
+
+Compile the result with the execution context used for the surrounding query.
+Mosaic-created expressions and queries retain zero-argument `toString()` and
+ordinary string coercion through the native compiler with DuckDB defaults. These
+methods resolve live bindings when called. For another dialect or a shared
+coordinator snapshot, use `compile([expression], context)[0]`. Custom
+`toString(visitor)` renderer extensions are removed.
+
+Use semantic factories and high-level helpers for known operations so dialect
+lowering can preserve their meaning. A custom function call only promises the
+semantics of its source database; it does not establish portability.
+
+`deferred(resolve, parameters)` creates a delayed expression binding. Its callback
+receives a shared parameter reader and returns a native root at submission.
+Declare all dependent Params in _parameters_; keep application metadata outside
+the SQL payload. `snapshot` and `snapshotAll` resolve bindings, while
+`bindingOf` inspects binding metadata without changing the native tree.
+`StructuralKeyScope` provides binding-aware keys for analysis. `isExpression`,
+`isExpressionHandle`, `rootExpression` and `toExpression` distinguish plain trees
+from authoring handles and expose their canonical root.

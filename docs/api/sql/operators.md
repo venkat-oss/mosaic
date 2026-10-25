@@ -161,11 +161,11 @@ The _step_ argument is optional.
 
 Returns an expression that unnests the _expression_ list or struct. Maps to `UNNEST(expression)`.
 
-The temporary `/native` entry additionally accepts
+The package also accepts
 `unnest(expression, { recursive, max_depth })`. Both options remain structured
-named arguments and can use live parameters. Native `slice` preserves omitted
+named arguments and can use live parameters. `slice` preserves omitted
 bounds separately from explicit negative indices; indexing remains one-based.
-Native collection operators preserve DuckDB's NULL and empty-list behavior.
+Collection operators preserve DuckDB's NULL and empty-list behavior.
 PostgreSQL compilation supports tested flat literal lists and simple positive
 indices/slices; unsupported nested shapes, stepped slices, recursive UNNEST and
 NULL-sensitive membership reject before execution.

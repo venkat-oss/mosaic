@@ -1,23 +1,24 @@
 # Aggregate Functions
 
-SQL aggregate function expressions. Aggregate detection in SQL fragments includes the DuckDB 2.0 functions `combine_aggr`, `decimal_average`, `lttb`, and `variant_group_object`. These names can be used through [`sql`](./expressions#sql) or `AggregateNode`.
+SQL aggregate function expressions. Helpers construct Polyglot semantic aggregate
+variants; user-authored aggregate SQL can also enter through [`sql`](./expressions#sql).
 
-## Native aggregate preview
+## Aggregate expressions {#native-aggregate-preview}
 
-The temporary `@uwdata/mosaic-sql/native` entry provides these high-level
-aggregate helpers over Polyglot's semantic expression variants. Derived
+`@uwdata/mosaic-sql` provides high-level aggregate helpers over Polyglot's
+semantic expression variants. Derived
 aggregates retain `.distinct()`, `.where()` and `.argOrder()`; `.window()`,
 `.partitionby()`, `.orderby()` and `.frame()` construct windowed versions.
 These methods return new handles, leaving the original aggregate unchanged.
 
 ``` js
-import { Query, gt, sum } from '@uwdata/mosaic-sql/native';
+import { Query, gt, sum } from '@uwdata/mosaic-sql';
 
 const positive = sum('amount').where(gt('amount', 0));
 const query = Query.from('sales').select({ total: positive });
 ```
 
-Native DuckDB coordinators can preaggregate compatible queries using sufficient
+DuckDB coordinators can preaggregate compatible queries using sufficient
 statistics, including mean-centered variance and regression calculations.
 Distinct or ordered aggregates that cannot be combined safely run directly.
 See the [coordinator options](../core/coordinator#constructor).
@@ -29,44 +30,55 @@ does not imply support for another target.
 Portable string aggregation requires known text semantics and a constant,
 non-null separator. The compiler supplies DuckDB's default comma when omitted.
 
-## AggregateNode {#aggregate-node}
+## Aggregate {#aggregate-node}
 
-The `AggregateNode` class represents a SQL AST node for an aggregate function call.
-Users should not need to instantiate `AggregateNode` instances directly, but instead should use aggregate function methods such as [`count()`](#count), [`sum()`](#sum), _etc_.
+The `Aggregate` handle exposes a semantic aggregate tree through `.expression`.
+Use helpers such as [`count()`](#count) or [`sum()`](#sum) to create one. Its
+modifier methods return new handles; the original aggregate remains unchanged.
+`inspectAggregate(expression)` exposes its operation, arguments and modifiers for
+analysis. `clone()` copies the tree while retaining live bindings.
 
 ### distinct
 
-`AggregateNode.distinct()`
+`Aggregate.distinct()`
 
-Returns a new AggregateNode instance that applies the aggregation over distinct values only.
+Returns a new Aggregate handle that applies the aggregation over distinct values only.
 
 ### where
 
-`AggregateNode.where(filter)`
+`Aggregate.where(filter)`
 
-Returns a new AggregateNode instance filtered according to a Boolean-valied _filter_ expression.
+Returns a new Aggregate handle filtered according to a Boolean-valued _filter_ expression.
+
+### argOrder
+
+`Aggregate.argOrder(...expressions)`
+
+Return an aggregate with an argument-order clause, for example to order the
+values consumed by `arrayAgg`. This differs from `orderby`, which creates a
+windowed aggregate.
 
 ### window
 
-`AggregateNode.window()`
+`Aggregate.window()`
 
-Returns a windowed version of this aggregate function as a new [WindowNode](./window-functions#window-node) instance.
+Returns a windowed version of this aggregate function as a new [Window](./window-functions#window-node) instance.
 
 ### partitionby
 
-`AggregateNode.partitionby(...expressions)`
+`Aggregate.partitionby(...expressions)`
 
-Provide one or more _expressions_ by which to partition a windowed version of this aggregate function and returns a new [WindowNode](./window-functions#window-node) instance.
+Provide one or more _expressions_ by which to partition a windowed version of this aggregate function and returns a new [Window](./window-functions#window-node) instance.
 
 ### orderby
 
-`AggregateNode.orderby(...expressions)`
+`Aggregate.orderby(...expressions)`
 
-Provide one or more _expressions_ by which to sort a windowed version of this aggregate function and returns a new [WindowNode](./window-functions#window-node) instance.
+Provide one or more _expressions_ by which to sort a windowed version of this aggregate function and returns a new [Window](./window-functions#window-node) instance.
 
 ### frame
 
-`AggregateNode.frame(definition)`
+`Aggregate.frame(definition)`
 
 Return a windowed version of this aggregate with the given frame definition.
 Use `frameRows(extent)`, `frameRange(extent)` or `frameGroups(extent)` to construct

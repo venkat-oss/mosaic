@@ -1,12 +1,7 @@
 import { scaleTransform } from '@uwdata/mosaic-sql';
-import { scaleTransform as nativeScaleTransform } from '@uwdata/mosaic-sql/native';
 
 export function channelScale(mark, channel) {
   return scaleTransform(scaleOptions(mark, channel));
-}
-
-export function nativeChannelScale(mark, channel) {
-  return nativeScaleTransform(scaleOptions(mark, channel));
 }
 
 function scaleOptions(mark, channel) {

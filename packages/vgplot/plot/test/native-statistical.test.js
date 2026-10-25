@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext, Param } from '@uwdata/mosaic-core';
+import { Coordinator, Param } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import * as sql from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { ErrorBarMark } from '../src/marks/ErrorBarMark.js';
 import { RegressionMark } from '../src/marks/RegressionMark.js';
 import { Plot } from '../src/plot.js';
@@ -21,12 +21,12 @@ beforeAll(() => database.query({ type: 'exec', sql: `
 afterAll(() => database.close());
 
 async function setup(create) {
-  const native = new NativeSqlContext();
-  const coordinator = new Coordinator(database, { native, cache: false, consolidate: false, logger: null });
+
+  const coordinator = new Coordinator(database, { cache: false, consolidate: false, logger: null });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
-  const plot = new Plot(undefined, native);
-  const mark = create(native);
+  const plot = new Plot();
+  const mark = create();
   plot.addMark(mark);
   coordinator.connect(mark);
   await mark.pending;
@@ -38,9 +38,9 @@ describe('native statistical marks', () => {
     const ci = Param.value(0);
     const source = { table: ['main', 'native_statistics'] };
     const qualifier = sql.tableRef(source.table);
-    const state = await setup(native => new RegressionMark(source, {
+    const state = await setup(() => new RegressionMark(source, {
       x: sql.column('x', qualifier), y: sql.column('y', qualifier), stroke: 'series', ci
-    }, native));
+    }));
     try {
       const fit = state.mark.modelFit;
       const rows = Array.from({ length: fit.numRows }, (_, i) => ({
@@ -64,9 +64,9 @@ describe('native statistical marks', () => {
 
   it('aggregates confidence bounds and filters each source group', async () => {
     const ci = Param.value(0.95);
-    const state = await setup(native => new ErrorBarMark('ruleX', { table: 'native_statistics' }, {
+    const state = await setup(() => new ErrorBarMark('ruleX', { table: 'native_statistics' }, {
       x: 'series', y: 'y', stroke: 'series', ci
-    }, native));
+    }));
     try {
       const rows = Array.from(await state.coordinator.query(state.mark.query()), row => ({
         group: row.series, average: Number(row.__avg__), error: Number(row.__se__)

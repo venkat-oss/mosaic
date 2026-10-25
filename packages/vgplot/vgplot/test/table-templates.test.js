@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { and, compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
@@ -173,15 +174,15 @@ it('publishes hover rows across query chunks and clears on leave through the act
     await selection.pending('value');
     expect(table.currentRow).toBe(0);
     expect(selection.active.source).toBe(table);
-    expect(String(selection.predicate())).toContain('"x"');
-    expect(String(selection.predicate())).toContain("'A'");
+    expect(compile([and(selection.predicate() ?? [])], createExecutionContext()).join(';\n')).toContain('"x"');
+    expect(compile([and(selection.predicate() ?? [])], createExecutionContext()).join(';\n')).toContain("'A'");
     Object.defineProperties(element, { scrollHeight: { value: 300 }, clientHeight: { value: 100 }, scrollTop: { value: 150 } });
     element.dispatchEvent(new Event('scroll'));
     await table.pending;
     table.body.rows[1].cells[0].dispatchEvent(new Event('pointerover', { bubbles: true }));
     await selection.pending('value');
     expect(table.currentRow).toBe(1);
-    expect(String(selection.predicate())).toContain("'B'");
+    expect(compile([and(selection.predicate() ?? [])], createExecutionContext()).join(';\n')).toContain("'B'");
     table.body.dispatchEvent(new Event('pointerleave'));
     await selection.pending('value');
     expect(table.currentRow).toBe(-1);

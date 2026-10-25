@@ -1,16 +1,15 @@
-import { type ExprNode, literal, MaybeArray, or } from '@uwdata/mosaic-sql';
-import type { SelectionExpression } from './types.js';
+import { type SqlExpression, literal, MaybeArray, or } from '@uwdata/mosaic-sql';
 import { type MosaicClient } from './MosaicClient.js';
 import { ClauseSource, SelectionClause } from './clause/index.js';
 import { Param } from './Param.js';
 
-export interface SelectionOptions<E extends SelectionExpression = ExprNode> {
+export interface SelectionOptions {
   /** Boolean flag indicating cross-filtered resolution. If true, selection clauses will not be applied to the clients they are associated with. */
   cross?: boolean;
   /** Boolean flag indicating if a lack of clauses should correspond to an empty selection with no records. This setting determines the default selection state. */
   empty?: boolean;
   /** Upstream selections whose clauses should be included as part of the new selection. Any clauses published to upstream selections will be relayed to the new selection. */
-  include?: Selection<E> | Selection<E>[];
+  include?: Selection | Selection[];
 }
 
 export interface SelectionResolverOptions extends Pick<SelectionOptions, 'empty' | 'cross'> {
@@ -25,7 +24,7 @@ export interface SelectionResolverOptions extends Pick<SelectionOptions, 'empty'
  * @param x The value to test.
  * @returns True if the input is a Selection, false otherwise.
  */
-export function isSelection<E extends SelectionExpression = SelectionExpression>(x: unknown): x is Selection<E> {
+export function isSelection(x: unknown): x is Selection {
   return x instanceof Selection;
 }
 
@@ -36,29 +35,17 @@ function create(options: SelectionResolverOptions, include?: Selection | Selecti
   );
 }
 
-export interface SelectionExpressions<E> {
-  readonly owner: object | null;
-  literal(value: boolean): E;
-  or(values: E[]): E;
-}
-
-const legacyExpressions: SelectionExpressions<ExprNode> = {
-  owner: null,
-  literal,
-  or: values => or(values)
-};
-
-type SelectionClauseArray<E> = SelectionClause<E>[] & { active?: SelectionClause<E> };
-export type ResolvedPredicate<E = ExprNode> = MaybeArray<string | boolean | E> | undefined;
+type SelectionClauseArray = SelectionClause[] & { active?: SelectionClause };
+export type ResolvedPredicate = MaybeArray<string | boolean | SqlExpression> | undefined;
 
 /**
  * Represents a dynamic set of query filter predicates.
  */
-export class Selection<E extends SelectionExpression = ExprNode> extends Param<unknown> {
-  declare protected _value: SelectionClauseArray<E>;
-  _resolved: SelectionClauseArray<E>;
-  _resolver: SelectionResolver<E>;
-  _relay: Set<Selection<E>>;
+export class Selection extends Param<unknown> {
+  declare protected _value: SelectionClauseArray;
+  _resolved: SelectionClauseArray;
+  _resolver: SelectionResolver;
+  _relay: Set<Selection>;
 
   /**
    * Create a new Selection instance with an
@@ -108,16 +95,13 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * should be included as part of this selection. Any clauses published
    * to these upstream selections will be relayed to this selection.
    */
-  constructor(resolver: SelectionResolver<E> = new SelectionResolver<E>(), include: Selection<E>[] = []) {
+  constructor(resolver: SelectionResolver = new SelectionResolver(), include: Selection[] = []) {
     super([]);
     this._resolved = this._value;
     this._resolver = resolver;
     this._relay = new Set();
     if (Array.isArray(include)) {
       for (const sel of include) {
-        if (sel.owner !== this.owner) {
-          throw new TypeError('Selections from different SQL contexts cannot be combined.');
-        }
         sel._relay.add(this);
       }
     }
@@ -127,8 +111,8 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * Create a cloned copy of this Selection instance.
    * @returns A clone of this selection.
    */
-  clone(): Selection<E> {
-    const s = new Selection<E>(this._resolver);
+  clone(): Selection {
+    const s = new Selection(this._resolver);
     s._value = s._resolved = this._value;
     return s;
   }
@@ -139,24 +123,20 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * @param source The clause source to remove.
    * @returns A cloned and updated Selection.
    */
-  remove(source: ClauseSource): Selection<E> {
+  remove(source: ClauseSource): Selection {
     const s = this.clone();
     s._value = s._resolved = s._resolver.resolve(
       this._resolved,
-      { source } as SelectionClause<E>
+      { source } as SelectionClause
     );
-    s._value.active = { source } as SelectionClause<E>;
+    s._value.active = { source } as SelectionClause;
     return s;
-  }
-
-  get owner(): object | null {
-    return this._resolver.expressions.owner;
   }
 
   /**
    * The selection clause resolver.
    */
-  get resolver(): SelectionResolver<E> {
+  get resolver(): SelectionResolver {
     return this._resolver;
   }
 
@@ -170,14 +150,14 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
   /**
    * The current array of selection clauses.
    */
-  get clauses(): SelectionClauseArray<E> {
+  get clauses(): SelectionClauseArray {
     return this._value;
   }
 
   /**
    * The current active (most recently updated) selection clause.
    */
-  get active(): SelectionClause<E> {
+  get active(): SelectionClause {
     return this.clauses.active!;
   }
 
@@ -202,8 +182,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * Emit an activate event with the given selection clause.
    * @param clause The clause representing the potential activation.
    */
-  activate(clause: SelectionClause<E>): void {
-    this.checkContext(clause);
+  activate(clause: SelectionClause): void {
     this.emit('activate', clause);
     this._relay.forEach(sel => sel.activate(clause));
   }
@@ -213,20 +192,13 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * @param clause The selection clause to add.
    * @returns This Selection instance.
    */
-  update(clause: SelectionClause<E>): this {
-    this.checkContext(clause);
+  update(clause: SelectionClause): this {
     // we maintain an up-to-date list of all resolved clauses
     // this ensures consistent clause state across unemitted event values
     this._resolved = this._resolver.resolve(this._resolved, clause, true);
     this._resolved.active = clause;
     this._relay.forEach(sel => sel.update(clause));
     return super.update(this._resolved);
-  }
-
-  private checkContext(clause: SelectionClause<E>): void {
-    if ((clause.context ?? null) !== this.owner) {
-      throw new TypeError('Selection clauses from different SQL contexts cannot be combined.');
-    }
   }
 
   /**
@@ -237,7 +209,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * @param clauses The clauses to remove. If unspecified, all current clauses are removed.
    * @returns This selection instance.
    */
-  reset(clauses?: SelectionClause<E>[]): this {
+  reset(clauses?: SelectionClause[]): this {
     clauses ??= this._resolved;
     clauses.forEach(c => c.source?.reset?.());
     this._resolved = this._resolved.filter(c => !clauses!.includes(c));
@@ -255,7 +227,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    */
   willEmit(type: string, value: unknown): unknown {
     if (type === 'value') {
-      this._value = value as SelectionClauseArray<E>;
+      this._value = value as SelectionClauseArray;
       return this.value;
     }
     return value;
@@ -285,7 +257,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * @param clause The selection clause.
    * @returns True if the client should be skipped, false otherwise.
    */
-  skip(client: MosaicClient<SelectionExpression> | null | undefined, clause: SelectionClause<E>): boolean {
+  skip(client: MosaicClient | null | undefined, clause: SelectionClause): boolean {
     return this._resolver.skip(client, clause);
   }
 
@@ -298,7 +270,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
    * @returns The query predicate for filtering client data,
    *  based on the current state of this selection.
    */
-  predicate(client: MosaicClient<SelectionExpression> | null | undefined = undefined, noSkip: boolean = false): ResolvedPredicate<E> {
+  predicate(client: MosaicClient | null | undefined = undefined, noSkip: boolean = false): ResolvedPredicate {
     const { clauses } = this;
     const active = noSkip ? null : clauses.active;
     return this._resolver.predicate(clauses, active!, client);
@@ -308,8 +280,7 @@ export class Selection<E extends SelectionExpression = ExprNode> extends Param<u
 /**
  * Implements selection clause resolution strategies.
  */
-export class SelectionResolver<E extends SelectionExpression = ExprNode> {
-  readonly expressions: SelectionExpressions<E>;
+export class SelectionResolver {
   union: boolean;
   cross: boolean;
   single: boolean;
@@ -327,10 +298,8 @@ export class SelectionResolver<E extends SelectionExpression = ExprNode> {
    *  setting determines the default selection state.
    */
   constructor(
-    { union, cross, single, empty }: SelectionResolverOptions = {},
-    expressions: SelectionExpressions<E> = legacyExpressions as SelectionExpressions<E>
+    { union, cross, single, empty }: SelectionResolverOptions = {}
   ) {
-    this.expressions = expressions;
     this.union = !!union;
     this.cross = !!cross;
     this.single = !!single;
@@ -344,10 +313,10 @@ export class SelectionResolver<E extends SelectionExpression = ExprNode> {
    * @returns An updated array of selection clauses.
    */
   resolve(
-    clauseList: SelectionClause<E>[],
-    clause: SelectionClause<E>,
+    clauseList: SelectionClause[],
+    clause: SelectionClause,
     reset: boolean = false
-  ): SelectionClause<E>[] {
+  ): SelectionClause[] {
     const { source, predicate } = clause;
     const filtered = clauseList.filter(c => source !== c.source);
     const clauses = this.single ? [] : filtered;
@@ -363,7 +332,7 @@ export class SelectionResolver<E extends SelectionExpression = ExprNode> {
    * @param clause The selection clause.
    * @returns True if the client should be skipped, false otherwise.
    */
-  skip(client: MosaicClient<SelectionExpression> | null | undefined, clause: SelectionClause<E>): boolean {
+  skip(client: MosaicClient | null | undefined, clause: SelectionClause): boolean {
     if (client == null) {
       return false;
     }
@@ -379,14 +348,14 @@ export class SelectionResolver<E extends SelectionExpression = ExprNode> {
    *  based on the current state of this selection.
    */
   predicate(
-    clauseList: SelectionClause<E>[],
-    active: SelectionClause<E>,
-    client: MosaicClient<SelectionExpression> | null | undefined
-  ): ResolvedPredicate<E> {
+    clauseList: SelectionClause[],
+    active: SelectionClause,
+    client: MosaicClient | null | undefined
+  ): ResolvedPredicate {
     const { empty, union } = this;
 
     if (empty && !clauseList.length) {
-      return [this.expressions.literal(false)];
+      return [literal(false)];
     }
 
     // do nothing if cross-filtering and client is currently active
@@ -399,7 +368,7 @@ export class SelectionResolver<E extends SelectionExpression = ExprNode> {
 
     // return appropriate conjunction or disjunction
     // an array of predicates is implicitly conjunctive
-    return union && predicates.length > 1 ? this.expressions.or(predicates) : predicates;
+    return union && predicates.length > 1 ? or(predicates) : predicates;
   }
 
   /**

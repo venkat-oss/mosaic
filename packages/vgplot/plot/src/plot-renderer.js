@@ -1,5 +1,5 @@
 import * as Plot from '@observablehq/plot';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { binInfo } from './transforms/bin.js';
 import { setAttributes } from './plot-attributes.js';
 import { Fixed } from './symbols.js';
@@ -35,7 +35,8 @@ const SELECT_TRANSFORMS = new Map(
 export async function plotRenderer(plot) {
   const spec = { marks: [] };
   const symbols = [];
-  const { attributes, marks } = plot;
+  const { attributes } = plot;
+  const marks = plot.marks.filter(mark => !mark._failed);
 
   // populate top-level and scale properties
   setAttributes(attributes, spec, symbols);
@@ -56,8 +57,8 @@ export async function plotRenderer(plot) {
   }
 
   // infer scale types and labels
-  inferScaleTypes(spec, plot);
-  inferLabels(spec, plot);
+  inferScaleTypes(spec, marks);
+  inferLabels(spec, marks);
 
   // render plot
   const svg = Plot.plot(spec);
@@ -98,19 +99,18 @@ function setSymbolAttributes(plot, svg, attributes, symbols) {
 
 // Plot defaults temporal scales to UTC; TIMESTAMPTZ values are
 // instants, so render them in local time instead
-function inferScaleTypes(spec, plot) {
+function inferScaleTypes(spec, marks) {
   for (const key of ['x', 'y']) {
     const scale = spec[key] || {};
     if (scale.type != null) continue;
-    const timestamptz = plot.marks.some(
+    const timestamptz = marks.some(
       mark => TIMESTAMPTZ_TYPES.has(mark.channelField(key)?.sqlType)
     );
     if (timestamptz) spec[key] = { ...scale, type: 'time' };
   }
 }
 
-function inferLabels(spec, plot) {
-  const { marks } = plot;
+function inferLabels(spec, marks) {
   inferLabel('x', spec, marks);
   inferLabel('y', spec, marks);
   inferLabel('fx', spec, marks);
@@ -144,36 +144,22 @@ function inferLabel(key, spec, marks) {
 
 function fieldLabel(field, mark) {
   if (!field) return undefined;
-  if (nativeSQL.isExpression(field) || nativeSQL.isExpressionHandle(field)) {
-    const expression = nativeSQL.rootExpression(field);
+  if (sql.isExpression(field) || sql.isExpressionHandle(field)) {
+    const expression = sql.rootExpression(field);
     const bin = binInfo(expression);
     if (bin) return fieldLabel(bin.source, mark);
-    const path = nativeSQL.columnParts(expression);
+    const path = sql.columnParts(expression);
     if (path) return path.at(-1);
-    if ('parameter' in expression) return nativeSQL.fields(expression)[0]?.column;
+    if ('parameter' in expression) return sql.fields(expression)[0]?.column;
     if ('cast' in expression) return fieldLabel(expression.cast.this, mark);
     if ('make_date' in expression) return 'date';
-    const aggregate = nativeSQL.inspectAggregate(expression);
+    const aggregate = sql.inspectAggregate(expression);
     if (aggregate) return aggregate.args.length
       ? aggregate.name + '(' + aggregate.args.map(arg => fieldLabel(arg, mark)).join(', ') + ')'
       : aggregate.name;
-    return nativeSQL.compile([expression], mark.sqlContext.execution).join(';\n').replaceAll('"', '');
+    return sql.compile([expression], mark.coordinator?.sqlContext.execution ?? sql.createExecutionContext()).join(';\n').replaceAll('"', '');
   }
-  switch (field.type) {
-    case 'COLUMN_REF':
-    case 'CUSTOM':
-      return field.column;
-    case 'CAST': return fieldLabel(field.expr);
-    case 'FUNCTION':
-      if (field.name === 'make_date') return 'date';
-      break;
-  }
-  return exprLabel(field);
-}
-
-function exprLabel(field) {
-  const s = `${field}`.replaceAll('"', '').replaceAll('(*)', '()');
-  return s.endsWith('()') ? s.slice(0, -2) : s;
+  return String(field);
 }
 
 function annotatePlot(svg, indices) {

@@ -11,6 +11,7 @@ import type {
  * Requires the optional peer dependency `@uwdata/mosaic-duckdb`.
  */
 export class NodeConnector implements Connector {
+  readonly dialect = 'duckdb';
   protected _db: DuckDB;
 
   static async make(db?: DuckDB) {

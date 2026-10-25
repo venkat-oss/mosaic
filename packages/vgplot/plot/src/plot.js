@@ -14,8 +14,7 @@ export class Plot {
   /**
    * @param {HTMLElement} [element]
    */
-  constructor(element, sqlContext = null) {
-    this.sqlContext = sqlContext;
+  constructor(element) {
     /** @type {Record<string, any>} */
     this.attributes = { ...DEFAULT_ATTRIBUTES };
     this.listeners = null;

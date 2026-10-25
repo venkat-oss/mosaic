@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { and, compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { Param, Selection } from '@uwdata/mosaic-core';
 import { describe, expect, it, vi } from 'vitest';
 import { Menu, Search, Slider } from '../src/index.js';
@@ -36,7 +37,7 @@ describe('Menu retained client', () => {
     menu.publish('Alpha');
     await selection.pending('value');
     expect(selection.active.meta).toMatchObject({type:'list',match:listMatch});
-    expect(String(selection.predicate())).toContain(listMatch==='any'?'list_has_any':'list_has_all');
+    expect(compile([and(selection.predicate() ?? [])], createExecutionContext()).join(';\n')).toContain(listMatch==='any'?'&&':'@>');
     menu.publish('');
     await selection.pending('value');
     expect(selection.value).toBeUndefined();
@@ -47,7 +48,7 @@ describe('Search retained client', () => {
   it.each(/** @type {const} */ (['contains','prefix','suffix','regexp']))('retains %s predicate generation', type => {
     const search = new Search({type,field:'category',from:'rows',column:'category'});
     expect(search.clause('Al').meta).toMatchObject({type:'match',method:type});
-    expect(String(search.clause('Al').predicate)).toContain(({contains:'contains',prefix:'starts_with',suffix:'ends_with',regexp:'regexp_matches'})[type]);
+    expect(compile([search.clause('Al').predicate], createExecutionContext()).join(';\n').toLowerCase()).toContain(({contains:'contains',prefix:'starts_with',suffix:'ends_with',regexp:'regexp_matches'})[type]);
     expect(search.clause('').predicate).toBeNull();
     expect(String(search.query())).toBe('SELECT DISTINCT "category" AS "list" FROM "rows"');
     search.queryResult([{list:'Alpha'}]).update();
@@ -72,7 +73,7 @@ describe('Search retained client', () => {
 describe('Slider retained client', () => {
   it('queries missing bounds and derives its step without overriding explicit bounds', () => {
     const slider = new Slider({from:'rows',column:'x',min:0});
-    expect(String(slider.query())).toBe('SELECT min("x") AS "min", max("x") AS "max" FROM "rows"');
+    expect(String(slider.query())).toBe('SELECT MIN("x") AS "min", MAX("x") AS "max" FROM "rows"');
     slider.queryResult([{min:1,max:6}]);
     expect(slider.min).toBe(0);
     expect(slider.max).toBe(6);

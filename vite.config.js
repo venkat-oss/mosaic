@@ -21,7 +21,6 @@ export default {
       // Define aliases so that vite picks up the source files.
       '@uwdata/mosaic-core/node-connector': path.resolve(dirname, './packages/mosaic/core/src/connectors/NodeConnector.ts'),
       '@uwdata/mosaic-core': path.resolve(dirname, './packages/mosaic/core/src/index.ts'),
-      '@uwdata/mosaic-sql/native': path.resolve(dirname, './packages/mosaic/sql/src/native/index.ts'),
       '@uwdata/mosaic-sql': path.resolve(dirname, './packages/mosaic/sql/src/index.ts'),
       '@uwdata/vgplot': path.resolve(dirname, './packages/vgplot/vgplot/src/index.js'),
       '@uwdata/mosaic-spec': path.resolve(dirname, './packages/vgplot/spec/src/index.ts'),

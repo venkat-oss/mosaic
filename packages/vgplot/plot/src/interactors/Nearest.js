@@ -40,16 +40,15 @@ export class Nearest {
     if (fields.length === 1) {
       // unnested field: use a list-membership predicate instead of point equality
       if (mark.isUnnested(fields[0])) {
-        if (mark.sqlContext) throw new TypeError('Native list selection requires the collection query family.');
         const list = value != null ? [value[0]] : undefined;
         return clauseList(fields[0], list, { ...opt, listMatch: this.listMatch });
       }
       // if only one field, use a simpler clause that passes the value
       // this allows a single field selection value to act like a param
-      return mark.sqlContext ? mark.sqlContext.point(fields[0], value?.[0], opt) : clausePoint(fields[0], value?.[0], opt);
+      return clausePoint(fields[0], value?.[0], opt);
     }
     const points = value ? [value] : value;
-    return mark.sqlContext ? mark.sqlContext.points(fields, points, opt) : clausePoints(fields, points, opt);
+    return clausePoints(fields, points, opt);
   }
 
   init(svg) {

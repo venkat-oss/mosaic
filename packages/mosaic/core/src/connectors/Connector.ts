@@ -20,9 +20,11 @@ export interface ExecQueryRequest extends ConnectorQueryRequest {
 export interface ConnectorQueryOptions {
   /** A signal that aborts when the result is no longer needed. */
   signal?: AbortSignal;
+  baseColumnNullability?: boolean;
 }
 
 export interface Connector {
+  readonly dialect?: 'duckdb' | 'postgres';
   /** Issue a query and return the result. */
   query(query: ArrowQueryRequest, options?: ConnectorQueryOptions): Promise<ArrowIPCBytes>;
   query(query: ExecQueryRequest, options?: ConnectorQueryOptions): Promise<void>;

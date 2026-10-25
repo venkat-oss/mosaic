@@ -1,20 +1,13 @@
-import type { CreateQuery, CreateSchemaQuery, DescribeQuery, ExprNode, MaybeArray, Query } from '@uwdata/mosaic-sql';
-import type { SqlExpression, SqlRoot, TableArg } from '@uwdata/mosaic-sql/native';
+import type { MaybeArray, SqlExpression, SqlRoot, TableArg } from '@uwdata/mosaic-sql';
 import type { QueryResult } from './util/query-result.js';
 
 /** Arrow IPC bytes as returned by a connector. */
 export type ArrowIPCBytes = ArrayBuffer | Uint8Array | Uint8Array[];
 
 /** Query type accepted by a coordinator. */
-export type QueryType =
-  | string
-  | Query
-  | CreateQuery
-  | CreateSchemaQuery
-  | DescribeQuery
-  | SqlRoot;
+export type QueryType = string | SqlRoot;
 
-export type SelectionExpression = ExprNode | SqlExpression;
+export type SelectionExpression = SqlExpression;
 
 /** Type for a query request. */
 export interface QueryRequest {
@@ -28,7 +21,7 @@ export interface QueryRequest {
 export interface QueryEntry {
   request: QueryRequest;
   result: QueryResult;
-  prepare?: () => string;
+  prepare?: () => string | null;
 }
 
 /** String indicating a JavaScript data type. */
@@ -49,41 +42,24 @@ export type Stat =
   | 'distinct';
 
 /** A reference to a database column or expression. */
-export type FieldRef = string | ExprNode;
+export type FieldRef = string | SqlRoot;
 
-/**
- * A request for metadata information about a database column.
- */
 export interface FieldInfoRequest {
-  table: string;
+  table: TableArg;
   column: FieldRef;
   stats?: Stat[];
 }
 
-export interface NativeFieldInfoRequest {
-  table: TableArg;
-  column: string | SqlRoot;
-  stats?: Stat[];
-}
-
-export interface NativeFieldInfoOptions {
+export interface FieldInfoOptions {
   query?: SqlRoot;
 }
 
-/**
- * A response with metadata information about a database column.
- */
-export interface FieldInfo extends Partial<Record<Stat, number>> {
-  table: string,
-  column: string,
-  sqlType: string,
-  type: JSType,
-  nullable: boolean
-}
-
-export interface NativeFieldInfo extends Omit<FieldInfo, 'table' | 'column' | 'min' | 'max'> {
+export interface FieldInfo extends Partial<Record<Exclude<Stat, 'min' | 'max'>, number>> {
   table: TableArg;
-  column: string | SqlRoot;
+  column: FieldRef;
+  sqlType: string;
+  type: JSType;
+  nullable: boolean;
   min?: unknown;
   max?: unknown;
 }

@@ -1,5 +1,5 @@
-import type { ExprNode, ExprValue } from '@uwdata/mosaic-sql';
-import { asNode, isInDistinct, literal, and, or, isNotDistinct } from '@uwdata/mosaic-sql';
+import type { SqlExpression, ExprValue } from '@uwdata/mosaic-sql';
+import { asNode, literal, and, or, isNotDistinct } from '@uwdata/mosaic-sql';
 import { isMosaicClient, type MosaicClient } from '../MosaicClient.js';
 import type { ClauseMetadata, ClauseSource, SelectionClause } from './SelectionClause.js';
 
@@ -47,8 +47,8 @@ export function clausePoint(
   }: PointOptions
 ): SelectionClause {
   field = asNode(field);
-  const predicate: ExprNode | null = value !== undefined
-    ? isInDistinct(field, [literal(value)])
+  const predicate: SqlExpression | null = value !== undefined
+    ? isNotDistinct(field, literal(value))
     : null;
   return {
     meta: { type: 'point' },
@@ -80,21 +80,16 @@ export function clausePoints(
     clients = isMosaicClient(source) ? new Set([source]) : undefined
   }: PointOptions
 ): SelectionClause {
-  fields = fields.map(f => asNode(f));
-  let predicate: ExprNode | null = null;
-  if (value != null) {
-    const clauses = value.length && fields.length === 1
-      ? [isInDistinct(fields[0], value.map(v => literal(v[0])))]
-      : value.map(v => and(v.map((_, i) => isNotDistinct(fields[i], literal(_)))));
-    predicate = value.length === 0 ? literal(false)
-      : clauses.length > 1 ? or(clauses)
-      : clauses[0];
-  }
+  const nodes = fields.map(asNode);
+  const predicate = value == null ? null : or(value.map(row => {
+    if (row.length !== nodes.length) throw new RangeError('Points require one value per field.');
+    return and(row.map((item, index) => isNotDistinct(nodes[index], literal(item))));
+  }));
   return {
     meta: { type: 'point' },
     source,
     clients,
-    fields: fields as ExprNode[],
+    fields: nodes,
     value,
     predicate
   };

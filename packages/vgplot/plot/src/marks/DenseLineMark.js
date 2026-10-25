@@ -1,14 +1,13 @@
-import { Query, and, lineDensity } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
-import { binExpr, nativeBinExpr } from './util/bin-expr.js';
+import * as sql from '@uwdata/mosaic-sql';
+import { binExpr } from './util/bin-expr.js';
 import { extentX, extentY } from './util/extent.js';
 import { handleParam } from './util/handle-param.js';
 import { RasterMark } from './RasterMark.js';
 
 export class DenseLineMark extends RasterMark {
-  constructor(source, options, sqlContext = null) {
+  constructor(source, options) {
     const { normalize = true, ...rest } = options;
-    super(source, rest, sqlContext);
+    super(source, rest);
 
     /** @type {boolean} */
     this.normalize = handleParam(normalize, value => {
@@ -17,41 +16,11 @@ export class DenseLineMark extends RasterMark {
   }
 
   query(filter = []) {
-    if (this.sqlContext) return this.nativeQuery(filter);
-    const { channels, normalize, pad } = this;
-    const [nx, ny] = this.bins = this.binDimensions();
-    const [x] = binExpr(this, 'x', nx, extentX(this, filter), pad);
-    const [y] = binExpr(this, 'y', ny, extentY(this, filter), pad);
-
-    const q = Query
-      .from(this.sourceTable())
-      .where(stripXY(this, filter));
-
-    this.aggr = ['density'];
-    const groupby = this.groupby = [];
-    const z = [];
-    for (const c of channels) {
-      if (Object.hasOwn(c, 'field')) {
-        const { channel, field } = c;
-        if (channel === 'z') {
-          q.select({ [channel]: field });
-          z.push('z');
-        } else if (channel !== 'x' && channel !== 'y') {
-          q.select({ [channel]: field });
-          groupby.push(channel);
-        }
-      }
-    }
-
-    return lineDensity(q, x, y, z, nx, ny, groupby, normalize);
-  }
-
-  nativeQuery(filter) {
     const channels = this.queryChannels();
     const [nx, ny] = this.bins = this.binDimensions();
-    const [x] = nativeBinExpr(this, 'x', nx, extentX(this, filter), this.pad);
-    const [y] = nativeBinExpr(this, 'y', ny, extentY(this, filter), this.pad);
-    const query = nativeSQL.Query.from(nativeSQL.from(this.sourceTable())).where(nativeStripXY(this, filter));
+    const [x] = binExpr(this, 'x', nx, extentX(this, filter), this.pad);
+    const [y] = binExpr(this, 'y', ny, extentY(this, filter), this.pad);
+    const query = sql.Query.from(sql.from(this.sourceTable())).where(stripXY(this, filter));
     this.aggr = ['density'];
     const groups = this.groupby = [];
     const series = [];
@@ -61,12 +30,13 @@ export class DenseLineMark extends RasterMark {
       const dimensions = entry.channel === 'z' ? series : groups;
       if (!dimensions.includes(entry.as)) dimensions.push(entry.as);
     }
-    return nativeSQL.lineDensity(query, x, y, series, nx, ny, groups, this.normalize).orderby(groups, 'index');
+    return sql.lineDensity(query, x, y, series, nx, ny, groups, this.normalize).orderby(groups, 'index');
   }
 }
 
-function nativeStripXY(mark, filter) {
-  const key = expression => mark.sqlContext.structuralKey(nativeSQL.asNode(expression));
+function stripXY(mark, filter) {
+  const keys = new sql.StructuralKeyScope;
+  const key = expression => keys.key(sql.asNode(expression));
   const axes = new Set(['x', 'y'].map(channel => {
     const entry = mark.channelField(channel);
     return key(entry.column ?? entry.field);
@@ -75,13 +45,13 @@ function nativeStripXY(mark, filter) {
     && (expression.literal.literal_type === 'number' && Number.isFinite(Number(expression.literal.value))
       || expression.literal.literal_type === 'date' || expression.literal.literal_type === 'timestamp');
   const strip = input => {
-    if (!nativeSQL.isExpression(input) && !nativeSQL.isExpressionHandle(input)) return input;
+    if (!sql.isExpression(input) && !sql.isExpressionHandle(input)) return input;
     const terms = [];
     const flatten = node => {
       if ('and' in node) { flatten(node.and.left); flatten(node.and.right); }
       else terms.push(node);
     };
-    flatten(nativeSQL.rootExpression(input));
+    flatten(sql.rootExpression(input));
     const ranges = new Map;
     const remove = new Set;
     terms.forEach((node, index) => {
@@ -108,33 +78,7 @@ function nativeStripXY(mark, filter) {
       if (range.low.length && range.high.length) [...range.low, ...range.high].forEach(index => remove.add(index));
     }
     const remaining = terms.filter((_, index) => !remove.has(index));
-    return remaining.length ? nativeSQL.and(remaining) : undefined;
+    return remaining.length ? sql.and(remaining) : undefined;
   };
   return [filter].flat().map(strip).filter(value => value !== undefined);
-}
-
-// strip x, y fields from filter predicate
-// to prevent improper clipping of line segments
-// TODO: improve, perhaps with supporting query utilities
-function stripXY(mark, filter) {
-  if (Array.isArray(filter) && !filter.length) return filter;
-
-  // get column expressions for x and y encoding channels
-  const xc = mark.channelField('x').column;
-  const yc = mark.channelField('y').column;
-
-  // test if a range predicate filters the x or y channels
-  const test = p => {
-    const col = `${p.expr}`;
-    return p.type !== 'BETWEEN' || (col !== xc && col !== yc);
-  };
-
-  // filter boolean 'and' operations
-  const filterAnd = p => p.op === 'AND'
-    ? and(p.clauses.filter(c => test(c)))
-    : p;
-
-  return Array.isArray(filter)
-    ? filter.filter(p => test(p)).map(p => filterAnd(p))
-    : filterAnd(filter);
 }

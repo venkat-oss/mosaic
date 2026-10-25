@@ -1,3 +1,4 @@
+import { SqlContext } from '../src/sql-context.js';
 import { afterAll, beforeAll, describe, it, expect, vi } from 'vitest';
 import { type Table, tableFromArrays, tableToIPC } from '@uwdata/flechette';
 import { Query, add, columns, count, literal, sql, star, sum } from '@uwdata/mosaic-sql';
@@ -5,20 +6,27 @@ import { DuckDB } from '@uwdata/mosaic-duckdb';
 import { Coordinator } from '../src/Coordinator.js';
 import { NodeConnector } from '../src/connectors/NodeConnector.js';
 import type { ArrowQueryRequest, Connector } from '../src/connectors/Connector.js';
-import { consolidator } from '../src/QueryConsolidator.js';
+import { consolidator as createConsolidator } from '../src/QueryConsolidator.js';
 import { Priority } from '../src/QueryManager.js';
 import type { Cache, QueryEntry } from '../src/types.js';
 import { voidCache } from '../src/util/cache.js';
 import { decodeIPC } from '../src/util/decode-ipc.js';
 import { QueryResult, QueryState } from '../src/util/query-result.js';
 
+function consolidator(enqueue: (entry: QueryEntry, priority?: number) => void, cache: () => Cache, generation = () => 0) {
+  const context = new SqlContext();
+  return createConsolidator((entry, priority) => {
+    entry.prepare?.();
+    enqueue(entry, priority);
+  }, cache, generation, () => context);
+}
+
 describe('QueryConsolidation', () => {
-  async function getConsolidatedQueries(...qs: unknown[]) {
+  async function getConsolidatedQueries(...qs: Query[]) {
     const consolidated: string[] = [];
     const c = consolidator(q => consolidated.push(q.request.query.toString()), voidCache);
     for(const q of qs) {
-      // @ts-expect-error stub entry for test
-      c.add({request: { type: 'arrow', query: q }}, Priority.Normal);
+      c.add({ request: { type: 'arrow', query: q }, result: new QueryResult() }, Priority.Normal);
     }
     await new Promise(resolve => setImmediate(resolve));
     return consolidated;
@@ -85,7 +93,7 @@ describe('QueryConsolidation', () => {
     expect(consolidated).toEqual([
       Query.from({ source: 'table' })
         .select({ col0: 'bar', col1: count(), col2: sum('foo') })
-        .groupby('col0')
+        .groupby('bar')
         .toString(),
     ]);
   });
@@ -155,8 +163,8 @@ describe('QueryConsolidationCaching', () => {
 
     expect(Array.from(extracts[1])).toEqual([{ c: 3 }, { c: 4 }]);
     expect(calls).toEqual([
-      [String(queries[0]), extracts[0], bytes.length],
-      [String(queries[1]), extracts[1], bytes.length]
+      [new SqlContext().cacheKey(String(queries[0])), extracts[0], bytes.length],
+      [new SqlContext().cacheKey(String(queries[1])), extracts[1], bytes.length]
     ]);
 
     const remove = vi.fn(() => true);

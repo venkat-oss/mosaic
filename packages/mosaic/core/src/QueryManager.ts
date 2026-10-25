@@ -1,7 +1,7 @@
 import type { ExtractionOptions } from '@uwdata/flechette';
-import { isExpression, isExpressionHandle, isResultQuery } from '@uwdata/mosaic-sql/native';
-import type { SqlExecutionContext } from '@uwdata/mosaic-sql/native';
-import type { NativeSqlContext } from './native-sql.js';
+import { isExpression, isExpressionHandle, isResultQuery, rootExpression } from '@uwdata/mosaic-sql';
+import type { SqlExecutionContext } from '@uwdata/mosaic-sql';
+import { backendExecution, SqlContext } from './sql-context.js';
 import { QueryError } from './util/query-error.js';
 import type { QueryType } from './types.js';
 import type { Connector } from './connectors/Connector.js';
@@ -37,7 +37,7 @@ export class QueryManager {
   private flights: Set<Flight>;
   private _timeout: number;
   private _generation: number;
-  private _nativeContext: NativeSqlContext | null;
+  private _sqlContext: SqlContext;
   private _contextReset?: () => void;
   /** Requests pending with the query manager. */
   public pendingResults: QueryResult[];
@@ -56,7 +56,8 @@ export class QueryManager {
     this.flights = new Set();
     this._timeout = 0;
     this._generation = 0;
-    this._nativeContext = null;
+    this._sqlContext = new SqlContext();
+    this._sqlContext.attach(this, () => this.invalidateContext());
     this.pendingResults = [];
     this.maxConcurrentRequests = maxConcurrentRequests;
     this.pendingExec = false;
@@ -105,22 +106,25 @@ export class QueryManager {
    * @param request The request.
    * @param result The query result.
    */
-  async submit(request: QueryRequest, result: QueryResult, prepare?: () => string): Promise<void> {
+  async submit(request: QueryRequest, result: QueryResult, prepare?: () => string | null): Promise<void> {
     let sent: Promise<unknown> | undefined;
     let sql: string | undefined;
     let dispatched = false;
-    const context = this._nativeContext;
-    const execution = context?.execution;
+    const context = this._sqlContext;
+    const execution = context.execution;
     try {
       const { query, type, cache = false, options } = request;
       const generation = this._generation;
-      sql = prepare?.() ?? this.sql(query, type, context, execution);
+      const prepared = prepare?.();
+      sql = prepared === null ? undefined : prepared ?? this.sql(query, type, context, execution);
       if (generation !== this._generation) {
         throw new DOMException('SQL execution context changed during compilation.', 'AbortError');
       }
-      const key = execution
-        ? context!.cacheKey(sql, execution)
-        : sql;
+      if (sql === undefined) {
+        result.ready(null);
+        return;
+      }
+      const key = context.cacheKey(sql, execution);
       const ipc = this._ipc;
 
       if (cache) {
@@ -143,7 +147,7 @@ export class QueryManager {
       const controller = new AbortController();
       dispatched = true;
       // @ts-expect-error type may be exec | arrow
-      const response = this.db!.query({ ...options, type, sql }, { signal: controller.signal });
+      const response = this.db!.query({ ...options, type, sql }, { signal: controller.signal, baseColumnNullability: type === 'arrow' && preservesBaseNullability(query) });
       sent = response;
       const promise: Promise<unknown> = type === 'arrow'
         ? response.then(bytes => decodeIPC(bytes, ipc))
@@ -170,7 +174,7 @@ export class QueryManager {
       result.ready(type === 'exec' ? null : data);
     } catch (err) {
       const cancelled = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError');
-      result.reject(context && sql !== undefined && dispatched && !cancelled
+      result.reject(sql !== undefined && dispatched && !cancelled
         ? new QueryError(err, sql)
         : err);
       // later queries must not overtake an exec that the connector is still running
@@ -251,7 +255,7 @@ export class QueryManager {
     if (connector && connector !== this.db) {
       const previous = this.db;
       this.db = connector;
-      if (previous && this._nativeContext) this._nativeContext.replace();
+      if (previous) this._sqlContext.replace(backendExecution(connector));
       else this.invalidateContext();
     }
     return this.db;
@@ -269,7 +273,7 @@ export class QueryManager {
         this.enqueue.bind(this),
         () => this.clientCache,
         () => this._generation,
-        () => this._nativeContext
+        () => this._sqlContext
       );
     }
     this._consolidating = flag;
@@ -281,7 +285,7 @@ export class QueryManager {
    * @param priority The query priority, defaults to `Priority.Normal`.
    * @returns A query result promise.
    */
-  request(request: QueryRequest, priority: number = Priority.Normal, prepare?: () => string): QueryResult {
+  request(request: QueryRequest, priority: number = Priority.Normal, prepare?: () => string | null): QueryResult {
     const result = new QueryResult();
     const entry = { request, result, prepare };
     if (this._consolidate && this._consolidating) {
@@ -314,7 +318,6 @@ export class QueryManager {
   }
 
   clear(): void {
-    this._nativeContext?.reset();
     this._generation += 1;
     this._consolidate?.remove(({ result }) => {
       result.reject('Cleared');
@@ -336,17 +339,18 @@ export class QueryManager {
     }
   }
 
-  nativeContext(): NativeSqlContext | null;
-  nativeContext(context: NativeSqlContext | null, reset?: () => void): NativeSqlContext | null;
-  nativeContext(context?: NativeSqlContext | null, reset?: () => void): NativeSqlContext | null {
-    if (context !== undefined && context !== this._nativeContext) {
-      context?.attach(this, () => this.invalidateContext());
-      this._nativeContext?.detach(this);
+  sqlContext(): SqlContext;
+  sqlContext(context: SqlContext, reset?: () => void): SqlContext;
+  sqlContext(context?: SqlContext, reset?: () => void): SqlContext {
+    if (context !== undefined) {
+      if (this._contextReset) throw new TypeError('Query managers cannot be shared between coordinators.');
+      if (context !== this._sqlContext) this._sqlContext.detach(this);
+      context.attach(this, () => this.invalidateContext());
       this.invalidateContext();
-      this._nativeContext = context;
+      this._sqlContext = context;
       this._contextReset = reset;
     }
-    return this._nativeContext;
+    return this._sqlContext;
   }
 
   private invalidateContext(): void {
@@ -357,33 +361,24 @@ export class QueryManager {
   }
 
   private sql(
-    query: QueryType | QueryType[],
+    query: QueryType | readonly QueryType[],
     type: QueryRequest['type'],
-    context: NativeSqlContext | null,
-    execution: SqlExecutionContext | undefined
+    context: SqlContext,
+    execution: SqlExecutionContext
   ): string {
-    const inputs = Array.isArray(query) ? query.filter(value => value) : [query];
-    if (!context || !execution) {
-      if (inputs.some(input => isExpression(input) || isExpressionHandle(input))) {
-        throw new TypeError('Native SQL queries require a native coordinator.');
-      }
-      return inputs.map(input => String(input)).join(';\n');
-    }
+    const inputs = [query].flat().filter(value => value);
     const admitted = inputs.map(input => {
       if (isExpression(input) || isExpressionHandle(input)) {
         if (type === 'arrow' && !isResultQuery(input)) {
-          throw new TypeError('Native Arrow requests require a result-producing query.');
+          throw new TypeError('Arrow requests require a result-producing query.');
         }
         return input;
       }
       if (typeof input !== 'string') {
-        throw new TypeError('Adopt legacy queries before submitting them to a native coordinator.');
-      }
-      if (type === 'arrow') {
-        throw new TypeError('Native Arrow requests require a structured query during the pilot.');
+        throw new TypeError('SQL requests require a query, expression or raw SQL string.');
       }
       if (execution.sourceDialect !== execution.targetDialect) {
-        throw new TypeError('Raw SQL requires matching source and target dialects during the native pilot.');
+        throw new TypeError('Raw SQL requires matching source and target dialects.');
       }
       return input;
     });
@@ -398,4 +393,12 @@ export class QueryManager {
     if (this.inflight.get(flight.key) === flight) this.inflight.delete(flight.key);
     flight.controller.abort(reason);
   }
+}
+
+function preservesBaseNullability(query: QueryType | readonly QueryType[]): boolean {
+  const inputs = [query].flat();
+  if (inputs.length !== 1 || typeof inputs[0] === 'string') return false;
+  const root = rootExpression(inputs[0]);
+  return 'select' in root && !root.select.with && !root.select.group_by && !root.select.joins.length
+    && root.select.from?.expressions.length === 1 && 'table' in root.select.from.expressions[0];
 }

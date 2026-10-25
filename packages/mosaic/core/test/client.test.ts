@@ -1,3 +1,4 @@
+import { isBetween } from '@uwdata/mosaic-sql';
 import { describe, it, expect } from 'vitest';
 import type { Table } from '@uwdata/flechette';
 import { Query, count } from '@uwdata/mosaic-sql';
@@ -90,9 +91,7 @@ describe('MosaicClient', () => {
     );
     expect(selection.active?.source).toBe(client1);
     expect(selection.predicate(client1)).toBeUndefined();
-    expect(selection.predicate(client2)+'').toBe(
-      '("HourOfDay" BETWEEN 0 AND 24)'
-    );
+    expect(selection.predicate(client2)).toEqual([isBetween('HourOfDay', [0, 24])]);
 
     // only client 2 should get a data update
     expect(await Promise.all(pending)).toEqual([
@@ -113,9 +112,7 @@ describe('MosaicClient', () => {
       clauseInterval('DayOfWeek', [0, 7], { source: client2 })
     );
     expect(selection.active?.source).toBe(client2);
-    expect(selection.predicate(client1)+'').toBe(
-      '("DayOfWeek" BETWEEN 0 AND 7)'
-    );
+    expect(selection.predicate(client1)).toEqual([isBetween('DayOfWeek', [0, 7])]);
     expect(selection.predicate(client2)).toBeUndefined();
 
     // only client 1 should get a data update

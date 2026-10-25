@@ -19,9 +19,11 @@ run(process.execPath, ['--input-type=module', '-e', `
 import assert from 'node:assert/strict';
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
-import { asLiteral, asNode, compile, createExecutionContext, cte, frameRows, from, join, native, Query as NativeQuery, sum, values } from '@uwdata/mosaic-sql/native';
+import { asLiteral, asNode, compile, createExecutionContext, cte, frameRows, from, join, native, sum, values } from '@uwdata/mosaic-sql';
 const db = new DuckDB(':memory:', {}, '');
 assert.deepEqual(await db.query(String(Query.select({ value: literal(42) }))), [{ value: 42 }]);
+const twice = value => native.binary('mul', asNode(value), asLiteral(2));
+assert.deepEqual(await db.query(compile([Query.select({ value: twice(literal(21)) })], createExecutionContext())[0]), [{ value: 42 }]);
 await db.exec('CREATE TABLE native_values (amount INTEGER); INSERT INTO native_values VALUES (1), (2), (3)');
 const column = asNode('amount');
 const query = native.select([
@@ -40,10 +42,10 @@ assert.equal(Number(rows[0].total), 5);
 assert.equal(Object.values((await db.query(statements[1]))[0])[0], 7);
 const left = from(values([[1], [2]]), 'l', undefined, ['amount']);
 const right = from(values([[2], [3]]), 'r', undefined, ['amount']);
-const matched = NativeQuery.from(join(left, right, { using: ['amount'] })).select('amount');
-const relational = NativeQuery.from('matched').with(cte('matched', matched));
+const matched = Query.from(join(left, right, { using: ['amount'] })).select('amount');
+const relational = Query.from('matched').with(cte('matched', matched));
 assert.deepEqual(await db.query(compile([relational], context)[0]), [{ amount: 2 }]);
-const window = NativeQuery.from('native_values').select('amount', {
+const window = Query.from('native_values').select('amount', {
   running: sum('amount').orderby('amount').frame(frameRows([null, 0]))
 }).orderby('amount');
 assert.deepEqual((await db.query(compile([window], context)[0])).map(row => [row.amount, Number(row.running)]), [
@@ -54,7 +56,7 @@ db.close();
 writeFileSync(join(directory, 'consumer.ts'), `
 import { Query, literal } from '@uwdata/mosaic-sql';
 import { DuckDB } from '@uwdata/mosaic-duckdb';
-import { compile, createExecutionContext, Dialect, native, type SqlExpression } from '@uwdata/mosaic-sql/native';
+import { compile, createExecutionContext, Dialect, native, type SqlExpression } from '@uwdata/mosaic-sql';
 const dialect: Dialect.DuckDB = Dialect.DuckDB;
 const expression: SqlExpression = native.select([native.literal(42)]);
 const statements: string[] = compile([expression], createExecutionContext({ targetDialect: dialect }));

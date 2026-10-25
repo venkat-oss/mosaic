@@ -1,7 +1,6 @@
 import { scaleLinear } from 'd3';
 import { Fixed, Transient } from '../../symbols.js';
-import { BetweenOpNode, walk } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 
 export const xext = { x: ['min', 'max'] };
 export const yext = { y: ['min', 'max'] };
@@ -33,36 +32,17 @@ export function extentY(mark, filter) {
   return plotExtent(mark, filter, 'y', 'yDomain', 'yNice');
 }
 
-export function filteredExtent(filter, column) {
+export function filteredExtent(filter, field) {
   if (!filter) return;
-  if (nativeSQL.isExpression(column) || nativeSQL.isExpressionHandle(column)) return nativeFilteredExtent(filter, column);
-
-  let lo;
-  let hi;
-  const field = `${column}`;
-
-  [filter].flat().forEach(p => walk(p, (node) => {
-    if (node instanceof BetweenOpNode && `${node.expr}` === field) {
-      // @ts-ignore
-      const extent = (node.extent ?? []).map(v => v?.value ?? v);
-      if (lo == null || extent[0] < lo) lo = extent[0];
-      if (hi == null || extent[1] > hi) hi = extent[1];
-    }
-  }));
-
-  return lo != null && hi != null && lo !== hi ? [lo, hi] : undefined;
-}
-
-function nativeFilteredExtent(filter, field) {
-  const keys = new nativeSQL.StructuralKeyScope;
+  const keys = new sql.StructuralKeyScope;
   const key = keys.key(field);
   let lo;
   let hi;
   const lower = value => { if (value != null && (lo == null || value < lo)) lo = value; };
   const upper = value => { if (value != null && (hi == null || value > hi)) hi = value; };
   for (const predicate of [filter].flat()) {
-    if (!nativeSQL.isExpression(predicate) && !nativeSQL.isExpressionHandle(predicate)) continue;
-    nativeSQL.walk(predicate, node => {
+    if (!sql.isExpression(predicate) && !sql.isExpressionHandle(predicate)) continue;
+    sql.walk(predicate, node => {
       if ('subquery' in node || 'not' in node || 'or' in node) return 1;
       if ('between' in node) {
         const value = node.between;

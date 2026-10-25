@@ -1,23 +1,10 @@
-import { isNode } from '@uwdata/mosaic-sql';
-import { inspectAggregate, isExpression, isExpressionHandle, rootExpression } from '@uwdata/mosaic-sql/native';
+import { inspectAggregate, isExpression, isExpressionHandle, rootExpression } from '@uwdata/mosaic-sql';
 import { binInfo } from '../../transforms/bin.js';
 
 function extractField(field) {
   if (isExpression(field) || isExpressionHandle(field)) {
     const expression = rootExpression(field);
     return binInfo(expression)?.source ?? inspectAggregate(expression)?.args[0] ?? expression;
-  }
-  if (isNode(field)) {
-    if (field.type === 'COLUMN_REF') {
-      // @ts-ignore
-      return field.column;
-    } else if (field.type === 'AGGREGATE') {
-      // @ts-ignore
-      return field.args[0] ?? field;
-    } else if (field.type === 'CUSTOM' && 'column' in field) {
-      // handle custom transforms (like bin) that expose a column
-      return field.column;
-    }
   }
   return field;
 }

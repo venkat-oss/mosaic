@@ -3,7 +3,7 @@ import { Grid2DMark } from './Grid2DMark.js';
 import { channelOption } from './Mark.js';
 
 export class Density2DMark extends Grid2DMark {
-  constructor(source, options, sqlContext = null) {
+  constructor(source, options) {
     const { type = 'dot', ...channels } = options;
     super(type, source, {
       bandwidth: 20,
@@ -11,7 +11,7 @@ export class Density2DMark extends Grid2DMark {
       pad: 0,
       pixelSize: 2,
       ...channels
-    }, sqlContext);
+    });
   }
 
   convolve() {

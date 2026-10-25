@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
+import { Selection, clausePoint, Coordinator, Param, coordinator as globalCoordinator } from '@uwdata/mosaic-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext, Param, coordinator as globalCoordinator } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { createAPIContext } from '../src/context.js';
 
@@ -23,12 +23,11 @@ beforeAll(() => database.query({ type: 'exec', sql: `
 afterAll(() => database.close());
 
 function setup() {
-  const native = new NativeSqlContext();
-  const coordinator = new Coordinator(database, { native, logger: null, cache: false, consolidate: false });
+  const coordinator = new Coordinator(database, { logger: null, cache: false, consolidate: false });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
   const api = createAPIContext({ coordinator });
-  return { native, coordinator, api, errors, close() { coordinator.clear(); } };
+  return { coordinator, api, errors, close() { coordinator.clear(); } };
 }
 
 const client = element => Reflect.get(element, 'value');
@@ -43,7 +42,6 @@ describe('native input clients', () => {
       const search = client(state.api.search({ from: 'native_input_rows', column: 'label' }));
       const scalar = client(state.api.search({ as: Param.value('initial') }));
       await Promise.all([menu.pending, search.pending, scalar.pending]);
-      expect([menu.sqlOwner, search.sqlOwner, scalar.sqlOwner]).toEqual([state.native, state.native, state.native]);
       expect(menu.data.map(option => option.value)).toEqual(['', 'A', 'B']);
       expect([...search.datalist.options].map(option => option.value).sort()).toEqual(['ALPine', 'Alpha', 'Beta', 'Other', 'beta']);
       menu.selectedValue('B');
@@ -57,7 +55,7 @@ describe('native input clients', () => {
   it('filters real Arrow rows with native menu and case-insensitive search clauses', async () => {
     const state = setup();
     try {
-      const selection = state.native.selection();
+      const selection = Selection.intersect();
       const menu = client(state.api.menu({ from: 'native_input_rows', column: 'items', listMatch: 'all', as: selection }));
       const table = client(state.api.table({ from: 'native_input_rows', columns: ['id', 'label'], filterBy: selection }));
       await Promise.all([menu.pending, table.pending]);
@@ -86,13 +84,13 @@ describe('native input clients', () => {
     singleton.prefetch = () => { throw new Error('Unexpected global prefetch.'); };
     try {
       const source = Param.value('native_input_rows');
-      const selection = state.native.selection();
+      const selection = Selection.intersect();
       const table = client(state.api.table({ from: source, columns: ['id', 'label'], rowBatch: 2, filterBy: selection }));
       await table.pending;
       expect(values(table)).toEqual([1, 2]);
       await table.requestData(2);
       expect(values(table)).toEqual([1, 2, 3, 4]);
-      selection.update(state.native.point('label', 'Beta', { source: {} }));
+      selection.update(clausePoint('label', 'Beta', { source: {} }));
       await selection.pending('value');
       expect(values(table)).toEqual([3]);
       selection.reset();
@@ -127,7 +125,7 @@ describe('native input clients', () => {
   it('filters actual Arrow LIST, STRUCT and BLOB rows from native table hover selections', async () => {
     const state = setup();
     try {
-      const selection = state.native.selection();
+      const selection = Selection.intersect();
       const source = client(state.api.table({ from: 'native_input_complex', as: selection }));
       const filtered = client(state.api.table({ from: 'native_input_complex', columns: ['id'], filterBy: selection }));
       await Promise.all([source.pending, filtered.pending]);

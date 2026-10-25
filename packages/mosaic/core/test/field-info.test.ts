@@ -1,42 +1,10 @@
 import { DuckDB } from '@uwdata/mosaic-duckdb';
 import { dateDay, float64, list, tableFromArrays, utf8 } from '@uwdata/flechette';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as nativeSQL from '@uwdata/mosaic-sql';
 import { afterAll, beforeAll, describe, it, expect } from 'vitest';
-import type { Coordinator, FieldInfoRequest } from '../src/index.js';
-import { Coordinator as QueryCoordinator, NativeSqlContext, queryFieldInfo } from '../src/index.js';
+import type { Coordinator } from '../src/index.js';
+import { Coordinator as QueryCoordinator, SqlContext, queryFieldInfo } from '../src/index.js';
 import { NodeConnector } from '../src/connectors/NodeConnector.js';
-
-/**
- * Stub coordinator whose describe query yields the given result.
- * @param describe Result for the column describe query.
- */
-function stubCoordinator(describe: () => unknown): Coordinator {
-  return {
-    query: () => Promise.resolve(describe())
-  } as unknown as Coordinator;
-}
-
-const request: FieldInfoRequest = { table: 'taxi', column: 'tip_amount' };
-
-const fallbackInfo = {
-  table: 'taxi',
-  column: 'tip_amount',
-  sqlType: 'DOUBLE',
-  type: 'number',
-  nullable: true
-};
-
-describe('queryFieldInfo', () => {
-  it('falls back to a dummy description for an empty describe result', async () => {
-    const mc = stubCoordinator(() => []);
-    expect(await queryFieldInfo(mc, [request])).toEqual([fallbackInfo]);
-  });
-
-  it('falls back to a dummy description for a failed describe query', async () => {
-    const mc = stubCoordinator(() => { throw new Error('describe failed'); });
-    expect(await queryFieldInfo(mc, [request])).toEqual([fallbackInfo]);
-  });
-});
 
 describe('native queryFieldInfo', () => {
   const db = new DuckDB();
@@ -51,7 +19,7 @@ describe('native queryFieldInfo', () => {
       SELECT * FROM (VALUES (DATE '2024-01-02'), (DATE '2024-03-04'), (NULL)) t(day);
       CREATE TABLE "metadata schema".lists AS
       SELECT * FROM (VALUES ([1,NULL,3]), ([]), (NULL)) t(items)`);
-    mc = new QueryCoordinator(await NodeConnector.make(db), { native: new NativeSqlContext(), logger: null });
+    mc = new QueryCoordinator(await NodeConnector.make(db), { sql: new SqlContext(), logger: null });
   });
   afterAll(async () => {
     mc.clear();
@@ -102,6 +70,7 @@ describe('native queryFieldInfo', () => {
     ]);
     expect(date.type).toBe('date');
     if (!(date.min instanceof Date) || !(date.max instanceof Date)) throw new Error('Expected date extrema.');
+    if (!(date.min instanceof Date) || !(date.max instanceof Date)) throw new TypeError('Expected temporal metadata bounds.');
     expect([date.min.toISOString(), date.max.toISOString()]).toEqual([
       '2024-01-02T00:00:00.000Z', '2024-03-04T00:00:00.000Z'
     ]);
@@ -165,12 +134,12 @@ describe('native Arrow metadata', () => {
     });
     schema.schema.fields[0].nullable = false;
     schema.schema.fields[1].metadata = new Map([['mosaic.sqlType', 'text']]);
-    const nativeContext = new NativeSqlContext({ backend: 'postgres', targetDialect: nativeSQL.Dialect.PostgreSQL });
+    const sqlContext = new SqlContext({ backend: 'postgres', targetDialect: nativeSQL.Dialect.PostgreSQL });
     const calls: string[] = [];
     const mc = {
-      nativeContext,
+      sqlContext,
       query: async (query: nativeSQL.Query) => {
-        calls.push(nativeSQL.compile([query], nativeContext.execution)[0]);
+        calls.push(nativeSQL.compile([query], sqlContext.execution)[0]);
         return schema;
       }
     } as unknown as Coordinator;

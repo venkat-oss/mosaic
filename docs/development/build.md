@@ -13,10 +13,10 @@ regenerating the entire API.
 
 The [native Polyglot design](./polyglot/index.md) and its
 [implementation packets](./polyglot/work-packets.md) describe the SQL compiler
-migration. The temporary SQL `/native` entry consumes a pinned, prebuilt Polyglot
-SDK archive with its matching WebAssembly binary. Browser builds emit that asset;
+migration. The normal SQL entry consumes a pinned, prebuilt Polyglot SDK archive
+with its matching WebAssembly binary. Browser builds emit that asset;
 the Jupyter bundle embeds it. Mosaic builds consume the archive without compiling
-Polyglot's Rust sources. DuckDB remains the execution backend during this foundation.
+Polyglot's Rust sources. DuckDB remains the default execution backend.
 VitePress keeps the SDK external during server rendering, using the declared
 root development dependency so its Node module and WASM remain together.
 
@@ -46,8 +46,7 @@ Standalone Cargo users can choose the package's `bundled` feature instead.
 | Generate / check CUE-owned API files | `bazelisk run //:generate` / `bazelisk test //:api_check` |
 | Develop the gallery | `bazelisk run //:dev` |
 
-Select an affected package's `:check` target during development. The five CI jobs
-select `//:node_checks`, `//:python_checks`, `//:browser_tests` and the Go/Rust
+Select an affected package's `:check` target during development. CI selects `//:node_checks`, `//:python_checks`, `//:browser_tests`, the Go/Rust
 package targets. Browser tests remain separate from normal checks because they
 need their matching container. The browser helper caches a derived Playwright
 image with GCC and C headers, which Bazel's Python tooling requires when building
@@ -105,27 +104,37 @@ and use the same archive paths for any direct Mosaic dependencies:
 }
 ```
 
-Embedding Atlas's embedded components accept a Mosaic coordinator. Supply the
-connector and create the data table before mounting the component:
+Embedding Atlas's `EmbeddingViewMosaic` component accepts a Mosaic coordinator
+and selection. Supply the connector and create its table before mounting:
 
 ```js
-import { EmbeddingAtlas } from 'embedding-atlas';
-import { Coordinator, restConnector } from '@uwdata/mosaic-core';
+import { EmbeddingViewMosaic } from 'embedding-atlas';
+import { Coordinator, restConnector, Selection } from '@uwdata/mosaic-core';
 
 const coordinator = new Coordinator(restConnector({ uri: 'http://localhost:3000/' }));
 await coordinator.exec(`CREATE TABLE points AS
   SELECT i::INTEGER AS id, i::DOUBLE AS x, sin(i)::DOUBLE AS y FROM range(100) t(i)`);
+const filter = Selection.intersect();
 
-const atlas = new EmbeddingAtlas(document.getElementById('atlas'), {
-  coordinator,
-  data: { table: 'points', id: 'id', projection: { x: 'x', y: 'y' } }
+const view = new EmbeddingViewMosaic(document.getElementById('atlas'), {
+  coordinator, table: 'points', x: 'x', y: 'y', filter,
+  labels: [], config: { autoLabelEnabled: false }
 });
 ```
 
-The target element needs an explicit size. Call `atlas.destroy()` when unmounting.
-For an in-browser database, supply `wasmConnector()` instead. Older standalone
-viewer sources that import `socketConnector` must update their transport to REST
-or WASM; Mosaic's servers use HTTP and no longer provide the WebSocket connector.
+The target element needs an explicit size. Call `view.destroy()` when unmounting.
+For an in-browser database, supply `wasmConnector()` instead. The installed
+composition test mounts this public component, consumes actual Arrow coordinates
+and updates its rendered point count through a selection. It does not check GPU
+pixels. Run it with `bazelisk test //build:embedding_atlas_consumer`.
+
+The same test exercises Embedding Atlas 0.26's `defaultCharts` query generation
+and scalar predicate export. It does not mount the full `EmbeddingAtlas` viewer.
+Mosaic's scalar string coercion preserves the DuckDB convenience used by these
+helpers; new multi-dialect consumers should compile with an explicit coordinator
+context. Older sources that import `socketConnector` must update their transport
+to REST or WASM; Mosaic's servers use HTTP and no longer provide the WebSocket
+connector.
 
 ## Server benchmarks
 

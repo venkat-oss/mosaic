@@ -1,5 +1,4 @@
-import type { ExprNode } from '@uwdata/mosaic-sql';
-import type { SelectionExpression } from '../types.js';
+import type { SqlExpression } from '@uwdata/mosaic-sql';
 import type { MosaicClient } from '../MosaicClient.js';
 
 /**
@@ -20,8 +19,7 @@ export type ClauseSource = object & { reset?: () => void; };
  * A selection clause representing filtering criteria
  * to apply within a Mosaic Selection.
  */
-export interface SelectionClause<E = ExprNode> {
-  readonly context?: object;
+export interface SelectionClause {
   /**
    * A unique identifier (according to object equality) for the source
    * component that generated this clause. In many cases, this is a
@@ -32,13 +30,13 @@ export interface SelectionClause<E = ExprNode> {
    * A set of Mosaic clients associated with this clause that should not
    * be updated when this clause is applied in a cross-filtering context.
    */
-  clients?: Set<MosaicClient<SelectionExpression>>;
+  clients?: Set<MosaicClient>;
   /**
    * The input expressions that this clause filters over. All field
    * references within the *predicate* should be strictly equal to
    * these field expression node instances.
    */
-  fields: E[];
+  fields: SqlExpression[];
   /**
    * A selected value associated with this clause. For example, for a 1D
    * interval selection clause the value may be a [lo, hi] array.
@@ -49,7 +47,7 @@ export interface SelectionClause<E = ExprNode> {
    * The predicate should apply filtering criteria consistent with this
    * clause's *value* property.
    */
-  predicate: E | null;
+  predicate: SqlExpression | null;
   /**
    * Optional clause metadata that varies based on the selection type.
    * The metadata can be used to optimize selection queries, for example

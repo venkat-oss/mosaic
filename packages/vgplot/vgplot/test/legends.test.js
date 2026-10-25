@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { columnParts } from '@uwdata/mosaic-sql';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
@@ -52,7 +53,7 @@ export default vg.plot(vg.dot(vg.from('legend_data',{filterBy:brush}),{x:'x',y:'
       expect(legend.selection.resolver.cross).toBe(true);
       expect(legend.selection.single).toBe(false);
       expect(mark.type).toBe('dot');
-      expect(mark.channelField(encoding).field.column).toBe(field);
+      expect(columnParts(mark.channelField(encoding).field).at(-1)).toBe(field);
       expect(mark.sourceTable()).toBe('legend_data');
       if (channel === 'opacity') expect(canvas.fillRect).toHaveBeenCalledTimes(256);
       const data = await mc.query('SELECT * FROM legend_data ORDER BY x');

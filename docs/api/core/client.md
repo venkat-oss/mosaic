@@ -9,11 +9,9 @@ If you are creating clients for web frameworks such as React, Svelte, or Vue, se
 
 ## constructor
 
-`new MosaicClient(filterSelection, sqlOwner = null)`
+`new MosaicClient(filterSelection)`
 
 Create a new client instance. If provided, the [Selection](./selection)-valued _filterSelection_ argument will be exposed as the client's [`filterBy`](#filterby) property.
-For a native client, pass the coordinator's `NativeSqlContext` as _sqlOwner_ and
-use selections from that same context.
 
 ## filterBy
 
@@ -54,7 +52,7 @@ async prepare() {
 }
 ```
 
-For a native coordinator, requests accept a native relation and expression
+Metadata requests accept a table name, native relation and expression
 as `table` and `column`. Results retain those original references in request order.
 An optional third argument, `{ query }`, supplies the actual projection/grouping
 scope for aggregate or window expressions; request expressions must refer to its
@@ -140,6 +138,11 @@ older preparation's continuation.
 
 Promise for the current preparation or data update, including asynchronous
 `update()` work. Current preparation errors reject this promise.
+
+Plot marks preserve preparation rejections and release their rendering wait so
+healthy sibling marks can finish. A failed mark is omitted until a later
+query or initialization succeeds; query execution errors remain available through
+the coordinator logger.
 
 ## destroy
 

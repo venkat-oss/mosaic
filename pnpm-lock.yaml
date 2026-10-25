@@ -196,6 +196,9 @@ importers:
       '@uwdata/mosaic-sql':
         specifier: workspace:*
         version: link:packages/mosaic/sql
+      '@uwdata/vgplot':
+        specifier: workspace:*
+        version: link:packages/vgplot/vgplot
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -205,6 +208,9 @@ importers:
       d3:
         specifier: ^7.9.0
         version: 7.9.0
+      embedding-atlas:
+        specifier: 0.26.0
+        version: 0.26.0(@uwdata/mosaic-core@packages+mosaic+core)(@uwdata/mosaic-spec@packages+vgplot+spec)(@uwdata/mosaic-sql@packages+mosaic+sql)(@uwdata/vgplot@packages+vgplot+vgplot)(svelte@5.57.1(@typescript-eslint/types@8.72.0))
       eslint:
         specifier: ^10.13.0
         version: 10.13.0(supports-color@7.2.0)
@@ -2852,6 +2858,21 @@ packages:
     resolution: {integrity: sha512-COqBPFMxuPTPspXl2DkVYaDS3HtrD1GpzOGkNTJ1IYkifq/r9h8SVEFrjA3D9/VJGOEoMQcrlhpntcSUrM8k6A==}
     engines: {node: '>=0.12.18'}
     hasBin: true
+
+  embedding-atlas@0.26.0:
+    resolution: {integrity: sha512-IHAQkJ4aH8wzaVpr9LYkjWSP025Ie+ub1MtQX9buz0V8PpMKbWcYtXr8U3iea2pK3AhA0XUtXSI8ZLbsubE4pg==}
+    peerDependencies:
+      '@uwdata/mosaic-core': '>=0.19.0'
+      '@uwdata/mosaic-spec': '>=0.19.0'
+      '@uwdata/mosaic-sql': '>=0.19.0'
+      '@uwdata/vgplot': '>=0.19.0'
+      react: '>=17.0.0'
+      svelte: '>=5.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      svelte:
+        optional: true
 
   emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -7148,6 +7169,15 @@ snapshots:
       gopd: 1.2.0
 
   ejs@5.0.1: {}
+
+  embedding-atlas@0.26.0(@uwdata/mosaic-core@packages+mosaic+core)(@uwdata/mosaic-spec@packages+vgplot+spec)(@uwdata/mosaic-sql@packages+mosaic+sql)(@uwdata/vgplot@packages+vgplot+vgplot)(svelte@5.57.1(@typescript-eslint/types@8.72.0)):
+    dependencies:
+      '@uwdata/mosaic-core': link:packages/mosaic/core
+      '@uwdata/mosaic-spec': link:packages/vgplot/spec
+      '@uwdata/mosaic-sql': link:packages/mosaic/sql
+      '@uwdata/vgplot': link:packages/vgplot/vgplot
+    optionalDependencies:
+      svelte: 5.57.1(@typescript-eslint/types@8.72.0)
 
   emoji-regex-xs@1.0.0: {}
 

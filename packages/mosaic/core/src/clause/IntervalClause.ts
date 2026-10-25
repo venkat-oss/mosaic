@@ -1,4 +1,4 @@
-import type { ExprNode, ExprValue, ScaleDomain, ScaleOptions } from '@uwdata/mosaic-sql';
+import type { ExprValue, ScaleDomain, ScaleOptions } from '@uwdata/mosaic-sql';
 import { and, asNode, isBetween } from '@uwdata/mosaic-sql';
 import { isMosaicClient, type MosaicClient } from '../MosaicClient.js';
 import type { ClauseMetadata, ClauseSource, SelectionClause } from './SelectionClause.js';
@@ -121,9 +121,10 @@ export function clauseIntervals(
     pixelSize = 1
   }: IntervalOptions & { scales?: ScaleOptions[] }
 ): SelectionClause {
-  fields = fields.map(f => asNode(f));
+  const nodes = fields.map(asNode);
+  if (value && value.length !== nodes.length) throw new RangeError('Intervals require one extent per field.');
   const predicate = value != null
-    ? and(fields.map((f, i) => isBetween(f, value[i])))
+    ? and(nodes.map((f, i) => isBetween(f, value[i])))
     : null;
   const meta: IntervalMetadata = {
     type: 'interval',
@@ -135,7 +136,7 @@ export function clauseIntervals(
     meta,
     source,
     clients,
-    fields: fields as ExprNode[],
+    fields: nodes,
     value,
     predicate
   };

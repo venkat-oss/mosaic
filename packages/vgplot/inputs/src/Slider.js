@@ -1,7 +1,6 @@
 /** @import { ClauseSource, Param, Selection } from '@uwdata/mosaic-core' */
-import { clauseInterval, clausePoint, NativeSqlContext, isParam, isSelection } from '@uwdata/mosaic-core';
+import { clauseInterval, clausePoint, isParam, isSelection } from '@uwdata/mosaic-core';
 import { Query, max, min } from '@uwdata/mosaic-sql';
-import { Query as NativeQuery, max as nativeMax, min as nativeMin } from '@uwdata/mosaic-sql/native';
 import { Input, input } from './input.js';
 
 let _id = 0;
@@ -11,7 +10,7 @@ let _id = 0;
  * @param {object} [options] Options object
  * @param {HTMLElement} [options.element] The parent DOM element in which to
  *  place the slider elements. If undefined, a new `div` element is created.
- * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
+ * @param {Selection} [options.filterBy] A selection to filter the database
  *  table indicated by the *from* option.
  * @param {Param} [options.as] The output param or selection. A selection
  *  clause is added based on the currently selected slider option.
@@ -41,7 +40,7 @@ export const slider = options => input(Slider, options);
 
 /**
  * A HTML range-based slider input.
- * @extends {Input<import('@uwdata/mosaic-core').SelectionExpression>}
+ * @extends {Input}
  */
 export class Slider extends Input {
   /**
@@ -49,7 +48,7 @@ export class Slider extends Input {
    * @param {object} [options] Options object
    * @param {HTMLElement} [options.element] The parent DOM element in which to
    *  place the slider elements. If undefined, a new `div` element is created.
-   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
+   * @param {Selection} [options.filterBy] A selection to filter the database
    *  table indicated by the *from* option.
    * @param {Param} [options.as] The output param or selection. A selection
    *  clause is added based on the currently selected slider option.
@@ -73,7 +72,6 @@ export class Slider extends Input {
    *  The minimum and maximum values of the column determine the slider range.
    * @param {string} [options.label] A text label for this input.
    * @param {number} [options.width] The width of the slider in screen pixels.
-   * @param {NativeSqlContext} [nativeContext] The internal native SQL pilot context.
    */
   constructor({
     element,
@@ -89,9 +87,8 @@ export class Slider extends Input {
     select = 'point',
     field = column,
     width
-  } = {}, nativeContext) {
-    const owner = nativeContext ?? (isSelection(as) ? as.owner : filterBy?.owner);
-    super(filterBy, element, 'input', owner ?? undefined);
+  } = {}) {
+    super(filterBy, element, 'input');
     this.id = 'slider_' + (++_id);
     this.from = from;
     this.column = column || 'value';
@@ -163,9 +160,6 @@ export class Slider extends Input {
   query(filter = []) {
     const { from, column } = this;
     if (!from || (this.fixedMin && this.fixedMax)) return null;
-    if (this.sqlOwner instanceof NativeSqlContext) {
-      return NativeQuery.select({ min: nativeMin(column), max: nativeMax(column) }).from(from).where(filter);
-    }
     return Query
       .select({ min: min(column), max: max(column) })
       .from(from)
@@ -196,14 +190,6 @@ export class Slider extends Input {
     if (selectionType === 'interval') {
       /** @type {[number, number]} */
       const domain = [this.min ?? 0, value];
-      if (this.sqlOwner instanceof NativeSqlContext) {
-        return this.sqlOwner.interval(field, domain, {
-          source: this,
-          bin: 'ceil',
-          scale: { type: 'identity', domain },
-          pixelSize: this.step
-        });
-      }
       return clauseInterval(field, domain, {
         source: /** @type {ClauseSource} */(this),
         bin: 'ceil',
@@ -211,9 +197,6 @@ export class Slider extends Input {
         pixelSize: this.step
       });
     } else {
-      if (this.sqlOwner instanceof NativeSqlContext) {
-        return this.sqlOwner.point(field, value, { source: this });
-      }
       return clausePoint(field, value, { source: /** @type {ClauseSource} */(this) });
     }
   }

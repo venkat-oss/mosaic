@@ -1,653 +1,164 @@
-import { expect, describe, it } from 'vitest';
-import { asTableRef, column, desc, gt, lt, max, min, sql, Query, sum, lead, over, cte, add, FromClauseNode, SampleClauseNode, frameRows, div, mul, unnest, list, deepClone, isDescribeQuery, isPivotQuery, isSelectQuery, isSetOperation } from '../src/index.js';
-import { validateQuery } from './util/validate.js';
+import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { describe, expect, it } from 'vitest';
+import {
+  asLiteral, asNode, BindingScope, cloneExpression, column, compile, compileBatch,
+  count, createExecutionContext, deferred, Dialect, fields, gt, inspectSelect, isNotDistinct,
+  literal, native, params, Query, snapshot, snapshotAll, sum
+} from '../src/index.js';
+import { stubParam } from './util/stub-param.js';
 
-describe('Query', () => {
-  it('selects column name strings', async () => {
-    const query = 'SELECT "num1", "num2", "num3" FROM "t1"';
+const context = createExecutionContext({ backend: 'native-query-test' });
 
-    await expect(
-      Query
-        .select('num1', 'num2', 'num3')
-        .from('t1')
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select('num1', 'num2', 'num3')
-        .from(asTableRef('t1')!)
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select(['num1', 'num2', 'num3'])
-        .from('t1')
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ num1: 'num1', num2: 'num2', num3: 'num3' })
-        .from('t1')
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select('num1')
-        .select('num2')
-        .select('num3')
-        .from('t1')
-    ).toBeValidQuery(query);
+describe('native query authoring', () => {
+  it('distinguishes aliases named after native variants from raw native expressions', async () => {
+    const parameter = stubParam(1);
+    const query = Query.from({ table: 'data' })
+      .select({ first: asLiteral(parameter) })
+      .select({ second: literal(2) })
+      .select({ table: column('x', 'table') })
+      .select({ sum: literal(4) })
+      .select({ literal: 5 });
+    const aggregate = Query.from(native.table('data')).select({ sum: sum('x') });
+    const nullQuery = Query.select(native.literal(null));
+    expect(inspectSelect(nullQuery).expressions).toEqual([native.literal(null)]);
+    const db = new DuckDB(':memory:', {}, '');
+    try {
+      await db.exec('CREATE TABLE data (x INTEGER); INSERT INTO data VALUES (7)');
+      expect(await db.query(compile([query], context)[0])).toEqual([
+        { first: 1, second: 2, table: 7, sum: 4, literal: 5 }
+      ]);
+      parameter.value = 9;
+      expect((await db.query(compile([query], context)[0]))[0].first).toBe(9);
+      expect(Number((await db.query(compile([aggregate], context)[0]))[0].sum)).toBe(7);
+      expect(compile([nullQuery], context)).toEqual(['SELECT NULL']);
+    } finally {
+      db.close();
+    }
   });
 
-  it('selects column ref objects', async () => {
-    const foo = column('num1');
-    const bar = column('num2');
-    const baz = column('num3');
-    await expect(
-      Query
-        .select(foo, bar, baz)
-        .from('t1')
-    ).toBeValidQuery('SELECT "num1", "num2", "num3" FROM "t1"');
-
-    await expect(
-      Query
-        .select([foo, bar, baz])
-        .from('t1')
-    ).toBeValidQuery('SELECT "num1", "num2", "num3" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ num1: foo, num2: bar, num3: baz })
-        .from('t1')
-    ).toBeValidQuery('SELECT "num1", "num2", "num3" FROM "t1"');
-
-    await expect(
-      Query
-        .select(foo)
-        .select(bar)
-        .select(baz)
-        .from('t1')
-    ).toBeValidQuery('SELECT "num1", "num2", "num3" FROM "t1"');
+  it('reads scalar and identifier parameters at submission and preserves field identity', async () => {
+    const name = stubParam('x');
+    const selected = stubParam(1);
+    const field = column(name);
+    const predicate = isNotDistinct(field, asLiteral(selected));
+    const query = Query.from('data').select({ rows: count(), total: sum(field) }).where(predicate);
+    expect(fields(query)[0]).toMatchObject({ node: field, column: 'x' });
+    expect(params(query)).toEqual([name, selected]);
+    const db = new DuckDB(':memory:', {}, '');
+    try {
+      await db.exec('CREATE TABLE data (x DOUBLE, y DOUBLE); INSERT INTO data VALUES (1,10),(2,20),(NULL,30)');
+      const first = await db.query(compile([query], context)[0]);
+      expect(Number(first[0].rows)).toBe(1);
+      expect(first[0].total).toBe(1);
+      name.value = 'y';
+      selected.value = 20;
+      expect(fields(query)[0]).toMatchObject({ node: field, column: 'y' });
+      const resolved = snapshot(query);
+      const select = inspectSelect(resolved);
+      const projection = select.expressions[1];
+      const where = select.where_clause!.this;
+      expect('alias' in projection && 'sum' in projection.alias.this
+        && 'null_safe_eq' in where && projection.alias.this.sum.this === where.null_safe_eq.left).toBe(true);
+      const second = await db.query(compile([query], context)[0]);
+      expect(Number(second[0].rows)).toBe(1);
+      expect(second[0].total).toBe(20);
+      expect('parameter' in field).toBe(true);
+    } finally {
+      db.close();
+    }
   });
 
-  it('selects only the most recent reference', async () => {
-    const query = 'SELECT "num3", "num1" + 1 AS "num2" FROM "t1"';
-
-    await expect(
-      Query
-        .select('num1', 'num2', 'num3')
-        .select({ num2: sql`"num1" + 1`, num1: null })
-        .from('t1')
-    ).toBeValidQuery(query);
+  it('keeps mutable query methods and clone edits independent with shared native fields', () => {
+    const value = stubParam(1);
+    const field = column('x');
+    const predicate = gt(field, asLiteral(value));
+    const original = Query.select({ value: field }).from('data').where(predicate);
+    expect(original.select({ marker: literal(0) })).toBe(original);
+    const cloned = original.clone().select({ marker: literal(false) }).where(gt(field, 2)).limit(3);
+    expect(inspectSelect(original).expressions).toHaveLength(2);
+    expect(inspectSelect(cloned).expressions).toHaveLength(2);
+    expect(inspectSelect(original).limit).toBeNull();
+    expect(inspectSelect(original).where_clause!.this).toBe(predicate);
+    expect(fields(original)[0].node).toBe(fields(cloned)[0].node);
+    const copy = cloneExpression(original);
+    const copiedField = fields(copy)[0].node;
+    expect(copiedField).not.toBe(field);
+    expect(params(copy)).toEqual([value]);
+    value.value = 7;
+    expect(compile([copy], context)[0]).toContain('> 7');
+    expect(compile([original], context)[0]).toContain('> 7');
   });
 
-  it('selects distinct columns', async () => {
-    await expect(
-      Query
-        .select('num1', 'num2', 'num3')
-        .distinct()
-        .from('t1')
-    ).toBeValidQuery('SELECT DISTINCT "num1", "num2", "num3" FROM "t1"');
+  it('reads one parameter value once across a mixed exec batch and retains every output', async () => {
+    let reads = 0;
+    const value = {
+      get value() { return ++reads; },
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    const first = Query.select({ value: asLiteral(value) });
+    const second = Query.select({ value: asLiteral(value) });
+    const sql = compileBatch([first, null, 'SELECT 99 AS value', second], context);
+    expect(reads).toBe(1);
+    expect(sql).toHaveLength(3);
+    const db = new DuckDB(':memory:', {}, '');
+    try {
+      const rows = [];
+      for (const statement of sql) rows.push(await db.query(statement));
+      expect(rows).toEqual([[{ value: 1 }], [{ value: 99 }], [{ value: 1 }]]);
+    } finally {
+      db.close();
+    }
+    const postgres = createExecutionContext({ targetDialect: Dialect.PostgreSQL });
+    expect(() => compileBatch([first, 'SELECT 1'], postgres)).toThrow(/matching source and target/);
   });
 
-  it('selects distinct on columns', async () => {
-    await expect(
-      Query
-        .select('num1', 'num2', 'num3')
-        .distinctOn('num1', column('num2'))
-        .from('t1')
-        .orderby('num1', 'num2', desc('num3'))
-    ).toBeValidQuery('SELECT DISTINCT ON ("num1", "num2") "num1", "num2", "num3" FROM "t1" ORDER BY "num1", "num2", "num3" DESC');
-
-    await expect(
-      Query
-        .select('num1', 'num2')
-        .distinct()
-        .distinctOn('num2')
-        .setDistinctOn('num1')
-        .from('t1')
-    ).toBeValidQuery('SELECT DISTINCT ON ("num1") "num1", "num2" FROM "t1"');
+  it('rebases colliding binding IDs while retaining binding kind and parameter identity', () => {
+    const leftParam = stubParam(1);
+    const rightParam = stubParam(2);
+    const first = new BindingScope().bind({
+      kind: 'scalar', parameters: [leftParam], resolve: read => literal(read(leftParam))
+    });
+    const second = new BindingScope().bind({
+      kind: 'scalar', parameters: [rightParam], resolve: read => literal(read(rightParam))
+    });
+    if (!('parameter' in first) || !('parameter' in second)) throw new Error('Expected parameter slots.');
+    second.parameter.name = first.parameter.name;
+    const owner = new BindingScope();
+    const tree = native.binary('eq', first, second);
+    const adopted = owner.adopt(tree);
+    if (!('eq' in adopted) || !('parameter' in adopted.eq.left) || !('parameter' in adopted.eq.right)) {
+      throw new Error('Expected rebased equality.');
+    }
+    expect(adopted.eq.left.parameter.name).not.toBe(adopted.eq.right.parameter.name);
+    expect(params(adopted)).toEqual([leftParam, rightParam]);
+    expect(compile([adopted], context)).toEqual(['1 = 2']);
+    expect(() => snapshot(native.parameter('__mosaic_binding_unresolved'))).toThrow(/Unresolved/);
+    owner.reset();
+    expect(compile([owner.adopt(tree)], context)).toEqual(['1 = 2']);
   });
 
-  it('selects with limit and offset modifiers', async () => {
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .limit(10)
-        .offset(20)
-    ).toBeValidQuery('SELECT * FROM "t1" LIMIT 10 OFFSET 20');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .limit(div(10, 2))
-        .offset(mul(5, 4))
-    ).toBeValidQuery('SELECT * FROM "t1" LIMIT (10 / 2) OFFSET (5 * 4)');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .limitPercent(div(10, 2))
-    ).toBeValidQuery('SELECT * FROM "t1" LIMIT (10 / 2)%');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .limitPercent(10)
-    ).toBeValidQuery('SELECT * FROM "t1" LIMIT 10%');
+  it('resolves deferred expressions late and rejects cycles without poisoning later snapshots', () => {
+    const value = stubParam(1);
+    const expression = deferred(read => literal(read(value)), [value]);
+    const query = Query.select({ value: expression });
+    value.value = 2;
+    expect(compile([query], context)).toEqual(['SELECT 2 AS "value"']);
+    let cyclic = literal(0);
+    cyclic = deferred(() => cyclic);
+    expect(() => snapshot(cyclic)).toThrow(/Cyclic native SQL binding/);
+    expect(snapshotAll([literal(1), literal(2)])).toEqual([native.literal(1), native.literal(2)]);
   });
 
-  it('selects aggregates', async () => {
-    const foo = column('num1');
-
-    await expect(
-      Query
-        .select({ min: min('num1'), max: max('num1') })
-        .from('t1')
-    ).toBeValidQuery('SELECT min("num1") AS "min", max("num1") AS "max" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ min: min(foo), max: max(foo) })
-        .from('t1')
-    ).toBeValidQuery('SELECT min("num1") AS "min", max("num1") AS "max" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ min: min('num1').where(gt('num2', 5)) })
-        .from('t1')
-    ).toBeValidQuery('SELECT min("num1") FILTER (WHERE ("num2" > 5)) AS "min" FROM "t1"');
-  });
-
-  it('selects windowed aggregates', async () => {
-    const foo = column('num1');
-
-    await expect(
-      Query
-        .select({ csum: sum('num1').window() })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER () AS "csum" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ csum: sum(foo).window() })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER () AS "csum" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ csum: sum(foo).partitionby('num3') })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER (PARTITION BY "num3") AS "csum" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ csum: sum(foo).orderby('int1') })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER (ORDER BY "int1") AS "csum" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ csum: sum(foo).partitionby('num3').orderby('int1') })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER (PARTITION BY "num3" ORDER BY "int1") AS "csum" FROM "t1"');
-
-    await expect(
-      Query
-        .select({ csum: sum(foo).frame(frameRows([null, 0])) })
-        .from('t1')
-    ).toBeValidQuery('SELECT sum("num1") OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS "csum" FROM "t1"');
-  });
-
-  it('selects grouped aggregates', async () => {
-    const foo = column('num1');
-    const bar = column('num2');
-    const baz = column('num3');
-
-    const query = [
-      'SELECT min("num1") AS "min", max("num1") AS "max", "num2", "num3"',
-      'FROM "t1"',
-      'GROUP BY "num2", "num3"'
-    ].join(' ');
-    await expect(
-      Query
-        .select({ min: min('num1'), max: max('num1'), num2: 'num2', num3: 'num3' })
-        .from('t1')
-        .groupby('num2', 'num3')
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), max: max(foo), num2: bar, num3: baz })
-        .from('t1')
-        .groupby(bar, baz)
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), max: max(foo), num2: bar, num3: baz })
-        .from('t1')
-        .groupby([bar, baz])
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), max: max(foo), num2: bar, num3: baz })
-        .from('t1')
-        .groupby(bar)
-        .groupby(baz)
-    ).toBeValidQuery(query);
-  });
-
-  it('selects filtered aggregates', async () => {
-    const foo = column('num1');
-    const bar = column('num2');
-
-    const query = [
-      'SELECT min("num1") AS "min", "num2"',
-      'FROM "t1"',
-      'GROUP BY "num2"',
-      'HAVING ("min" > 50) AND ("min" < 100)'
-    ].join(' ');
-    await expect(
-      Query
-        .select({ min: min(foo), num2: bar })
-        .from('t1')
-        .groupby(bar)
-        .having(gt('min', 50), lt('min', 100))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), num2: bar })
-        .from('t1')
-        .groupby(bar)
-        .having([gt('min', 50), lt('min', 100)])
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), num2: bar })
-        .from('t1')
-        .groupby(bar)
-        .having(gt('min', 50))
-        .having(lt('min', 100))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select({ min: min(foo), num2: bar })
-        .from('t1')
-        .groupby(bar)
-        .having(sql`("min" > 50) AND ("min" < 100)`)
-    ).toBeValidQuery(query);
-  });
-
-  it('selects filtered rows', async () => {
-    const foo = column('num1');
-    const bar = column('num2');
-
-    const query = [
-      'SELECT "num1"',
-      'FROM "t1"',
-      'WHERE ("num2" > 50) AND ("num2" < 100)'
-    ].join(' ');
-    await expect(
-      Query
-        .select(foo)
-        .from('t1')
-        .where(gt(bar, 50), lt(bar, 100))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select(foo)
-        .from('t1')
-        .where([gt(bar, 50), lt(bar, 100)])
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select(foo)
-        .from('t1')
-        .where(gt(bar, 50))
-        .where(lt(bar, 100))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select(foo)
-        .from('t1')
-        .where(sql`("num2" > 50) AND ("num2" < 100)`)
-    ).toBeValidQuery(query);
-  });
-
-  it('selects ordered rows', async () => {
-    const bar = column('num2');
-    const baz = column('num3');
-
-    const query = [
-      'SELECT *',
-      'FROM "t1"',
-      'ORDER BY "num2", "num3" DESC'
-    ].join(' ');
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .orderby(bar, desc(baz))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .orderby([bar, desc(baz)])
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .orderby(bar)
-        .orderby(desc(baz))
-    ).toBeValidQuery(query);
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .orderby(sql`"num2", "num3" DESC`)
-    ).toBeValidQuery(query);
-  });
-
-  it('selects sampled rows', async () => {
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .sample(10)
-    ).toBeValidQuery('SELECT * FROM "t1" USING SAMPLE (10 ROWS)');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .sample(0.3)
-    ).toBeValidQuery('SELECT * FROM "t1" USING SAMPLE (30%)');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .sample(0.1, 'bernoulli')
-    ).toBeValidQuery('SELECT * FROM "t1" USING SAMPLE bernoulli (10%)');
-
-    await expect(
-      Query
-        .select('*')
-        .from('t1')
-        .sample(0.1, 'bernoulli', 12345)
-    ).toBeValidQuery('SELECT * FROM "t1" USING SAMPLE bernoulli (10%) REPEATABLE (12345)');
-
-    await expect(
-      Query
-        .select('*')
-        .from(new FromClauseNode(
-          asTableRef('t1')!, 't1', new SampleClauseNode(10, true)
-        ))
-    ).toBeValidQuery('SELECT * FROM "t1" TABLESAMPLE (10%)');
-  });
-
-  it('selects from multiple relations', async () => {
-    const query = [
-      'SELECT "a"."num1" AS "num1", "b"."num2" AS "num2"',
-      'FROM "t1" AS "a", "t2" AS "b"'
-    ].join(' ');
-    await expect(
-      Query
-        .select({
-          num1: column('num1', 'a'),
-          num2: column('num2', 'b')
-        })
-        .from({ a: 't1', b: 't2' })
-    ).toBeValidQuery(query);
-  });
-
-  it('selects from unnested relation', async () => {
-    await expect(
-      Query
-        .select({ type: column('type', 'u') })
-        .from(
-          new FromClauseNode(
-            unnest(list(['Gold', 'Silver', 'Bronze'])),
-            'u',
-            undefined,
-            ['type']
-          )
-        )
-    ).toBeValidQuery('SELECT "u"."type" AS "type" FROM UNNEST([\'Gold\', \'Silver\', \'Bronze\']) AS "u"("type")');
-  });
-
-  it('selects over windows', async () => {
-    await expect(
-      Query
-        .select({ lead: lead('num1').over('win') })
-        .from('t1')
-        // @ts-expect-error raw sql
-        .window({ win: sql`(ORDER BY "num1" ASC)` })
-    ).toBeValidQuery('SELECT lead("num1") OVER "win" AS "lead" FROM "t1" WINDOW "win" AS (ORDER BY "num1" ASC)');
-
-    await expect(
-      Query
-        .select({ lead: lead('num1').over('win') })
-        .from('t1')
-        .window({ win: over().orderby('num1') })
-    ).toBeValidQuery('SELECT lead("num1") OVER "win" AS "lead" FROM "t1" WINDOW "win" AS (ORDER BY "num1")');
-
-    await expect(
-      Query
-        .select({ lead: lead('num1').over('win') })
-        .from('t1')
-        .window({ win: over().orderby(desc('num1')) })
-    ).toBeValidQuery('SELECT lead("num1") OVER "win" AS "lead" FROM "t1" WINDOW "win" AS (ORDER BY "num1" DESC)');
-  });
-
-  it('selects from subqueries', async () => {
-    await expect(
-      Query
-        .select('num1', 'num2')
-        .from(Query.select('*').from('t1'))
-    ).toBeValidQuery('SELECT "num1", "num2" FROM (SELECT * FROM "t1")');
-
-    await expect(
-      Query
-        .select('num1', 'num2')
-        .from({ a: Query.select('*').from('t1') })
-    ).toBeValidQuery('SELECT "num1", "num2" FROM (SELECT * FROM "t1") AS "a"');
-  });
-
-  it('selects with common table expressions', async () => {
-    await expect(
-      Query
-        .with({ a: Query.select('*').from('t1') })
-        .select('num1', 'num2')
-        .from('a')
-    ).toBeValidQuery('WITH "a" AS (SELECT * FROM "t1") SELECT "num1", "num2" FROM "a"');
-
-    await expect(
-      Query
-        .with({
-          a: Query.select('num1').from('t1'),
-          b: Query.select('num2').from('t2')
-        })
-        .select('*')
-        .from('a', 'b')
-    ).toBeValidQuery([
-      'WITH "a" AS (SELECT "num1" FROM "t1"),',
-           '"b" AS (SELECT "num2" FROM "t2")',
-      'SELECT * FROM "a", "b"'
-    ].join(' '));
-
-    await expect(Query
-      .with(
-        cte('foo', Query.select({ x: 42 }), false),
-        cte('bar', Query.select({ y: 42 }), true)
-      )
-      .select({ v: add('x', 'y') })
-      .from('foo', 'bar')
-    ).toBeValidQuery([
-      'WITH "foo" AS NOT MATERIALIZED (SELECT 42 AS "x"),',
-           '"bar" AS MATERIALIZED (SELECT 42 AS "y")',
-      'SELECT ("x" + "y") AS "v" FROM "foo", "bar"'
-    ].join(' '));
-  });
-
-  it('performs set operations', async () => {
-    const q = [
-      Query.select('num1', 'num2', 'num3').from('t1'),
-      Query.select('num1', 'num2', 'num3').from('t2')
-    ];
-    await expect(Query.union(q)).toBeValidQuery(q.join(' UNION '));
-    await expect(Query.union(...q)).toBeValidQuery(q.join(' UNION '));
-
-    await expect(Query.unionByName(q)).toBeValidQuery(q.join(' UNION BY NAME '));
-    await expect(Query.unionByName(...q)).toBeValidQuery(q.join(' UNION BY NAME '));
-
-    await expect(Query.unionAll(q)).toBeValidQuery(q.join(' UNION ALL '));
-    await expect(Query.unionAll(...q)).toBeValidQuery(q.join(' UNION ALL '));
-
-    await expect(Query.unionAllByName(q)).toBeValidQuery(q.join(' UNION ALL BY NAME '));
-    await expect(Query.unionAllByName(...q)).toBeValidQuery(q.join(' UNION ALL BY NAME '));
-
-    await expect(Query.intersect(q)).toBeValidQuery(q.join(' INTERSECT '));
-    await expect(Query.intersect(...q)).toBeValidQuery(q.join(' INTERSECT '));
-
-    await expect(Query.intersectAll(q)).toBeValidQuery(q.join(' INTERSECT ALL '));
-    await expect(Query.intersectAll(...q)).toBeValidQuery(q.join(' INTERSECT ALL '));
-
-    await expect(Query.except(q)).toBeValidQuery(q.join(' EXCEPT '));
-    await expect(Query.except(...q)).toBeValidQuery(q.join(' EXCEPT '));
-
-    await expect(Query.exceptAll(q)).toBeValidQuery(q.join(' EXCEPT ALL '));
-    await expect(Query.exceptAll(...q)).toBeValidQuery(q.join(' EXCEPT ALL '));
-  });
-
-  it('parenthesizes compound set operation inputs', async () => {
-    const a = Query.select('num1').from('t1');
-    const b = Query.select('num1').from('t2');
-
-    await expect(Query.intersect(a, Query.union(a, b)))
-      .toBeValidQuery(`${a} INTERSECT (${a} UNION ${b})`);
-    await expect(Query.except(a, Query.except(b, a)))
-      .toBeValidQuery(`${a} EXCEPT (${b} EXCEPT ${a})`);
-    await expect(Query.union(a.clone().orderby('num1').limit(1).offset(1), b))
-      .toBeValidQuery(`(${a} ORDER BY "num1" LIMIT 1 OFFSET 1) UNION ${b}`);
-    await expect(Query.union(a, Query.with({ c: b }).select('num1').from('c')))
-      .toBeValidQuery(`${a} UNION (WITH "c" AS (${b}) SELECT "num1" FROM "c")`);
-  });
-
-  it('renders set operation query modifiers', async () => {
-    const q = [
-      Query.select('num1', 'num2', 'num3').from('t1'),
-      Query.select('num1', 'num2', 'num3').from('t2')
-    ];
-
-    await expect(
-      Query
-        .unionAll(...q)
-        .orderby('num1')
-        .limit(0)
-        .offset(0)
-    ).toBeValidQuery(`${q.join(' UNION ALL ')} ORDER BY "num1" LIMIT 0 OFFSET 0`);
-  });
-
-  it('supports describe queries', async () => {
-    const q = Query.select('num1', 'num2').from('t1');
-    await expect(Query.describe(q)).toBeValidQuery(`DESC ${q}`);
-
-    const u = Query.unionAll(
-      Query.select('num1', 'num2').from('t1'),
-      Query.select('num1', 'num2').from('t2')
-    );
-    await expect(Query.describe(u)).toBeValidQuery(`DESC ${u}`);
-  });
-
-  it('supports clone()', async () => {
-    const q = Query
-      .with({
-        cte: Query.select('num1', 'num2', 'num3').from('t1')
-      })
-      .select('num1')
-      .from('cte')
-      .groupby('num1')
-      .orderby('num1')
-      .limit(10);
-    const c = q.clone();
-    expect(c).not.toBe(q);
-    expect(String(c)).toBe(String(q));
-    await validateQuery(c);
-    await validateQuery(q);
-  });
-
-  it('is handled properly by deepClone', async () => {
-    const q = Query
-      .with({
-        cte: Query.select('num1', 'num2', 'num3').from('t1')
-      })
-      .select('num1')
-      .from('cte')
-      .groupby('num1')
-      .orderby('num1')
-      .limit(10);
-    const c = deepClone(q);
-    expect(c).not.toBe(q);
-    expect(c._with).not.toBe(q._with);
-    expect(c._with[0]).not.toBe(q._with[0]);
-    expect(c._with[0].query).not.toBe(q._with[0].query);
-    expect(c._select).not.toBe(q._select);
-    expect(c._from).not.toBe(q._from);
-    expect(c._groupby).not.toBe(q._groupby);
-    expect(c._where).not.toBe(q._where);
-    expect(c._having).not.toBe(q._having);
-    expect(c._qualify).not.toBe(q._qualify);
-    expect(String(c)).toBe(String(q));
-    await validateQuery(c);
-    await validateQuery(q);
-  });
-
-  it('is discriminated by type guard functions', () => {
-    const selectQuery = Query.from('data').select('foo');
-    const setOperation = Query.unionAll(selectQuery, selectQuery);
-    const describeQuery = Query.describe(selectQuery);
-    const pivotQuery = Query.pivot('source');
-
-    expect(isSelectQuery(selectQuery)).toBe(true);
-    expect(isSelectQuery(setOperation)).toBe(false);
-    expect(isSelectQuery(describeQuery)).toBe(false);
-    expect(isSelectQuery(pivotQuery)).toBe(false);
-    expect(isSelectQuery('SELECT 42 AS value')).toBe(false);
-
-    expect(isSetOperation(selectQuery)).toBe(false);
-    expect(isSetOperation(setOperation)).toBe(true);
-    expect(isSetOperation(describeQuery)).toBe(false);
-    expect(isSetOperation(pivotQuery)).toBe(false);
-    expect(isSetOperation('SELECT 42 AS value UNION ALL SELECT 7 AS value')).toBe(false);
-
-    expect(isDescribeQuery(selectQuery)).toBe(false);
-    expect(isDescribeQuery(setOperation)).toBe(false);
-    expect(isDescribeQuery(describeQuery)).toBe(true);
-    expect(isDescribeQuery(pivotQuery)).toBe(false);
-    expect(isDescribeQuery('DESC SELECT 42 AS value')).toBe(false);
-
-    expect(isPivotQuery(selectQuery)).toBe(false);
-    expect(isPivotQuery(setOperation)).toBe(false);
-    expect(isPivotQuery(describeQuery)).toBe(false);
-    expect(isPivotQuery(pivotQuery)).toBe(true);
-    expect(isPivotQuery('PIVOT data ON year USING sum(population)')).toBe(false);
+  it('preserves UTC date and scalar edge values in native literals', () => {
+    const date = new Date('0001-01-01T00:00:00.000Z');
+    const timestamp = new Date('1969-12-31T23:59:59.999Z');
+    expect(literal(date)).toEqual(native.literal({ literal_type: 'date', value: '0001-01-01' }));
+    expect(literal(timestamp)).toEqual(native.literal({ literal_type: 'timestamp', value: '1969-12-31 23:59:59.999' }));
+    for (const value of [undefined, NaN, Infinity, -Infinity, new Date(NaN)]) {
+      expect(literal(value)).toEqual(native.literal(null));
+    }
+    expect(literal(/O'Reilly/)).toEqual(native.literal("O'Reilly"));
+    expect(literal(9007199254740993n)).toEqual(native.numeric('9007199254740993'));
   });
 });

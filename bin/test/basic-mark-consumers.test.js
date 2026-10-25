@@ -10,7 +10,9 @@ import { Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
 import { parse as parseYAML } from 'yaml';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
+import { QueryError } from '@uwdata/mosaic-core';
 import { astToDOM, astToESM, astToPython, parseSpec } from '@uwdata/mosaic-spec';
+import { compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import * as vg from '../../packages/vgplot/vgplot/src/index.js';
 import { clientsReady } from '../../packages/vgplot/vgplot/test/util/clients-ready.js';
 const root = fileURLToPath(new URL('../..', import.meta.url));
@@ -66,7 +68,7 @@ test('strict wire rejects wrong variants, properties and retained target differe
 test('generated ordinary factories preserve source/options overloads',()=>{
  for(const name of projection.marks.map(m=>m.name)){
   let observed;const plot={addMark:m=>observed=m};factories[name]({x:7})(plot);assert.equal(observed.type,name);assert.equal(observed.data.numRows,1);assert.equal(observed.channel('x').value,7);
-  factories[name]({table:'basic_data'},{x:'t'})(plot);assert.equal(observed.sourceTable(),'basic_data');assert.equal(observed.channel('x').field.toString(),'"t"');
+  factories[name]({table:'basic_data'},{x:'t'})(plot);assert.equal(observed.sourceTable(),'basic_data');assert.deepEqual(compile([observed.channel('x').field],createExecutionContext()),['"t"']);
  }
 });
 test('raw D3 symbol object retains field classification while the explicit host Param preserves its value',()=>{
@@ -88,6 +90,13 @@ test('literal interval retains its wire-valid SQL field interpretation',async()=
  const spec={data:{basic_data:{type:'table',query:"SELECT * FROM (VALUES (DATE '2024-01-01',2,'A'),(DATE '2024-01-03',4,'B')) AS t(date,v,category)"}},plot:[{mark:'barX',data:{from:'basic_data'},x:'date',y:'category',interval:'day'}]};
  assert.equal(validate(spec),true,JSON.stringify(validate.errors));
  const coordinator=new vg.Coordinator(await database,{logger:null});const errors=[];coordinator.logger({...coordinator.logger(),error:error=>errors.push(error)});const api=vg.createAPIContext({coordinator,extensions:factories});
- try{await coordinator.exec('DROP TABLE IF EXISTS basic_data');const result=await astToDOM(parseSpec(spec),{api});await clientsReady(result.element);assert.equal(errors.length,1);assert.match(errors[0].message,/Referenced column "day" not found/);}finally{coordinator.clear();}
+ try{
+  await coordinator.exec('DROP TABLE IF EXISTS basic_data');const result=await astToDOM(parseSpec(spec),{api});
+  await assert.rejects(result.element.value.marks[0].pending,error=>{
+   assert.ok(error instanceof QueryError);assert.match(error.message,/Referenced column "day" not found/);
+   assert.match(error.sql,/^DESCRIBE SELECT "day" AS "__mosaic_field" FROM "basic_data"$/);return true;
+  });
+  assert.deepEqual((await clientsReady(result.element)).map(result=>result.status),['rejected']);assert.deepEqual(errors,[]);
+ }finally{coordinator.clear();}
 });
 test.after(()=>dom.window.close());

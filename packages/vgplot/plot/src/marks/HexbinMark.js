@@ -1,13 +1,14 @@
-import { unqualify } from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
+import { unqualify } from '@uwdata/mosaic-sql';
 import { Transient } from '../symbols.js';
 import { extentX, extentY, xyext } from './util/extent.js';
 import { Mark } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class HexbinMark extends Mark {
-  constructor(source, options, sqlContext = null) {
+  constructor(source, options) {
     const { type = 'hexagon', binWidth = 20, ...channels } = options;
-    super(type, source, { r: binWidth / 2, clip: true, ...channels }, xyext, sqlContext);
+    super(type, source, { r: binWidth / 2, clip: true, ...channels }, xyext);
 
     /** @type {number} */
     this.binWidth = handleParam(binWidth, value => {
@@ -22,11 +23,11 @@ export class HexbinMark extends Mark {
   }
 
   query(filter = []) {
-    return hexbinQuery(this, this.sql, filter);
+    return hexbinQuery(this, filter);
   }
 }
 
-function hexbinQuery(mark, sql, filter) {
+function hexbinQuery(mark, filter) {
   if (mark.hasOwnData()) return null;
   const { plot, binWidth } = mark;
   const channels = mark.queryChannels();
@@ -46,7 +47,7 @@ function hexbinQuery(mark, sql, filter) {
       yc = c;
     } else if (Object.hasOwn(c, 'field')) {
       const { as, field } = c;
-      cols[as] = mark.sqlOwner ? unqualify(field) : field;
+      cols[as] = unqualify(field);
       if (!isAggregateExpression(field)) {
         dims.add(as);
       }
@@ -119,7 +120,7 @@ function hexbinQuery(mark, sql, filter) {
             ),
           [y]: cond(tt, int32(add(pj, cond(lt(py, pj), -1, 1))), pj)
         }, '*')
-        .from(mark.sqlOwner ? mark.sql.from(mark.sourceTable()) : { source: mark.sourceTable() })
+        .from(sql.from(mark.sourceTable()))
         .where(isNotNull(xc.field), isNotNull(yc.field), filter)
     );
 }

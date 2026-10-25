@@ -1,9 +1,8 @@
-/** @import { SelectQuery } from '@uwdata/mosaic-sql' */
+/** @import { Query } from '@uwdata/mosaic-sql' */
 /** @import { DataColumns } from '@uwdata/mosaic-core' */
 import { isParam, MosaicClient, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
-import { Query, collectParams, column, isAggregateExpression, isColumnParam, isColumnRef, isNode, isParamLike, unnest } from '@uwdata/mosaic-sql';
-import * as legacySQL from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import { isParamLike } from '@uwdata/mosaic-sql';
+import * as sql from '@uwdata/mosaic-sql';
 import { binInfo, resolveBins } from '../transforms/bin.js';
 import { isColor } from './util/is-color.js';
 import { isConstantOption } from './util/is-constant-option.js';
@@ -14,26 +13,15 @@ const isColorChannel = channel => channel === 'stroke' || channel === 'fill';
 const isOpacityChannel = channel => /opacity$/i.test(channel);
 const isSymbolChannel = channel => channel === 'symbol';
 
-// column name for a plain column reference or name string, else null
-const unnestableColumn = (field, native = false) => {
-  if (field == null) return null;
-  return native
-    ? typeof field === 'string' ? field : nativeSQL.columnParts(nativeSQL.rootExpression(field))?.at(-1)
-    : isColumnRef(field) ? field.column : typeof field === 'string' ? field : null;
-};
+const unnestableColumn = field => field == null ? null
+  : typeof field === 'string' ? field : sql.columnParts(sql.rootExpression(field))?.at(-1);
 const isFieldObject = (channel, field) => {
   return channel !== 'sort' && channel !== 'tip'
     && field != null && !Array.isArray(field);
 };
-const isNativeField = (channel, field) => nativeSQL.isExpressionHandle(field)
-  || isFieldObject(channel, field) && nativeSQL.isExpression(field);
-const fieldEntry = (channel, field, native = false) => ({
-  channel,
-  field,
-  as: native
-    ? nativeSQL.columnParts(field)?.at(-1) ?? channel
-    : isColumnRef(field) && !isColumnParam(field) ? field.column : channel
-});
+const isSqlField = (channel, field) => sql.isExpressionHandle(field)
+  || isFieldObject(channel, field) && sql.isExpression(field);
+const fieldEntry = (channel, field) => ({ channel, field, as: sql.columnParts(field)?.at(-1) ?? channel });
 const valueEntry = (channel, value) => ({ channel, value });
 
 // checks if a data source is an explicit array of values
@@ -55,20 +43,18 @@ export const isDataArray = source => Array.isArray(source);
  *   Materialized column data, when available.
  * @property {number} [index]
  *   The mark's index within the plot.
- * @property {import('@uwdata/mosaic-core').NativeSqlContext | null} [sqlContext]
  */
 
 /**
  * @implements {InteractorMark}
  */
 export class Mark extends MosaicClient {
-  constructor(type, source, encodings, reqs = {}, sqlContext = null) {
-    super(source?.options?.filterBy, sqlContext);
+  constructor(type, source, encodings, reqs = {}) {
+    super(source?.options?.filterBy);
     this.type = type;
     this.reqs = reqs;
     this.source = source;
-    this.sqlContext = sqlContext;
-    this.sql = sqlContext ? nativeSQL : legacySQL;
+    this._failed = false;
 
     const channels = this.channels = [];
     const detail = this.detail = new Set;
@@ -101,7 +87,7 @@ export class Mark extends MosaicClient {
           // interpret constants and color/symbol names as values, not fields
           channels.push(valueEntry(channel, entry));
         } else {
-          channels.push(fieldEntry(channel, sqlContext ? nativeSQL.column(entry) : column(entry), !!sqlContext));
+          channels.push(fieldEntry(channel, sql.column(entry)));
         }
       } else if (isParamLike(entry)) {
         const c = valueEntry(channel, entry.value);
@@ -112,16 +98,10 @@ export class Mark extends MosaicClient {
           c.value = value;
           return this.update();
         });
-      } else if (sqlContext && isNativeField(channel, entry)) {
-        const field = nativeSQL.asNode(entry);
-        nativeSQL.params(field).forEach(p => params.add(p));
-        channels.push(fieldEntry(channel, field, true));
-      } else if (isNode(entry)) {
-        if (sqlContext) throw new TypeError('Native marks require native SQL expressions.');
-        collectParams(entry).forEach(p => params.add(p));
-        channels.push(fieldEntry(channel, entry))
-      } else if (isNativeField(channel, entry)) {
-        throw new TypeError('Native SQL expressions require a native plot context.');
+      } else if (isSqlField(channel, entry)) {
+        const field = sql.asNode(entry);
+        sql.params(field).forEach(p => params.add(p));
+        channels.push(fieldEntry(channel, field));
       } else if (type === 'object' && isFieldObject(channel, entry)) {
         channels.push(fieldEntry(channel, entry));
       } else if (entry !== undefined) {
@@ -142,7 +122,7 @@ export class Mark extends MosaicClient {
     this.plot = plot;
     this.index = index;
     plot.addParams(this, this.params);
-    if (this.sqlOwner && this.channels.some(c => binInfo(c.field))) {
+    if (this.channels.some(c => binInfo(c.field))) {
       for (const channel of ['x', 'y']) {
         for (const name of ['Scale', 'Base', 'Exponent', 'Constant']) {
           plot.addAttributeListener(channel + name, () => this.initialize());
@@ -172,7 +152,7 @@ export class Mark extends MosaicClient {
    * @returns {boolean}
    */
   isUnnested(field) {
-    const name = unnestableColumn(field, !!this.sqlOwner);
+    const name = unnestableColumn(field);
     return name != null && this.unnestFields.includes(name);
   }
 
@@ -185,8 +165,18 @@ export class Mark extends MosaicClient {
   }
 
   initialize() {
-    if (this.sqlOwner) this._fieldInfo = false;
-    return super.initialize();
+    this._fieldInfo = false;
+    this._failed = false;
+    if (this.coordinator && this.enabled) this.plot.pending(this);
+    super.initialize();
+    const pending = this.pending;
+    const coordinator = this.coordinator;
+    pending.catch(() => {
+      if (this.pending === pending && this.coordinator === coordinator) {
+        this._failed = true;
+        this.plot.update(this);
+      }
+    });
   }
 
   channel(channel) {
@@ -202,50 +192,20 @@ export class Mark extends MosaicClient {
 
   async prepare() {
     if (this.hasOwnData()) return null;
-    if (this.sqlOwner) return this.prepareNative();
-
-    const { channels, reqs } = this;
-    const fields = new Map;
-    for (const { channel, field } of channels) {
-      if (!field) continue;
-      const stats = field.stats?.stats || [];
-      const key = field.stats?.column ?? field;
-      const entry = fields.get(key) ?? fields.set(key, new Set).get(key);
-      stats.forEach(s => entry.add(s));
-      reqs[channel]?.forEach(s => entry.add(s));
-    }
-
-    const table = this.sourceTable();
-    const info = await queryFieldInfo(
-      this.coordinator,
-      Array.from(fields, ([c, s]) => ({ table, column: c, stats: Array.from(s) }))
-    );
-
-    const lookup = Object.fromEntries(info.map(x => [x.column, x]));
-    for (const entry of this.channels) {
-      const { field } = entry;
-      if (field) {
-        Object.assign(entry, lookup[field.stats?.column ?? field]);
-      }
-    }
-    this._fieldInfo = true;
-  }
-
-  async prepareNative() {
     const pending = this.pending;
-    const table = this.sourceTable();
+    const table = markRelation(this.channels, this.sourceTable());
     const requests = new Map;
     const projected = [];
     for (const entry of this.channels) {
       if (!entry.field) continue;
       const info = binInfo(entry.field);
       const field = info?.source ?? entry.field;
-      if (nativeSQL.isAggregateExpression(field) || isWindowExpression(field)) {
+      if (sql.isAggregateExpression(field) || isWindowExpression(field)) {
         projected.push(entry);
         continue;
       }
       const request = requests.get(field) ?? {
-        table, column: this.isUnnested(field) ? nativeSQL.unnest(field) : field, stats: new Set, entries: []
+        table, column: this.isUnnested(field) ? sql.unnest(field) : field, stats: new Set, entries: []
       };
       if (info) ['min', 'max'].forEach(stat => request.stats.add(stat));
       this.reqs[entry.channel]?.forEach(stat => request.stats.add(stat));
@@ -259,7 +219,7 @@ export class Mark extends MosaicClient {
     this._fieldInfo = true;
     if (projected.length) {
       const channels = this.queryChannels();
-      const query = nativeMarkQuery(channels, table);
+      const query = markQuery(channels, table);
       const fields = projected.map(entry => {
         const field = channels.find(channel => channel === entry || channel.channel === entry.channel)?.field;
         return { table, column: field, stats: this.reqs[entry.channel] ?? [] };
@@ -272,7 +232,6 @@ export class Mark extends MosaicClient {
   }
 
   queryChannels() {
-    if (!this.sqlOwner) return this.channels;
     const memo = new Map;
     return this.channels.map(entry => entry.field
       ? { ...entry, field: resolveBins(entry.field, memo) }
@@ -293,16 +252,17 @@ export class Mark extends MosaicClient {
       ? prepared
       : prepared.map(c => {
           if (!c.field) return c;
-          const name = unnestableColumn(c.field, !!this.sqlOwner);
+          const name = unnestableColumn(c.field);
           return name != null && unnestFields.includes(name)
-            ? { ...c, field: this.sqlOwner ? nativeSQL.unnest(c.field) : unnest(c.field) }
+            ? { ...c, field: sql.unnest(c.field) }
             : c;
         });
-    const query = this.sqlOwner ? nativeMarkQuery(channels, this.sourceTable()) : markQuery(channels, this.sourceTable());
+    const query = markQuery(channels, this.sourceTable());
     return query.where(filter);
   }
 
   queryPending() {
+    this._failed = false;
     this.plot.pending(this);
     return this;
   }
@@ -313,6 +273,13 @@ export class Mark extends MosaicClient {
   queryResult(data) {
     this.data = toDataColumns(data);
     return this;
+  }
+
+  /** @param {import('@uwdata/mosaic-core').QueryError} error */
+  queryError(error) {
+    this._failed = true;
+    this.plot.update(this);
+    return super.queryError(error);
   }
 
   update() {
@@ -355,21 +322,70 @@ export function channelOption(c, columns) {
  * @param {*} table the table to query.
  * @param {*} skip an optional array of channels to skip.
  *  Mark subclasses can skip channels that require special handling.
- * @returns {SelectQuery} a Query instance
+ * @returns {Query} a Query instance
  */
 export function markQuery(channels, table, skip = []) {
-  return populateQuery(Query.from({ source: table }), channels, skip, isAggregateExpression);
+  return populateQuery(sql.Query.from(markRelation(channels, table)), channels, skip, sql.isAggregateExpression, isWindowExpression);
 }
 
-export function nativeMarkQuery(channels, table, skip = []) {
-  return populateQuery(nativeSQL.Query.from(nativeSQL.from(table)), channels, skip, nativeSQL.isAggregateExpression, isWindowExpression);
+
+function markRelation(channels, table) {
+  const relation = sql.asFrom(table);
+  let expression = relation.expression;
+  while ('table_sample' in expression && expression.table_sample.this) expression = expression.table_sample.this;
+  const alias = 'table' in expression ? expression.table.alias
+    : 'subquery' in expression ? expression.subquery.alias
+    : 'alias' in expression ? expression.alias.alias : null;
+  if (alias || bindsSource([expression])) return relation;
+  return channels.some(({ field }) => field && referencesSource(binInfo(field)?.source ?? field))
+    ? relation.as('source') : relation;
+}
+
+function bindsSource(relations) {
+  const pending = [...relations];
+  while (pending.length) {
+    const relation = pending.pop();
+    if (!relation) continue;
+    const name = 'table' in relation ? (relation.table.alias ?? relation.table.name).name
+      : 'subquery' in relation ? relation.subquery.alias?.name
+      : 'alias' in relation ? relation.alias.alias.name : undefined;
+    if (name?.toLowerCase() === 'source') return true;
+    if ('joined_table' in relation) pending.push(relation.joined_table.left, ...relation.joined_table.joins.map(join => join.this));
+    if ('table_sample' in relation) pending.push(relation.table_sample.this);
+  }
+  return false;
+}
+
+/** @returns {boolean} */
+function referencesSource(input, bound = false) {
+  const root = sql.rootExpression(input);
+  const clause = 'select' in root ? root.select
+    : 'union' in root ? root.union : 'intersect' in root ? root.intersect
+    : 'except' in root ? root.except : 'pivot' in root ? root.pivot : undefined;
+  const ctes = clause?.with?.ctes ?? [];
+  let found = ctes.some(cte => referencesSource(cte.this, bound));
+  const local = bound || 'select' in root && bindsSource([
+    ...(root.select.from?.expressions ?? []), ...root.select.joins.map(join => join.this)
+  ]);
+  sql.walk(root, node => {
+    if (found) return -1;
+    if (node !== root && ctes.some(cte => cte.this === node)) return 1;
+    if (node !== root && ('select' in node || 'union' in node || 'intersect' in node || 'except' in node || 'pivot' in node)) {
+      found = referencesSource(node, local);
+      return 1;
+    }
+    const parts = sql.columnParts(node);
+    const qualifier = sql.bindingOf(node)?.qualifier ?? parts?.slice(0, -1);
+    if (!local && qualifier?.length === 1 && qualifier[0].toLowerCase() === 'source') found = true;
+    return parts ? 1 : undefined;
+  });
+  return found;
 }
 
 /**
- * @template {SelectQuery | import('@uwdata/mosaic-sql/native').Query} Q
- * @param {Q} q
+ * @param {Query} q
  * @param {(field: *) => boolean} [window]
- * @returns {Q}
+ * @returns {Query}
  */
 function populateQuery(q, channels, skip, aggregate, window = () => false) {
   const dims = new Set;
@@ -401,7 +417,7 @@ function populateQuery(q, channels, skip, aggregate, window = () => false) {
 
 function isWindowExpression(expression) {
   let result = false;
-  nativeSQL.walk(expression, node => {
+  sql.walk(expression, node => {
     if ('subquery' in node) return 1;
     if ('window_function' in node) { result = true; return -1; }
   });

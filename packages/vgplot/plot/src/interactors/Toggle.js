@@ -34,7 +34,7 @@ export class Toggle {
       for (let i = 0; i < q.length; ++i) {
         const f = mark.channelField(q[i], { exact: true });
         if (f) {
-          fields.push(mark.sqlContext ? f.field : f.field?.basis || f.field);
+          fields.push(f.field);
           as.push(f.as);
           return;
         }
@@ -51,12 +51,10 @@ export class Toggle {
     // unnested fields use a list-membership predicate instead of point equality
     if (fields.length === 1 && mark.isUnnested(fields[0])) {
       const list = value?.length ? value.map(v => v[0]) : undefined;
-      return mark.sqlContext
-        ? mark.sqlContext.list(fields[0], list, { ...opt, listMatch: this.listMatch })
-        : clauseList(fields[0], list, { ...opt, listMatch: this.listMatch });
+      return clauseList(fields[0], list, { ...opt, listMatch: this.listMatch });
     }
 
-    return mark.sqlContext ? mark.sqlContext.points(fields, value, opt) : clausePoints(fields, value, opt);
+    return clausePoints(fields, value, opt);
   }
 
   init(svg, selector, accessor) {

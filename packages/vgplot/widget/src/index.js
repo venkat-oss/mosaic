@@ -1,6 +1,6 @@
 import './compiler.js';
-import { Coordinator, NativeSqlContext, isSelection } from '@uwdata/mosaic-core';
-import { and, isExpression } from '@uwdata/mosaic-sql/native';
+import { Coordinator, isSelection } from '@uwdata/mosaic-core';
+import { and, isExpression } from '@uwdata/mosaic-sql';
 import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 import './style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,7 +18,6 @@ import { v4 as uuidv4 } from 'uuid';
 export default {
   render(view) {
     view.el.classList.add('mosaic-widget');
-    const native = new NativeSqlContext();
     let disposed = false;
     /** @type {Promise<Awaited<ReturnType<typeof astToDOM>> | null> | undefined} */
     let pending;
@@ -54,7 +53,7 @@ export default {
         });
       }
     };
-    const coordinator = new Coordinator(connector, { native });
+    const coordinator = new Coordinator(connector);
     const logger = coordinator.logger();
     if (!view.model.get('preagg_schema')) view.model.set('preagg_schema', coordinator.preaggregator.schema);
     const configureCoordinator = () => { coordinator.preaggregator.schema = view.model.get('preagg_schema'); };
@@ -62,12 +61,11 @@ export default {
 
     /** @param {Awaited<ReturnType<typeof astToDOM>>['params']} params */
     function serializeParams(params) {
-      /** @type {import('@uwdata/mosaic-sql/native').SqlRoot[]} */
+      /** @type {import('@uwdata/mosaic-sql').SqlRoot[]} */
       const roots = [];
       const active = [];
       const entries = Array.from(params, ([name, param]) => {
         if (!isSelection(param)) return [name, { value: param.value }];
-        if (param.owner !== native) throw new TypeError('Widget predicate export requires its own native SQL context.');
         const predicate = param.predicate(undefined);
         const predicates = (Array.isArray(predicate) ? predicate : [predicate]).filter(value => value != null);
         if (!predicates.every(isExpression)) throw new TypeError('Widget predicates require native SQL expressions.');
@@ -78,7 +76,7 @@ export default {
         }
         return [name, entry];
       });
-      const statements = native.compileBatch(roots);
+      const statements = coordinator.sqlContext.compileBatch(roots);
       if (statements.length !== active.length) throw new Error('Widget predicate compilation must produce one expression per selection.');
       statements.forEach((statement, index) => { active[index].predicate = statement; });
       return Object.freeze(Object.fromEntries(entries));

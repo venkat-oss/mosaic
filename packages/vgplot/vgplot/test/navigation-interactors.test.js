@@ -1,3 +1,4 @@
+import { compile, column, createExecutionContext } from '@uwdata/mosaic-sql';
 import assert from 'node:assert/strict';
 import { afterAll, test } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -32,8 +33,8 @@ for (const {name, zoom, panx, pany} of [
     const interactor = chart.interactors[0];
     assert.equal(interactor.constructor.name, 'PanZoom');
     assert.equal(interactor.mark, chart.marks[1]);
-    assert.equal(interactor.xfield, 'a');
-    assert.equal(interactor.yfield, 'b');
+    assert.deepEqual(interactor.xfield, column('a'));
+    assert.deepEqual(interactor.yfield, column('b'));
     assert.deepEqual(interactor.zoom, zoom ? [0, Infinity] : [1, 1]);
     assert.equal(interactor.panx, panx);
     assert.equal(interactor.pany, pany);
@@ -63,7 +64,7 @@ test('navigation preserves shared selections, explicit fields and forced control
   assert.deepEqual(chart.getAttribute('yDomain'), before);
   assert.equal(x.active.source, i);
   assert.equal(x.active.clients, chart.markSet);
-  assert.match(String(x.active.predicate), /explicit_x.*BETWEEN/);
+  assert.match(compile([x.active.predicate], createExecutionContext()).join(';\n'), /explicit_x.*>=.*explicit_x.*<=/);
 });
 
 test('selection feedback drives enabled domains while disabled axes stay unchanged', async () => {

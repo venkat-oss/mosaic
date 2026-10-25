@@ -20,15 +20,20 @@ async function setup(page, name, options = {}) {
 }
 
 async function domains(page) {
-  return page.evaluate(() => ({
+  return page.evaluate(async () => {
+    const sqlModule = '/packages/mosaic/sql/src/index.ts';
+    const { compile, createExecutionContext } = await import(sqlModule);
+    const predicate = window['navigationX'].active?.predicate;
+    return ({
     x: window['navigationPlot'].getAttribute('xDomain'),
     y: window['navigationPlot'].getAttribute('yDomain'),
     xvalue: window['navigationX'].value,
     yvalue: window['navigationY'].value,
     source: window['navigationX'].active?.source === window['navigationPlot'].interactors[0],
-    predicate: String(window['navigationX'].active?.predicate),
+    predicate: predicate ? compile([predicate], createExecutionContext()).join(';\n') : '',
     clients: window['navigationX'].active?.clients === window['navigationPlot'].markSet,
-  }));
+  });
+  });
 }
 
 for (const name of ['pan', 'panX', 'panY', 'panZoom', 'panZoomX', 'panZoomY']) {
@@ -49,7 +54,7 @@ for (const name of ['pan', 'panX', 'panY', 'panZoom', 'panZoomX', 'panZoomY']) {
       assert.deepEqual(panned.x, panned.xvalue);
       assert.equal(panned.source, true);
       assert.equal(panned.clients, true);
-      assert.match(panned.predicate, /a.*BETWEEN/);
+      assert.match(panned.predicate, /a.*>=.*a.*<=/);
     } else assert.deepEqual(panned.x, [0, 10]);
     if (yEnabled) assert.deepEqual(panned.y, panned.yvalue);
     else assert.deepEqual(panned.y, [0, 10]);
@@ -85,7 +90,7 @@ test('navigation selections drive peer plots and explicit fields without moving 
   const state = await domains(page);
   assert.deepEqual(state.x, [2, 7]);
   assert.deepEqual(await page.evaluate(() => window['navigationPeer'].getAttribute('xDomain')), [2, 7]);
-  assert.match(state.predicate, /explicit_x.*BETWEEN/);
+  assert.match(state.predicate, /explicit_x.*>=.*explicit_x.*<=/);
   assert.deepEqual(await page.evaluate(() => window['navigationIsolated'].getAttribute('xDomain')), [0, 10]);
 });
 

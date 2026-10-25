@@ -66,7 +66,7 @@ export class Interval1D {
       scale,
       pixelSize
     };
-    return mark.sqlContext ? mark.sqlContext.interval(field, value, options) : clauseInterval(field, value, options);
+    return clauseInterval(field, value, options);
   }
 
   init(svg, root) {

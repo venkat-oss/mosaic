@@ -1,3 +1,4 @@
+import { compile, column, createExecutionContext } from '@uwdata/mosaic-sql';
 import assert from 'node:assert/strict';
 import { it as test, afterAll } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -26,14 +27,14 @@ for (const [name, type, channel] of [['intervalX', 'Interval1D', 'x'], ['interva
     assert.equal(i.selection, selection);
     if (channel) {
       assert.equal(i.channel, channel);
-      assert.equal(i.field, channel === 'x' ? 'a' : 'b');
+      assert.deepEqual(i.field, column(channel === 'x' ? 'a' : 'b'));
     }
     if (type === 'Interval2D') {
-      assert.equal(i.xfield, 'a');
-      assert.equal(i.yfield, 'b');
+      assert.deepEqual(i.xfield, column('a'));
+      assert.deepEqual(i.yfield, column('b'));
     }
     if (type === 'Region') {
-      assert.deepEqual(i.fields, ['a', 'group']);
+      assert.deepEqual(i.fields, [column('a'), column('group')]);
       assert.deepEqual(i.as, ['a', 'group']);
     }
     else
@@ -61,7 +62,7 @@ for (const name of ['intervalX', 'intervalY'])
     assert.deepEqual(selection.value, expected);
     assert.equal(selection.active.clients, plot.markSet);
     assert.equal(selection.active.meta['pixelSize'], 8);
-    assert.match(String(selection.active.predicate), /BETWEEN/);
+    assert.match(compile([selection.active.predicate], createExecutionContext()).join(';\n'), />=.*AND.*<=/);
     const rect = i.g.select('rect.selection');
     assert.equal(rect.attr('fill-opacity'), '0.4');
     assert.equal(rect.attr('stroke-dasharray'), '2,3');
@@ -82,7 +83,7 @@ test('intervalXY preserves reversed y domains, 2D SQL clauses and silent reset',
   const snap = (v, s) => s.invert(4 * Math.floor(v / 4));
   const expected = [[extent[0][0], extent[1][0]].map(v => snap(v, i.xscale)).sort((a, b) => a - b), [extent[0][1], extent[1][1]].map(v => snap(v, i.yscale)).sort((a, b) => a - b)];
   assert.deepEqual(selection.value, expected);
-  assert.match(String(selection.active.predicate), /explicit_x.*BETWEEN.*AND.*explicit_y.*BETWEEN/);
+  assert.match(compile([selection.active.predicate], createExecutionContext()).join(';\n'), /explicit_x.*>=.*explicit_x.*<=.*AND.*explicit_y.*>=.*explicit_y.*<=/);
   assert.equal(selection.active.meta.type, 'interval');
   const previous = selection.value;
   i.reset();
@@ -115,7 +116,7 @@ test('region requires actual channels and preserves default brush styles', () =>
   vg.region({ as: vg.Selection.intersect(), channels: ['x'] })(plot);
   assert.deepEqual(plot.interactors[0].style, { 'fill': 'none', 'stroke': 'currentColor', 'stroke-dasharray': '1,1' });
   const c = plot.interactors[0].clause([[1], [3]]);
-  assert.match(String(c.predicate), /a.*IN/);
+  assert.match(compile([c.predicate], createExecutionContext()).join(';\n'), /a.*IN/);
   assert.deepEqual(c.value, [[1], [3]]);
 });
 afterAll(() => dom.window.close());

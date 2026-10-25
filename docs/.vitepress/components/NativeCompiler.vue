@@ -5,7 +5,7 @@ const sql = ref('Loading compiler…');
 
 onMounted(async () => {
   try {
-    const { asLiteral, compile, createExecutionContext, native } = await import('@uwdata/mosaic-sql/native');
+    const { asLiteral, compile, createExecutionContext, native } = await import('@uwdata/mosaic-sql');
     sql.value = compile([
       native.select([native.alias(asLiteral(42), 'value')])
     ], createExecutionContext()).join(';\n');

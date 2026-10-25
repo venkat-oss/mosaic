@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { expect, it } from 'vitest';
 import { parse as parseYAML, stringify as stringifyYAML } from 'yaml';
-import { Coordinator, NativeSqlContext, Param, Selection } from '@uwdata/mosaic-core';
+import { Coordinator, Param, Selection } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import { Query, isQuery } from '@uwdata/mosaic-sql/native';
+import { Query, isQuery } from '@uwdata/mosaic-sql';
 import { createAPIContext } from '@uwdata/vgplot';
 import { astToDOM, astToESM, CodegenContext, InstantiateContext, parseSpec } from '../src/index.js';
 
@@ -13,7 +13,7 @@ class TestConnector extends NodeConnector {
 
 it('instantiates raw expressions, live column parameters and window frames using the owning API', async () => {
   const connector = new TestConnector;
-  const coordinator = new Coordinator(connector, { native: new NativeSqlContext(), logger: null });
+  const coordinator = new Coordinator(connector, { logger: null });
   const api = createAPIContext({ coordinator });
   const field = Param.value('x');
   const offset = Param.value(2);
@@ -55,7 +55,6 @@ it('instantiates raw expressions, live column parameters and window frames using
     expect(parseSpec(parseYAML(stringifyYAML(ast.toJSON()))).toJSON()).toEqual(ast.toJSON());
     const dom = await astToDOM(parseSpec({ params: { brush: { select: 'crossfilter' } }, plot: [] }), { coordinator });
     expect(dom.params.get('brush')).toBeInstanceOf(Selection);
-    expect(/** @type {Selection} */ (dom.params.get('brush')).owner).toBe(coordinator.nativeContext);
     expect(api.from('native_spec_expressions')).toMatchObject({ table: 'native_spec_expressions' });
   } finally {
     coordinator.clear();
@@ -65,7 +64,7 @@ it('instantiates raw expressions, live column parameters and window frames using
 
 it('instantiates spec table queries and inline objects in a native API context', async () => {
   const connector = new TestConnector;
-  const coordinator = new Coordinator(connector, { native: new NativeSqlContext(), logger: null });
+  const coordinator = new Coordinator(connector, { logger: null });
   const api = createAPIContext({ coordinator });
   try {
     const ast = parseSpec({

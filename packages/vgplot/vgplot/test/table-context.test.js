@@ -33,11 +33,11 @@ it('keeps table pages, sorts and look-ahead prefetch on their owning coordinator
     expect(leftTable.coordinator).toBe(left.coordinator);
     expect(rightTable.coordinator).toBe(right.coordinator);
     expect(left.queries).toEqual([
-      'DESC SELECT "x" AS "column" FROM "left_rows" AS "source"',
+      'DESCRIBE SELECT "x" AS "__mosaic_field" FROM "left_rows"',
       'SELECT "x" FROM "left_rows" LIMIT 1 OFFSET 0'
     ]);
     expect(right.queries).toEqual([
-      'DESC SELECT "x" AS "column" FROM "right_rows" AS "source"',
+      'DESCRIBE SELECT "x" AS "__mosaic_field" FROM "right_rows"',
       'SELECT "x" FROM "right_rows" LIMIT 1 OFFSET 0'
     ]);
     expect(global.queries).toEqual([]);

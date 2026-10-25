@@ -39,17 +39,16 @@ Query
 
 To learn more about the anatomy of a query, take a look at the [DuckDB Select statement documentation](https://duckdb.org/docs/sql/statements/select).
 
-## Native query preview
+## Query trees {#native-query-preview}
 
-The temporary `@uwdata/mosaic-sql/native` entry builds Polyglot expression trees.
-It supports CTEs, aliased relations, scalar subqueries, joins, set operations,
-distinct projections, sampling, pivots and positional references. The root SQL
-entry continues to use the existing implementation during the migration.
+`@uwdata/mosaic-sql` builds Polyglot expression trees for CTEs, aliased relations,
+scalar subqueries, joins, set operations, distinct projections, sampling, pivots
+and positional references.
 
 ``` js
 import {
   Query, compile, createExecutionContext, cte, gt, sum
-} from '@uwdata/mosaic-sql/native';
+} from '@uwdata/mosaic-sql';
 
 const totals = Query.from('sales')
   .select('region', { total: sum('amount') })
@@ -74,10 +73,10 @@ Unaliased computed labels come from the database and can change with equivalent
 function spellings or target dialects. Column references and explicit aliases
 retain their authored names.
 
-Native coordinators can consolidate compatible SELECT projections into one
+Coordinators can consolidate compatible SELECT projections into one
 query and project the Arrow result back to each caller. Queries with filters,
 ordering, distinct projections, column expansion or dynamic projection shapes
-use the direct path. Native DuckDB preaggregation materializes supported aggregate
+use the direct path. DuckDB preaggregation materializes supported aggregate
 queries and reuses them for compatible selection updates. Unsupported query shapes
 use the direct query path.
 
@@ -89,11 +88,13 @@ does not yet provide a Mosaic PostgreSQL connector.
 
 ## Query
 
-The top-level `Query` class, along with its concrete `SelectQuery` and `SetOperation` subclasses, provide structured representations of SQL queries.
+The `Query` handle owns a canonical Polyglot expression tree, exposed by its
+`.expression` property. SELECT and set-operation queries use this same handle;
+use `inspectSelect` and `selectEntries` for structured inspection.
 The `Query.pivot()` static method additionally returns `PivotQuery` instances for DuckDB simplified `PIVOT` queries.
 Upon string coercion, these objects produce a complete SQL query string.
 
-The following static methods create a new `SelectQuery` and invoke the corresponding method:
+The following static methods create a new SELECT query and invoke the corresponding method:
 
 - `Query.select()`: See the [`select`](#select) method below.
 - `Query.from()`: See the [`from`](#from) method below.
@@ -102,7 +103,7 @@ The following static method creates a new `PivotQuery`:
 
 - `Query.pivot(source)`: See the [`PivotQuery`](#pivotquery) section below.
 
-In addition, the following static methods take multiple queries as input and return `SetOperation` instances:
+In addition, the following static methods take multiple queries as input and return `Query` handles containing the set operation:
 
 - `Query.union(...queries)`: Union results with de-duplication of rows.
 - `Query.unionByName(...queries)`: Union results with de-duplication of rows, combining rows from different tables by name, instead of by position.
@@ -117,7 +118,7 @@ Common table expressions can be applied via static method
 
 - `Query.with()`: See the [`with`](#with) method below.
 
-Each of the methods described above can also be utilized in conjunction with a WITH clause. For example, `Query.with().select()` results in a `SelectQuery`, whereas `Query.with().union()` will produce a `SetOperation`.
+Each of the methods described above can also be utilized in conjunction with a WITH clause. For example, `Query.with().select()` constructs a SELECT, while `Query.with().union()` constructs a union; both return a `Query` handle.
 
 To instead create a query for metadata (column names and types), pass a query to the static `describe` method:
 
@@ -198,27 +199,48 @@ Return true if _value_ is a `PivotQuery` instance.
 
 `Query.clone()`
 
-Return a new query that is a shallow copy of the current instance.
+Return a new handle with independent editable clause containers. Embedded
+expressions and child queries remain shared; use `deepClone` to copy the full tree.
+Both forms retain live parameter bindings.
 
 ## toString
 
 `Query.toString()`
 
-Coerce this query object to a SQL query string.
+Compile this query using the default DuckDB execution context. For a different
+source or target dialect, call `compile([query], executionContext)` explicitly.
+Coordinators compile using their own context when a query is submitted.
 
 ## select
 
-`SelectQuery.select(...expressions)`
+`Query.select(...expressions)`
 
 Select columns and return this query instance.
 The _expressions_ argument may include column name strings, [`column` references](./expressions#column), [`star`](./expressions#star) and [`columns`](./expressions#columns) expressions, and maps from column names to expressions (either as JavaScript `object` values or nested key-value arrays as produced by `Object.entries`).
 
 ## from
 
-`SelectQuery.from(...tables)`
+`Query.from(...tables)`
 
 Indicate the tables to draw records from and return this query instance.
 The _tables_ may be table name strings, queries or subquery expressions, and maps from table names to expressions (either as JavaScript `object` values or nested key-value arrays as produced by `Object.entries`).
+
+`from(table, alias, sampling, columnNames)` wraps a relation with optional alias,
+sampling and output column names; `asFrom` accepts either that wrapper or a table input. Use
+`tableRef(['catalog', 'schema', 'table'])` for separately quoted identifier
+components. `column(name, tableRef(...))` retains the same qualifier.
+`asTableRef` and `parseTableRef` support structured conversion and parsed SQL
+identifier input respectively.
+
+Calling `.as(alias)` on a relation handle retains its sampling and output column
+aliases. Pass `.as(alias, columnNames)` to replace those aliases; an empty array
+clears them. Re-aliasing leaves the original relation unchanged.
+
+`subquery(query)` embeds a query as a scalar subquery. `values(rows)` constructs a
+VALUES relation and `tuple(expressions)` builds a row expression. `join`,
+`cross_join`, `positional_join` and `asof_join` compose structured relations; their
+options carry the join condition or USING columns. These constructs remain in
+the native tree for scope-aware analysis and dialect checks.
 
 ## with
 
@@ -229,13 +251,13 @@ The input _expressions_ should consist of one or more maps (as JavaScript `objec
 
 ## distinct
 
-`SelectQuery.distinct(value = true)`
+`Query.distinct(value = true)`
 
 Update the query to require `DISTINCT` values and return this query instance.
 
 ## distinctOn
 
-`SelectQuery.distinctOn(...expressions)`
+`Query.distinctOn(...expressions)`
 
 Update the query to additionally require `DISTINCT ON` the provided _expressions_ and return this query instance.
 Only the first row for each distinct combination of _expressions_ is retained; use `orderby` to determine which row comes first.
@@ -244,7 +266,7 @@ This method is additive: any previously defined distinct on expressions will sti
 
 ## sample
 
-`SelectQuery.sample(size, method)`
+`Query.sample(size, method)`
 
 Update the query to sample a subset of _rows_ and return this query instance.
 If _size_ is a number between 0 and 1, it is interpreted as a percentage of the full dataset to sample.
@@ -254,21 +276,21 @@ See the [DuckDB Sample documentation](https://duckdb.org/docs/sql/samples) for m
 
 ## where
 
-`SelectQuery.where(...expressions)`
+`Query.where(...expressions)`
 
 Update the query to additionally filter by the provided predicate _expressions_ and return this query instance.
 This method is additive: any previously defined filter criteria will still remain.
 
 ## groupby
 
-`SelectQuery.groupby(...expressions)`
+`Query.groupby(...expressions)`
 
 Update the query to additionally group by the provided _expressions_ and return this query instance.
 This method is additive: any previously defined group by criteria will still remain.
 
 ## having
 
-`SelectQuery.having(...expressions)`
+`Query.having(...expressions)`
 
 Update the query to additionally filter aggregate results by the provided predicate _expressions_ and return this query instance.
 Unlike `where` criteria, which are applied before an aggregation, the `having` criteria are applied to aggregated results.
@@ -276,7 +298,7 @@ This method is additive: any previously defined filter criteria will still remai
 
 ## window
 
-`SelectQuery.window(...expressions)`
+`Query.window(...expressions)`
 
 Update the query with named window frame definitions and return this query instance.
 The _expressions_ arguments should be JavaScript `object` values that map from window names to window frame definitions.
@@ -284,7 +306,7 @@ This method is additive: any previously defined windows will still remain.
 
 ## qualify
 
-`SelectQuery.qualify(...expressions)`
+`Query.qualify(...expressions)`
 
 Update the query to additionally filter windowed results by the provided predicate _expressions_ and return this query instance.
 Use this method instead of `where` to filter the results of window operations.

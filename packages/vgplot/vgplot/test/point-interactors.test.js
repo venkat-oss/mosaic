@@ -1,3 +1,4 @@
+import { column } from '@uwdata/mosaic-sql';
 import assert from 'node:assert/strict';
 import { it as test, afterAll } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -40,7 +41,7 @@ for (const {name,pointer,channels} of [{name:'nearest',pointer:'xy',channels:['x
     const interactor = plot.interactors[0];
     assert.equal(interactor.pointer, pointer);
     assert.deepEqual(interactor.channels, channels);
-    assert.deepEqual(interactor.fields, channels.map(c => c === 'x' ? 'a' : 'b'));
+    assert.deepEqual(interactor.fields, channels.map(c => column(c === 'x' ? 'a' : 'b')));
     assert.equal(interactor.maxRadius, 12);
     const clause = interactor.clause(channels.map((_, i) => i + 2));
     assert.equal(clause.meta.type, 'point');
@@ -69,7 +70,7 @@ test('nearest explicit fields override inference while legacy singular field is 
   vg.nearestX({ as: vg.Selection.intersect(), field: 'singular', fields: ['explicit'] })(plot);
   assert.deepEqual(plot.interactors[0].fields, ['explicit']);
   vg.nearestX({ as: vg.Selection.intersect(), field: 'singular' })(plot);
-  assert.deepEqual(plot.interactors[1].fields, ['a']);
+  assert.deepEqual(plot.interactors[1].fields, [column('a')]);
 });
 test('toggle preserves an exact missing-channel error', () => {
   assert.throws(() => vg.toggle({ as: vg.Selection.intersect(), channels: ['missing'] })(chart()), /^Error: Missing channel: missing$/);

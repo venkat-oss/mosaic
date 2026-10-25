@@ -43,20 +43,18 @@ Two-way linking is also supported for selections using _single_ resolution, wher
 - [Search API Reference](/api/inputs/search)
 - [Slider API Reference](/api/inputs/slider)
 
-## Native input preview {#native-slider-preview}
+## Inputs and queries {#native-slider-preview}
 
-The experimental native SQL path connects a Slider selection to native Polyglot
-queries. Create an isolated context and use its selections with the temporary
-SQL `/native` entry:
+Input selections and client queries use the same Polyglot expression tree.
+A Slider can drive a custom client directly:
 
 ```js
-import { Coordinator, makeClient, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
+import { Coordinator, makeClient, RestConnector, Selection } from '@uwdata/mosaic-core';
 import { Slider } from '@uwdata/mosaic-inputs';
-import { Query, count, sum } from '@uwdata/mosaic-sql/native';
+import { Query, count, sum } from '@uwdata/mosaic-sql';
 
-const native = new NativeSqlContext();
-const coordinator = new Coordinator(new RestConnector(), { native });
-const selection = native.selection({ cross: true });
+const coordinator = new Coordinator(new RestConnector());
+const selection = Selection.crossfilter();
 const slider = new Slider({
   from: 'sales', column: 'amount', as: selection,
   select: 'interval', min: 0, value: 10
@@ -73,24 +71,20 @@ makeClient({
 });
 ```
 
-The Slider infers its native context from the selection before publishing its
-initial value. Explicit bounds stay fixed; missing bounds come from a native
-minimum/maximum query. Updates compile at submission and return ordinary Arrow
-results. Live scalar and column parameters resolve from their current values
-when submitted.
+Explicit Slider bounds stay fixed; missing bounds come from a minimum/maximum
+query. Queries compile at submission and return Arrow results. Live scalar and
+column parameters resolve from their current values when submitted.
 
-Use separate contexts and selection graphs for independent coordinators.
-Menu, Search and Table also use this native path. Construct them through
-`createAPIContext({ coordinator })` to supply the owning context even when the
-input has no selection binding. Menu supports scalar and list-valued columns;
-Search performs case-insensitive matching and preserves regular-expression
-escapes. Table loads metadata, visible pages and look-ahead pages through its
-own coordinator, and source or filter changes restart from the first page.
+Use `createAPIContext({ coordinator })` to connect inputs and plots to a local
+coordinator. Standalone input helpers use the default coordinator; input classes
+can be connected explicitly as above. Menu supports scalar and list-valued
+columns. Search performs case-insensitive matching and preserves
+regular-expression escapes. Table loads metadata, visible pages and look-ahead
+pages through its own coordinator; source or filter changes restart from the
+first page.
 
-The normal SQL entry keeps its previous implementation until the default switch.
-Native consolidation and DuckDB pre-aggregation are enabled
-for compatible queries; see the [coordinator options](/api/core/coordinator#constructor)
-and [work packets](/development/polyglot/work-packets).
+Consolidation and DuckDB preaggregation apply to compatible queries; see the
+[coordinator options](/api/core/coordinator#constructor).
 
 ## Table
 

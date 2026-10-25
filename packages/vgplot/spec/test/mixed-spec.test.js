@@ -1,3 +1,4 @@
+import { compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -49,7 +50,7 @@ it('round trips a mixed nested specification through public JavaScript and Pytho
   expect(loads).toEqual([{ name: 'points', data: rows }]);
   const [dot, legend] = result.hconcat[0].plot;
   expect(dot.data).toEqual({ from: 'points' });
-  expect(String(dot.x)).toBe('avg("x")');
+  expect(compile([dot.x], createExecutionContext()).join(';\n')).toBe('AVG("x")');
   expect(legend.as).toBeInstanceOf(Selection);
   expect(legend.legend).toBe('color');
 

@@ -1,6 +1,4 @@
 import { geojson } from '@uwdata/mosaic-sql';
-import { geojson as nativeGeoJSON } from '@uwdata/mosaic-sql/native';
-import { NativeSqlContext } from '@uwdata/mosaic-core';
 import { Mark, isDataArray } from './Mark.js';
 
 // default geometry column created by st_read
@@ -9,18 +7,14 @@ import { Mark, isDataArray } from './Mark.js';
 const DEFAULT_GEOMETRY_COLUMN = 'geom';
 
 export class GeoMark extends Mark {
-  constructor(source, encodings = {}, reqs, sqlContext = null) {
-    if (reqs instanceof NativeSqlContext) {
-      sqlContext = reqs;
-      reqs = undefined;
-    }
+  constructor(source, encodings = {}, reqs) {
     if (!isDataArray(source) && !encodings?.geometry) {
       // if issuing queries and no geometry channel specified
       // then request default geometry column as GeoJSON
-      encodings = { ...encodings, geometry: (sqlContext ? nativeGeoJSON : geojson)(DEFAULT_GEOMETRY_COLUMN) };
+      encodings = { ...encodings, geometry: geojson(DEFAULT_GEOMETRY_COLUMN) };
     }
 
-    super('geo', source, encodings, reqs ?? undefined, sqlContext);
+    super('geo', source, encodings, reqs ?? undefined);
   }
 
   queryResult(data) {

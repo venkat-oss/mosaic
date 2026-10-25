@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
+import { Selection, Coordinator } from '@uwdata/mosaic-core';
 import { describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import { count, float64, isExpression } from '@uwdata/mosaic-sql/native';
+import { count, float64, isExpression } from '@uwdata/mosaic-sql';
 import { createAPIContext } from '../src/context.js';
 import { clientsReady } from './util/clients-ready.js';
 
-/** @returns {clause is import('@uwdata/mosaic-core').NativeSelectionClause} */
+/** @returns {clause is import('@uwdata/mosaic-core').SelectionClause} */
 function isNativeClause(clause) {
-  return clause.context !== undefined && clause.fields.every(isExpression)
+  return clause.fields.every(isExpression)
     && (clause.predicate == null || isExpression(clause.predicate));
 }
 
@@ -19,10 +19,10 @@ class TestConnector extends NodeConnector {
 describe('native vgplot histogram', () => {
   it('passes context ownership through factories and updates real SVG bins', async () => {
     const connection = new TestConnector;
-    const native = new NativeSqlContext();
-    const coordinator = new Coordinator(connection, { native, logger: null, cache: false, consolidate: false });
+
+    const coordinator = new Coordinator(connection, { logger: null, cache: false, consolidate: false });
     const api = createAPIContext({ coordinator });
-    const selection = native.selection();
+    const selection = Selection.intersect();
     let element;
     try {
       await coordinator.exec('CREATE OR REPLACE TEMP TABLE native_vgplot_histogram("a""b" DOUBLE); INSERT INTO native_vgplot_histogram VALUES (0.25),(0.75),(1.25),(1.75)');
@@ -36,8 +36,6 @@ describe('native vgplot histogram', () => {
       expect((await clientsReady(element)).map(result => result.status)).toEqual(['fulfilled']);
       const plot = element.value;
       const mark = plot.marks[0];
-      expect(plot.sqlContext).toBe(native);
-      expect(mark.sqlOwner).toBe(native);
       expect(mark.filterBy).toBe(selection);
       expect(mark.data.numRows).toBe(2);
       expect(element.querySelectorAll('svg [data-index="0"] rect')).toHaveLength(2);

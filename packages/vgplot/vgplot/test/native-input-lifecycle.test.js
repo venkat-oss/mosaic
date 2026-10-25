@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
+import { Selection, Coordinator, Param } from '@uwdata/mosaic-core';
 import { describe, expect, it, vi } from 'vitest';
-import { Coordinator, NativeSqlContext, Param } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { createAPIContext } from '../src/context.js';
 
@@ -47,7 +47,7 @@ class Database extends NodeConnector {
 
 async function setup() {
   const database = new Database;
-  const coordinator = new Coordinator(database, { native: new NativeSqlContext(), logger: null, cache: false, consolidate: false });
+  const coordinator = new Coordinator(database, { logger: null, cache: false, consolidate: false });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
   await coordinator.exec(`
@@ -69,9 +69,7 @@ describe('native input lifecycle', () => {
     const state = await setup();
     const gate = state.database.holdNext();
     try {
-      const native = state.coordinator.nativeContext;
-      if (!native) throw new Error('Expected a native coordinator.');
-      const selection = native.selection();
+      const selection = Selection.intersect();
       const table = client(state.api.table({ from: state.source, as: selection, rowBatch: 2 }));
       await gate.submitted;
       expect(table.initialized).toBe(false);

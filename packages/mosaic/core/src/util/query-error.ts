@@ -1,4 +1,4 @@
-import { isQuery as isNativeQuery } from '@uwdata/mosaic-sql/native';
+import { compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { QueryType } from '../types.js';
 
 function asError(value: unknown) {
@@ -16,7 +16,12 @@ export class QueryError extends Error {
 
   constructor(err: unknown, query: QueryType) {
     const cause = asError(err)
-    const sql = isNativeQuery(query) ? '[native SQL query could not be compiled]' : `${query}`;
+    let sql: string;
+    try {
+      sql = typeof query === 'string' ? query : compile([query], createExecutionContext()).join(';\n');
+    } catch {
+      sql = '[SQL query could not be compiled]';
+    }
     const msg = `${cause.message}\n\nSQL Query: ${sql}`;
     super(msg, { cause });
     this.#sql = sql;

@@ -1,6 +1,5 @@
 import { throttle } from '@uwdata/mosaic-core';
-import { and, isAggregateExpression } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { getDatum } from './util/get-datum.js';
 import { sanitizeStyles } from './util/sanitize-styles.js';
 
@@ -15,7 +14,7 @@ function configureMark(mark) {
     if (channel === 'orderby') {
       ordered = true;
     } else if (field) {
-      if (mark.sqlContext ? nativeSQL.isAggregateExpression(field) : isAggregateExpression(field)) {
+      if (sql.isAggregateExpression(field)) {
         aggregate = true;
       } else {
         if (dims.has(as)) continue;
@@ -93,12 +92,9 @@ async function predicateFunction(mark, selection) {
   // set flag so we do not skip cross-filtered sources
   const filter = mark.filterBy?.predicate(mark, true);
 
-  const s = { __: mark.sqlContext ? nativeSQL.and(pred) : and(pred) };
+  const s = { __: sql.and(pred) };
   const q = mark.query(filter);
-  if (mark.sqlContext) projectNative(nativeSQL.rootExpression(q), s);
-  else (q.queries || [q]).forEach(q => {
-      q._groupby.length ? q.select(s) : q.setSelect(s);
-    });
+  project(sql.rootExpression(q), s);
 
   const data = await mark.coordinator.query(q);
   const v = data.getChild?.('__');
@@ -107,17 +103,17 @@ async function predicateFunction(mark, selection) {
     : (i => data[i].__);
 }
 
-function projectNative(expression, select) {
-  if ('subquery' in expression) projectNative(expression.subquery.this, select);
+function project(expression, select) {
+  if ('subquery' in expression) project(expression.subquery.this, select);
   else if ('select' in expression) {
-    const query = new nativeSQL.Query(expression);
+    const query = new sql.Query(expression);
     expression.select.group_by?.expressions.length ? query.select(select) : query.setSelect(select);
   } else {
     const operation = 'union' in expression ? expression.union
       : 'intersect' in expression ? expression.intersect
       : 'except' in expression ? expression.except : null;
     if (!operation) throw new TypeError('Highlight requires a native SELECT or set query.');
-    projectNative(operation.left, select);
-    projectNative(operation.right, select);
+    project(operation.left, select);
+    project(operation.right, select);
   }
 }

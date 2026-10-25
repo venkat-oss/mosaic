@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { compile, asNode, createExecutionContext } from '@uwdata/mosaic-sql';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Ajv } from 'ajv';
@@ -93,10 +94,10 @@ describe('parameter parser and retained runtime', () => {
     activeParams.set('field', field);
     activeParams.set('offset', offset);
     const sql = expression.instantiate({ api: vg, activeParams });
-    expect(String(sql)).toBe('"amount" + 2 + length(\'$ignored\')');
+    expect(compile([sql], createExecutionContext()).join(';\n')).toBe('"amount" + 2 + LENGTH(\'$ignored\')');
     field.update('total');
     offset.update(5);
-    expect(String(sql)).toBe('"total" + 5 + length(\'$ignored\')');
+    expect(compile([sql], createExecutionContext()).join(';\n')).toBe('"total" + 5 + LENGTH(\'$ignored\')');
     expect(Object.keys(ast.params)).toEqual(['field', 'offset']);
     expect(expression.codegen(new CodegenContext)).toBe('vg.sql`${vg.column($field)} + ${$offset} + length(\'$ignored\')`');
     expect(expression.toJSON()).toEqual({ sql: "$$field + $offset + length('$ignored')" });
@@ -134,9 +135,9 @@ describe('parameter parser and retained runtime', () => {
     expect(vg.Selection).toBe(Selection);
     expect(brush).toBeInstanceOf(Selection);
     expect(brush.resolver).toMatchObject({ union: select === 'union', single: select === 'single', cross: select === 'crossfilter', empty: true });
-    expect(String(brush.predicate()[0])).toBe('FALSE');
+    expect(compile([brush.predicate()[0]], createExecutionContext()).join(';\n')).toBe('FALSE');
     expect(ast.toJSON().params.brush.include).toEqual(['$upstream']);
-    const clause = { source: {}, fields: [vg.column('x')], value: 2, predicate: vg.sql`x = 2` };
+    const clause = { source: {}, fields: [vg.column('x')], value: 2, predicate: asNode(vg.sql`x = 2`) };
     params.get('upstream').update(clause);
     await params.get('upstream').pending('value');
     await brush.pending('value');

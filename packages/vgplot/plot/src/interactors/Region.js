@@ -54,7 +54,7 @@ export class Region {
       source: this,
       clients: this.peers ? mark.plot.markSet : new Set().add(mark)
     };
-    return mark.sqlContext ? mark.sqlContext.points(fields, value, options) : clausePoints(fields, value, options);
+    return clausePoints(fields, value, options);
   }
 
   publish(extent) {

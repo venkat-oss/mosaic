@@ -5,15 +5,15 @@
   <div id="map"></div>
   <output id="result"></output>
   <script type="module">
-    import { Coordinator, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
-    import { Query, centroidX, centroidY, geojson, tableRef, column } from '@uwdata/mosaic-sql/native';
+    import { Coordinator, RestConnector } from '@uwdata/mosaic-core';
+    import { Query, centroidX, centroidY, geojson, tableRef, column } from '@uwdata/mosaic-sql';
     import { createAPIContext } from '@uwdata/vgplot';
     import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 
     window.nativeSpatialReady = (async () => {
-      const native = new NativeSqlContext();
+
       const coordinator = new Coordinator(new RestConnector({ uri: window.__MOSAIC_DATABASE_URI }), {
-        native, logger: null, cache: false, consolidate: false
+        logger: null, cache: false, consolidate: false
       });
       const errors = [];
       coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error.message) });

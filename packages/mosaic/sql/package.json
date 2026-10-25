@@ -14,10 +14,6 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
-    },
-    "./native": {
-      "types": "./dist/src/native/index.d.ts",
-      "default": "./dist/src/native/index.js"
     }
   },
   "files": [

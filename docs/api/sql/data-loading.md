@@ -3,17 +3,16 @@
 SQL data loading utilities.
 These methods generate queries that create tables and load data into DuckDB. File paths and string-valued loading options are escaped as SQL literals, including strings nested in arrays or option maps. The `select` and `where` options contain SQL expressions.
 
-The `/native` entry point provides the same loaders as native Polyglot AST
-queries. Pass them directly to a coordinator with a `NativeSqlContext`. A
-`createAPIContext({ coordinator })` created with that coordinator also selects
-the native loaders for specifications and direct JavaScript calls. Table names
-can be name paths such as `['main', 'rows']`; each component is quoted separately.
+Loaders construct Polyglot AST queries. Pass them directly to
+`coordinator.exec`. Specifications and direct JavaScript calls use these same
+loaders. Table names can be name paths such as `['main', 'rows']`; each component
+is quoted separately.
 Reader options accept native expressions and scalar parameters, including
 expressions inside arrays and option maps. String `select` and `where` values
 are parsed once as user-authored SQL; generated queries stay in the native AST.
 
 ```js
-import { loadCSV, Query, gt } from '@uwdata/mosaic-sql/native';
+import { loadCSV, Query, gt } from '@uwdata/mosaic-sql';
 
 await coordinator.exec(loadCSV(['main', 'rows'], 'rows.csv', {
   columns: { value: 'DOUBLE', label: 'VARCHAR' },
@@ -148,12 +147,12 @@ const q = loadObjects("table3", [
 ]);
 ```
 
-The native loader constructs the full `UNION ALL` before applying `select` and
+The loader constructs the full `UNION ALL` before applying `select` and
 `where`. Dates, nulls, strings, numeric and boolean values retain their SQL
 types; nested arrays and objects become list and struct values. An empty object
 array requires an application-defined schema rather than inferred columns.
 
-`sqlFrom(objects, { columns })`, available from `/native`, returns the underlying
+`sqlFrom(objects, { columns })` returns the underlying
 query without creating a table. `columns` can be an ordered list of input keys
 or a map from input keys to output names. Names are quoted, including keys such
 as `__proto__` or names containing quotes.
@@ -183,7 +182,7 @@ The supported _options_ are:
 loadSpatial("table1", "us-states.json", { layer: "states" });
 ```
 
-The native loader converts the nested `options` map to DuckDB's `open_options`
+The loader converts the nested `options` map to DuckDB's `open_options`
 list. For example, `{ options: { flatten_nested_attributes: true } }` becomes
 `open_options=['FLATTEN_NESTED_ATTRIBUTES=TRUE']`. Geometry coordinates and CRS
 remain those of the source unless explicit reader options request a conversion.
@@ -191,12 +190,11 @@ remain those of the source unless explicit reader options request a conversion.
 ## Spatial expressions
 
 The SQL package exports `geojson(expr)`, `x(expr)`, `y(expr)`, `centroid(expr)`,
-`centroidX(expr)` and `centroidY(expr)` from both its root and `/native` entry
-points. They invoke DuckDB's `ST_AsGeoJSON`, `ST_X`, `ST_Y` and `ST_Centroid`
+`centroidX(expr)` and `centroidY(expr)` from its root entry. They invoke DuckDB's `ST_AsGeoJSON`, `ST_X`, `ST_Y` and `ST_Centroid`
 functions; load the `spatial` extension before executing them. String arguments
 denote column names. Native expressions retain qualified fields and live bindings.
 
 `geojson` returns encoded GeoJSON text. A `geo` mark decodes this text into
-geometry objects for rendering. A native `geo` mark with no `geometry` channel
+geometry objects for rendering. A `geo` mark with no `geometry` channel
 requests `geojson('geom')`, matching the default column supplied by `ST_Read`.
 An explicit `geometry` channel overrides that default.

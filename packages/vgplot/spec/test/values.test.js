@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { columnParts } from '@uwdata/mosaic-sql';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Ajv } from 'ajv';
@@ -60,7 +61,7 @@ describe('shared value wire contracts', () => {
     vg.dot([{}], { symbol: 'TRIANGLE2' })(plot);
     vg.dot([{}], { symbol: 'triangle3' })(plot);
     expect(marks[0].channel('symbol')).toEqual({ channel: 'symbol', value: 'TRIANGLE2' });
-    expect(marks[1].channel('symbol').field.column).toBe('triangle3');
+    expect(columnParts(marks[1].channel('symbol').field).at(-1)).toBe('triangle3');
     expect(definitions.get('SymbolType')('TRIANGLE2')).toBe(false);
   });
 
@@ -69,7 +70,7 @@ describe('shared value wire contracts', () => {
     const plot = { addMark: mark => marks.push(mark) };
     vg.dotX(vg.from('data'), { interval: 'day' })(plot);
     vg.dotX(vg.from('data'), { interval: vg.Param.value('day') })(plot);
-    expect(marks[0].channel('interval').field.column).toBe('day');
+    expect(columnParts(marks[0].channel('interval').field).at(-1)).toBe('day');
     expect(marks[0].channel('interval')).not.toHaveProperty('value');
     expect(marks[1].channel('interval')).toEqual({ channel: 'interval', value: 'day' });
     expect(marks[1].channel('interval')).not.toHaveProperty('field');

@@ -207,8 +207,8 @@ describe('QueryManager abort', () => {
     await rejected;
     calls[0].resolve(consolidated);
     expect(Array.from(await results[1] as Table)).toEqual([{ c: 2 }]);
-    expect(store.has(String(consolidatable[0]))).toBe(false);
-    expect(store.has(String(consolidatable[1]))).toBe(true);
+    expect(store.has(manager.sqlContext().cacheKey(String(consolidatable[0])))).toBe(false);
+    expect(store.has(manager.sqlContext().cacheKey(String(consolidatable[1])))).toBe(true);
   });
 
   it.each([{indices: [1, 2]}, {indices: [2, 3]}, {indices: [0, 1, 2, 3]}])('removes consecutive queued requests $indices before execution', async ({indices}) => {

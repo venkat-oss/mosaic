@@ -5,7 +5,7 @@ import {
   compile,
   createExecutionContext,
   native
-} from '@uwdata/mosaic-sql/native';
+} from '@uwdata/mosaic-sql';
 
 export function compilePredicate() {
   return compile([

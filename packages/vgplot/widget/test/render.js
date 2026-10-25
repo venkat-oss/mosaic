@@ -76,7 +76,8 @@ export async function exerciseWidget(source) {
       { input: 'slider', as: '$cutoff', min: 0, max: 5, step: 1 },
       { input: 'menu', as: '$field', options: ['x', 'y'] },
       { input: 'menu', as: '$source', options: [table, `${table}_other`] },
-      { plot: [{ mark: 'dot', data: { from: '$source', filterBy: '$brush' }, x: { sql: '$$field + $cutoff' }, y: 'y' }], width: 260, height: 180 }
+      { input: 'slider', as: '$brush', field: 'y', min: 10, max: 30, step: 10 },
+      { plot: [{ mark: 'dot', data: { from: '$source', filterBy: '$brush' }, x: { sql: '$$field + $cutoff' }, y: 'y' }, { select: 'intervalX', as: '$brush' }], width: 260, height: 180 }
     ]
   });
   const first = new Model(spec('widget_first', 'first'), 'widget_first_preagg');
@@ -89,15 +90,16 @@ export async function exerciseWidget(source) {
     x: Array.from(first.mark().data.columns.x, Number),
     predicate: first.get('params').brush.predicate,
     ownParam: Object.hasOwn(first.get('params'), '__proto__') && first.get('params')['__proto__'].value,
-    isolated: first.mark().coordinator !== second.mark().coordinator && first.mark().sqlOwner !== second.mark().sqlOwner
+    isolated: first.mark().coordinator !== second.mark().coordinator && first.mark().coordinator.sqlContext !== second.mark().coordinator.sqlContext
   };
   const selection = first.mark().filterBy;
-  const native = first.mark().sqlOwner;
   const intervalSource = {};
   const pointSource = {};
-  selection.update(native.interval(first.mark().channelField('x').field, [1, 3], { source: intervalSource }));
+  const interval = first.mark().plot.interactors[0];
+  const point = first.el.querySelectorAll('input[type="range"]')[1].parentElement.value;
+  selection.update({ ...interval.clause([1, 3]), source: intervalSource, clients: undefined });
   await selection.pending('value');
-  selection.update(native.point('y', 20, { source: pointSource }));
+  selection.update({ ...point.clause(20), source: pointSource });
   await selection.pending('value');
   await first.mark().pending;
   const predicate = first.get('params').brush.predicate;
@@ -117,9 +119,9 @@ export async function exerciseWidget(source) {
   await wait(() => first.get('params').field?.value === 'y' && first.mark().data.numRows === 0, 'active selection identifier binding');
   const activeIdentifierPredicate = first.get('params').brush.predicate;
   const activeIdentifierRows = first.mark().data.numRows;
-  selection.update(native.clear(intervalSource));
+  selection.update({ source: intervalSource, fields: [], value: null, predicate: null });
   await selection.pending('value');
-  selection.update(native.clear(pointSource));
+  selection.update({ source: pointSource, fields: [], value: null, predicate: null });
   await selection.pending('value');
   await first.mark().pending;
   const empty = first.get('params').brush.predicate;
@@ -134,7 +136,7 @@ export async function exerciseWidget(source) {
   await new Promise(resolve => requestAnimationFrame(resolve));
   const cleanup = { handlers: first.handlers.size, unchanged: first.sent.length === afterCleanup };
   const otherSelection = second.mark().filterBy;
-  otherSelection.update(second.mark().sqlOwner.point('y', 20, { source: {} }));
+  otherSelection.update(second.el.querySelectorAll('input[type="range"]')[1].parentElement.value.clause(20));
   await otherSelection.pending('value');
   await second.mark().pending;
   const otherRows = second.mark().data.numRows;

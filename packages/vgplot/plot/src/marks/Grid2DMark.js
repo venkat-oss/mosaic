@@ -1,8 +1,9 @@
+import * as sql from '@uwdata/mosaic-sql';
 import { interpolatorBarycentric, interpolateNearest, interpolatorRandomWalk } from '@observablehq/plot';
 import { toDataColumns } from '@uwdata/mosaic-core';
-import { inspectAggregate } from '@uwdata/mosaic-sql/native';
+import { inspectAggregate } from '@uwdata/mosaic-sql';
 import { Transient } from '../symbols.js';
-import { binExpr, nativeBinExpr } from './util/bin-expr.js';
+import { binExpr } from './util/bin-expr.js';
 import { dericheConfig, dericheConv2d } from './util/density.js';
 import { extentX, extentY, xyext } from './util/extent.js';
 import { grid2d } from './util/grid.js';
@@ -15,7 +16,7 @@ export class Grid2DMark extends Mark {
   /** @type {ReturnType<typeof grid2d>} */
   grids;
 
-  constructor(type, source, options, sqlContext = null) {
+  constructor(type, source, options) {
     const {
       bandwidth = 0,
       interpolate = 'none',
@@ -27,7 +28,7 @@ export class Grid2DMark extends Mark {
     } = options;
 
     const densityMap = createDensityMap(channels);
-    super(type, source, channels, xyext, sqlContext);
+    super(type, source, channels, xyext);
     this.densityMap = densityMap;
     /** @type {string[]} */
     this.aggr = [];
@@ -96,7 +97,7 @@ export class Grid2DMark extends Mark {
    * @param {boolean | [boolean, boolean]} [includeMax]
    */
   gridQuery(extent, filter = [], includeMax = !!this.pad) {
-    return gridQuery(this, this.sql, extent, filter, includeMax);
+    return gridQuery(this, extent, filter, includeMax);
   }
 
   /**
@@ -189,14 +190,13 @@ function maybeInterpolate(interpolate = 'none') {
   throw new Error(`invalid interpolate: ${interpolate}`);
 }
 
-function gridQuery(mark, sql, [[x0, x1], [y0, y1]], filter, includeMax) {
+function gridQuery(mark, [[x0, x1], [y0, y1]], filter, includeMax) {
   const { Query, bin2d, binLinear2d, count, isAggregateExpression, isBetween, lt, lte, sum } = sql;
   const { interpolate, pad, densityMap } = mark;
   const channels = mark.queryChannels();
-  const bin = mark.sqlOwner ? nativeBinExpr : binExpr;
   const [nx, ny] = mark.bins;
-  const [x, bx] = bin(mark, 'x', nx, [x0, x1], pad);
-  const [y, by] = bin(mark, 'y', ny, [y0, y1], pad);
+  const [x, bx] = binExpr(mark, 'x', nx, [x0, x1], pad);
+  const [y, by] = binExpr(mark, 'y', ny, [y0, y1], pad);
 
   // with padded bins, include the entire domain extent
   // if the bins are flush, exclude the extent max
@@ -205,9 +205,7 @@ function gridQuery(mark, sql, [[x0, x1], [y0, y1]], filter, includeMax) {
     ? [isBetween(field, [min, max])] : [lte(min, field), lt(field, max)];
   const bounds = [...boundsFor(bx, +x0, +x1, inclusive[0]), ...boundsFor(by, +y0, +y1, inclusive[1])];
 
-  const q = (mark.sqlOwner
-    ? mark.sql.Query.from(mark.sql.from(mark.sourceTable()))
-    : Query.from({ source: mark.sourceTable() }))
+  const q = Query.from(sql.from(mark.sourceTable()))
     .where(filter.concat(bounds));
 
   /** @type {string[]} */
@@ -253,7 +251,7 @@ function gridQuery(mark, sql, [[x0, x1], [y0, y1]], filter, includeMax) {
       throw new Error('Linear binning not applicable to custom aggregates.');
     }
     const density = aggrMap[DENSITY];
-    const weight = mark.sqlOwner ? inspectAggregate(density)?.args[0] : density.args[0];
+    const weight = inspectAggregate(density)?.args[0];
     return binLinear2d(q, x, y, weight, nx, groupby);
   } else {
     return bin2d(q, x, y, aggrMap, nx, groupby);

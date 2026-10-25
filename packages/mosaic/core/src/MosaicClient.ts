@@ -1,5 +1,4 @@
-import type { ExprNode } from '@uwdata/mosaic-sql';
-import type { QueryType, SelectionExpression } from './types.js';
+import type { QueryType } from './types.js';
 import type { ResolvedPredicate } from './Selection.js';
 import { type Coordinator } from './Coordinator.js';
 import { type Selection } from './Selection.js';
@@ -28,9 +27,8 @@ export function isMosaicClient(x: unknown): x is MosaicClient {
  * until enabled again. Disabling a client can improve system performance when
  * associated interface elements are offscreen or disabled.
  */
-export class MosaicClient<E extends SelectionExpression = ExprNode> {
-  readonly sqlOwner: object | null;
-  _filterBy: Selection<E> | undefined;
+export class MosaicClient {
+  _filterBy: Selection | undefined;
   _requestUpdate: () => void;
   _coordinator: Coordinator | null;
   _pending: Promise<unknown>;
@@ -49,8 +47,7 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
    *  interactively filter this client's data. If provided, a coordinator
    *  will re-query and update the client when the selection updates.
    */
-  constructor(filterSelection?: Selection<E>, sqlOwner: object | null = null) {
-    this.sqlOwner = sqlOwner;
+  constructor(filterSelection?: Selection) {
     this._filterBy = filterSelection;
     this._requestUpdate = throttle(() => this.requestQuery(), true);
     this._coordinator = null;
@@ -125,7 +122,7 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
   /**
    * @returns this client's filter selection.
    */
-  get filterBy(): Selection<E> | undefined {
+  get filterBy(): Selection | undefined {
     return this._filterBy;
   }
 
@@ -152,7 +149,7 @@ export class MosaicClient<E extends SelectionExpression = ExprNode> {
    * @param filter The filtering criteria to apply in the query.
    * @returns The client query
    */
-  query(filter?: ResolvedPredicate<E> | null): ClientQuery { // eslint-disable-line @typescript-eslint/no-unused-vars
+  query(filter?: ResolvedPredicate | null): ClientQuery { // eslint-disable-line @typescript-eslint/no-unused-vars
     return null;
   }
 

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
 import { expect, it } from 'vitest';
-import { createTable, loadCSV, loadJSON, loadObjects, loadParquet, loadSpatial } from '@uwdata/mosaic-sql';
+import { createTable, loadCSV, loadJSON, loadObjects, loadParquet, loadSpatial, compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { astToESM, astToPython, parseSpec } from '../src/index.js';
 import { resolveExtensions } from '../src/config/extensions.js';
 
@@ -46,16 +46,16 @@ it('keeps inference, explicit format precedence, and the missing-type inline-obj
 });
 
 it('retains loader and table option defaults through the actual AST and SQL paths', () => {
-  expect(String(createTable('rows', 'SELECT 1'))).toBe('CREATE TABLE IF NOT EXISTS "rows" AS SELECT 1');
+  expect(compile([createTable('rows', 'SELECT 1')], createExecutionContext()).join(';\n')).toBe('CREATE TABLE IF NOT EXISTS "rows" AS SELECT 1');
   const context = { api: { createTable, loadCSV, loadJSON, loadParquet, loadSpatial, loadObjects } };
   const table = parse('SELECT 1').data.rows;
-  expect(String(table.instantiateQuery(context))).toBe('CREATE TABLE IF NOT EXISTS "rows" AS SELECT 1');
+  expect(compile([table.instantiateQuery(context)], createExecutionContext()).join(';\n')).toBe('CREATE TABLE IF NOT EXISTS "rows" AS SELECT 1');
   for (const type of ['csv', 'json', 'parquet', 'spatial']) {
     const node = parse({ type, file: 'rows.file' }).data.rows;
     const query = node.instantiateQuery(context);
-    expect(query).toMatchObject({ temp: false, replace: false, view: false });
+    expect(query.expression).toMatchObject({ create_table: { temporary: false, or_replace: false, if_not_exists: true } });
   }
-  expect(parse({ type: 'csv', file: 'rows.csv', temp: true, replace: true, view: true }).data.rows.instantiateQuery(context)).toMatchObject({ temp: true, replace: true, view: true });
+  expect(parse({ type: 'csv', file: 'rows.csv', temp: true, replace: true, view: true }).data.rows.instantiateQuery(context).expression).toMatchObject({ create_view: { temporary: true, or_replace: true, if_not_exists: false } });
   expect(() => parse([]).data.rows.instantiateQuery(context)).toThrow('empty column set');
   expect(definition('DataArray')([])).toBe(true);
 });

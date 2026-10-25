@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { isAggregateExpression, sql, sum } from '@uwdata/mosaic-sql';
+import { isAggregateExpression, sql, sum, compile, createExecutionContext } from '@uwdata/mosaic-sql';
 import { parseSpec } from '../src/index.js';
 
 it('instantiates nested transforms and SQL expressions', () => {
@@ -12,6 +12,6 @@ it('instantiates nested transforms and SQL expressions', () => {
     }],
   });
   const actual = ast.root.children[0].options.instantiate({ api: { sql, sum } }).y;
-  expect(isAggregateExpression(actual)).toBe(1);
-  expect(String(actual)).toBe(String(sum(sum(sql`amount`)).orderby('day')));
+  expect(isAggregateExpression(actual)).toBe(true);
+  expect(compile([actual], createExecutionContext()).join(';\n')).toBe(compile([sum(sum(sql`amount`)).orderby('day')], createExecutionContext()).join(';\n'));
 });

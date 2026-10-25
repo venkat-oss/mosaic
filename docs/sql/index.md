@@ -3,62 +3,55 @@
 The Mosaic `sql` package supports authoring of SQL queries.
 These utilities are used throughout Mosaic packages to build structured queries and perform query analysis.
 
-## Native compiler preview
+## SQL compiler {#native-compiler-preview}
 
-The temporary `@uwdata/mosaic-sql/native` entry exposes Polyglot's native
-expression data and Mosaic's compiler foundation during the [migration](../development/polyglot/).
-It requires Node.js 22 or later, or a browser with WebAssembly and ES2022 support.
-Its native Query facade supports [relational queries](../api/sql/queries#native-query-preview),
-[aggregates](../api/sql/aggregate-functions#native-aggregate-preview),
-[windows](../api/sql/window-functions#native-window-preview), consolidation,
-DuckDB pre-aggregation and the [reactive Slider slice](../inputs/#native-slider-preview)
-while the normal SQL entry retains its existing implementation.
+`@uwdata/mosaic-sql` builds Polyglot's native expression data. Mosaic retains
+query authoring, live parameters, consolidation and DuckDB preaggregation;
+Polyglot compiles the resolved tree to the connection's SQL dialect.
+The package requires Node.js 22 or later, or a browser with WebAssembly and
+ES2022 support.
 
 ```js
-import {
-  asLiteral, compile, createExecutionContext, native
-} from '@uwdata/mosaic-sql/native';
+import { Query, compile, createExecutionContext, literal } from '@uwdata/mosaic-sql';
 
-const query = native.select([
-  native.alias(asLiteral(42), 'value')
-]);
+const query = Query.select({ value: literal(42) });
 const statements = compile([query], createExecutionContext());
 ```
 
 `asNode('amount')` creates a quoted column reference; `asLiteral('amount')`
-creates a string value. `compile` preserves every statement or scalar root in
-input order and raises `SqlCompilationError` when a target operation is
-unsupported. A context carries its source and target dialect, backend identity,
-and connection generation; each connection owner manages its own context.
+creates a string value. `compile` resolves live bindings once for the batch,
+preserves statement or scalar roots in input order, and raises
+`SqlCompilationError` for unsupported target operations. Coordinators manage their
+own execution context and compile at submission.
 
 Node ESM initializes the compiler before imports complete. Browser builds must
-emit the SDK's sibling WebAssembly asset and support top-level await. The repository's
-Vite configurations select ES2022 and exclude the SDK from dependency prebundling.
-The Jupyter frontend embeds this asset in its bundle.
+emit the SDK's sibling WebAssembly asset and support top-level await. The
+repository's Vite configurations select ES2022 and exclude the SDK from dependency
+prebundling. The Jupyter frontend embeds this asset in its bundle.
 
-Native Query alias maps accept names such as `first` and `sum`. For ambiguous
+Query alias maps accept names such as `first` and `sum`. For ambiguous
 plain-data shapes, pass projection entries as `Query.select([[name, value]])`
-or wrap a raw native expression as `{ expression: node }`. The exact object
-`{ null: null }` denotes a native NULL expression.
+or wrap an expression as `{ expression: node }`. The exact object
+`{ null: null }` denotes a SQL NULL expression.
 
-The migration retains the mutable Query facade and aggregate/window authoring
-chains. Exported low-level node constructors, `instanceof` extensions, underscore
-clause mutation, custom code generators and `toString(visitor)` are scheduled for
-removal. Native factories and external live-binding registries replace those
-extensions; see the [architecture and compatibility decisions](../development/polyglot/#representation-and-compatibility-decisions).
+The mutable `Query` facade and `Aggregate`/`Window` authoring handles expose their
+canonical tree as `.expression`. Plain expressions have no custom string renderer;
+use `compile` to generate SQL. Low-level node constructors, underscore clause
+mutation, global visitors and custom code-generator subclasses have been removed.
+Use native factories, [tree inspection and rewriting](../api/sql/expressions#native-tree-inspection-and-rewriting),
+and external delayed bindings for extensions.
 
-### Native transforms
+### Query transforms
 
-Native numeric, string, interval and date helpers construct Polyglot expressions.
+Numeric, string, interval and date helpers construct Polyglot expressions.
 String search patterns and flags remain literal arguments, including live scalar
-Params. Non-finite JavaScript literals retain the ordinary Mosaic conversion to
-SQL NULL; finite/NaN/infinity checks also work on native database values.
+Params. Non-finite JavaScript literals become SQL NULL.
 
-The native entry provides `bin1d`, `bin2d`, `binHistogram`, `binDate`,
-`binLinear1d`, `binLinear2d`, `m4` and `lineDensity` query transforms. For example:
+`bin1d`, `bin2d`, `binHistogram`, `binDate`, `binLinear1d`, `binLinear2d`, `m4`
+and `lineDensity` construct binning and downsampling queries. For example:
 
 ```js
-import { Query, binHistogram, count } from '@uwdata/mosaic-sql/native';
+import { Query, binHistogram, count } from '@uwdata/mosaic-sql';
 
 const histogram = Query.from('sales').select({
   bucket: binHistogram('amount', [0, 100], { step: 10 }),
@@ -68,15 +61,15 @@ const histogram = Query.from('sales').select({
 
 Linear binning distributes weights over adjacent bins; an explicit zero weight
 contributes no density. M4 retains endpoints and extrema per pixel group. Line
-density uses a native exclusive range and UNNEST for rasterization. These helpers
+density uses an exclusive range and UNNEST for rasterization. These helpers
 follow DuckDB semantics; unsupported cross-dialect conversions reject explicitly.
 
-For list-valued fields, a native context creates selection clauses with
-`native.list(field, value, { source, listMatch: 'any' })`. Use `listMatch: 'all'`
+For list-valued fields, use core's
+`clauseList(field, value, { source, listMatch: 'any' })`. Use `listMatch: 'all'`
 to require every selected item. A scalar selection is wrapped as one list item;
 `undefined` and an empty list clear the filter. A scalar `null` remains SQL NULL,
-while `[null]` follows DuckDB's list-membership rules. Toggles on an unnested
-native mark use this same clause path.
+while `[null]` follows DuckDB's list-membership rules. Toggles and nearest
+interactors on unnested marks use this same clause path.
 
 ## Query
 
@@ -195,7 +188,7 @@ Query.select({
 
 ## SQL Expressions
 
-When deeper analysis is not needed, the `sql` template literal can be used to build individual SQL expressions using custom text.
+The `sql` template tag parses user-authored SQL into the same Polyglot tree used by structured helpers. Partial nested fragments compose before parsing at the enclosing complete expression or statement.
 
 ``` js
 import { Query, sql } from "@uwdata/mosaic-sql";
@@ -208,7 +201,7 @@ Interpolated values may include column references, nested expressions, or params
 Referenced columns or params can later be extracted using SQL expression visitors.
 
 ``` js
-import { Param } from "@uwdata/core";
+import { Param } from "@uwdata/mosaic-core";
 import { collectColumns, collectParams, column, sql } from "@uwdata/mosaic-sql";
 
 const col = column("foo");
@@ -216,14 +209,14 @@ const param = Param.value(Math.PI);
 const expr = sql`${col} * ${param}`;
 
 const cols = collectColumns(expr); // -> [ col ]
-const params = collectParams(expr): // -> [ param ]
+const params = collectParams(expr); // -> [ param ]
 ```
 
 [Expression API Reference](/api/sql/expressions)
 
 ## Data Loading
 
-Data loading helpers generate query strings for loading data from external CSV, JSON, or Parquet files: `loadCSV`, `loadJSON`, `loadParquet`.
+Data loading helpers construct queries for loading data from external CSV, JSON, or Parquet files: `loadCSV`, `loadJSON`, `loadParquet`.
 
 ``` js
 import { loadCSV, loadParquet } from "@uwdata/mosaic-sql";

@@ -1,3 +1,4 @@
+import * as sql from '@uwdata/mosaic-sql';
 import { range } from 'd3';
 import { toDataColumns } from '@uwdata/mosaic-core';
 import { qt } from './util/stats.js';
@@ -5,9 +6,9 @@ import { Mark, channelOption } from './Mark.js';
 import { handleParam } from './util/handle-param.js';
 
 export class RegressionMark extends Mark {
-  constructor(source, options, sqlContext = null) {
+  constructor(source, options) {
     const { ci = 0.95, precision = 4, ...channels } = options;
-    super('line', source, channels, undefined, sqlContext);
+    super('line', source, channels, undefined);
 
     const update = () => this.modelFit ? this.confidenceBand().update() : null;
 
@@ -23,7 +24,7 @@ export class RegressionMark extends Mark {
   }
 
   query(filter = []) {
-    return regressionQuery(this, this.sql, super.query(filter));
+    return regressionQuery(this, super.query(filter));
   }
 
   queryResult(data) {
@@ -130,7 +131,7 @@ export function areaPoints(fit, ci, precision, width) {
   return { numRows: columns.x.length, columns };
 }
 
-function regressionQuery(mark, sql, input) {
+function regressionQuery(mark, input) {
   const {
     Query, max, min, float64, isNotNull,
     regrIntercept, regrSlope, regrCount,

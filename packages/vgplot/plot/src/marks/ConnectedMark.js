@@ -1,14 +1,13 @@
-import { m4 } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
-import { binExpr, nativeBinExpr } from './util/bin-expr.js';
+import * as sql from '@uwdata/mosaic-sql';
+import { binExpr } from './util/bin-expr.js';
 import { filteredExtent } from './util/extent.js';
 import { Mark } from './Mark.js';
 
 export class ConnectedMark extends Mark {
-  constructor(type, source, encodings, sqlContext = null) {
+  constructor(type, source, encodings) {
     const dim = type.endsWith('X') ? 'y' : type.endsWith('Y') ? 'x' : null;
     const req = dim ? { [dim]: ['count', 'min', 'max'] } : undefined;
-    super(type, source, encodings, req, sqlContext);
+    super(type, source, encodings, req);
     this.dim = dim;
   }
 
@@ -36,19 +35,12 @@ export class ConnectedMark extends Mark {
     if (optimize && isContinuous && value) {
       // TODO: handle stacked data
       const [lo, hi] = filteredExtent(filter, field) || [min, max];
-      if (this.sqlContext) {
-        const [expr] = nativeBinExpr(this, dim, size, [lo, hi], 1, as);
-        const groups = nativeSQL.selectEntries(q)
-          .map(({ alias }) => alias)
-          .filter(alias => alias !== undefined && alias !== as && alias !== value)
-          .map(alias => nativeSQL.column(alias));
-        return nativeSQL.m4(q, expr, as, value, groups);
-      }
       const [expr] = binExpr(this, dim, size, [lo, hi], 1, as);
-      const cols = q._select
-        .map(c => c.alias)
-        .filter(c => c !== as && c !== value);
-      return m4(q, expr, as, value, cols);
+      const groups = sql.selectEntries(q)
+        .map(({ alias }) => alias)
+        .filter(alias => alias !== undefined && alias !== as && alias !== value)
+        .map(alias => sql.column(alias));
+      return sql.m4(q, expr, as, value, groups);
     } else {
       return q.orderby(as);
     }

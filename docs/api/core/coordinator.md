@@ -23,19 +23,19 @@ Create a new Mosaic Coordinator to manage all database communication for clients
 * _timeout_: The query timeout in milliseconds (default none). A query that does not complete in time is rejected with a `TimeoutError`, and its connector request is aborted. The clock starts when the query is sent to the connector, not while it waits in the queue. The timeout applies to every query, including `exec` queries that load data or build pre-aggregated tables, so choose a value above the slowest of these. A timed-out `exec` query can still take effect in the database, and later queries wait until the connector stops or completes it.
 * _consolidate_ Boolean flag to enable/disable query consolidation (default `true`). Queries that expand `*` or `COLUMNS(...)` into multiple output columns execute separately, preserving their complete column sets. If extracting a consolidated result fails, every request in that group rejects.
 * _preagg_: Pre-aggregation options object. The _enabled_ flag (default `true`) determines if pre-aggregation optimizations should be used when possible. The _schema_ option (default `'mosaic'`) indicates the database schema in which materialized view tables should be created for pre-aggregated data.
-* _native_: Experimental `NativeSqlContext` for the [native query path](/sql/#native-compiler-preview). Use a separate context and its selections for each coordinator. This path compiles native SQL expressions at submission and supports consolidation and DuckDB pre-aggregation.
+* _sql_: A `SqlContext` for compilation and binding-aware analysis. Defaults to a new DuckDB context. Each coordinator owns its context; configure another source or target dialect through `executionContext`.
 
-The native preview accepts result-producing native query handles for Arrow
-requests, including SELECT, DESCRIBE, sets and VALUES. Same-dialect raw SQL
-remains available for `exec` setup batches; portable raw statement input follows
-in P08.
+Result-producing native queries and handles support Arrow requests, including
+SELECT, DESCRIBE, sets and VALUES. Raw SQL strings are accepted when source and
+target dialects match; they bypass native tree analysis and rewriting. Use a
+[`sql` template](/api/sql/expressions#sql) for parsed, portable raw input.
 
-Native DuckDB pre-aggregation uses the configured writable scratch schema for
+DuckDB pre-aggregation uses the configured writable scratch schema for
 compatible aggregate queries and point or interval selections. Scalar Params
 resolve when materialization is submitted. If a parameter changes before the
-materialized result is read, the request runs its original native query and the
+materialized result is read, the request runs its original query and the
 next update can rebuild the materialization. Unsupported plans and failed
-materializations also use the original native query. Changing selection fields,
+materializations also use the original query. Changing selection fields,
 scale/bin settings or the execution context clears incompatible plans.
 
 ## Query cache
@@ -62,11 +62,24 @@ the connector finishes it.
 
 `coordinator.executionContext(options)`
 
-For a native coordinator, get or replace the source/target dialect and backend
-identity. Replacement advances the connection generation and clears cached,
+Get or replace the source/target dialect and backend identity. Replacement advances the connection generation and clears cached,
 in-flight and optimization state. Independent coordinators retain their own
-contexts. DuckDB is the supported execution backend for this preview;
-PostgreSQL execution is a later migration packet.
+contexts. DuckDB is the supported execution backend; configuring another target
+does not itself provide a connector for that database.
+
+## sqlContext
+
+`coordinator.sqlContext`
+
+The coordinator's `SqlContext` instance. Its `execution` property exposes current
+source/target dialects, backend identity and generation. Use
+`coordinator.executionContext(options)` to replace execution settings and
+invalidate outstanding results and optimization plans.
+
+`new SqlContext(executionOptions)` creates a context with DuckDB defaults.
+`context.compileBatch(roots)` compiles native roots with one shared binding
+snapshot; same-dialect raw strings are preserved in order. A context can attach
+to one query manager at a time.
 
 ## connect
 
@@ -106,7 +119,8 @@ Resets the state of the coordinator. Pending queries are rejected, and in-flight
 
 Request a _query_ and return a request Promise that resolves when the query is complete.
 No query result will be returned.
-The input _query_ should produce a SQL query upon string coercion.
+The input _query_ accepts native expressions or query handles, or same-dialect
+raw SQL. Generated queries compile through this coordinator's execution context.
 
 The supported _options_ are:
 
@@ -118,7 +132,9 @@ The supported _options_ are:
 
 Request a _query_ and return a request Promise that resolves when the query is complete.
 An Arrow table will be returned.
-The input _query_ should produce a SQL query upon string coercion.
+The input _query_ accepts a result-producing native expression or query handle,
+or a same-dialect raw SQL string. Native compilation must produce exactly one
+result statement.
 
 The supported _options_ are:
 

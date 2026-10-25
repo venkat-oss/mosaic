@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext } from '@uwdata/mosaic-core';
+import { Coordinator } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import * as sql from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { Grid2DMark } from '../src/marks/Grid2DMark.js';
 import { HexbinMark } from '../src/marks/HexbinMark.js';
 import { RasterTileMark } from '../src/marks/RasterTileMark.js';
@@ -23,11 +23,11 @@ beforeAll(() => database.query({ type: 'exec', sql: `
 afterAll(() => database.close());
 
 async function setup(create) {
-  const native = new NativeSqlContext();
-  const mc = new Coordinator(database, { native, cache: false, consolidate: false, logger: null });
+
+  const mc = new Coordinator(database, { cache: false, consolidate: false, logger: null });
   const errors = [];
   mc.logger({ ...mc.logger(), error: error => errors.push(error) });
-  const mark = create(native);
+  const mark = create();
   const attributes = { xDomain: [0, 4], yDomain: [0, 4], width: 100, height: 100, marginLeft: 0, marginTop: 0 };
   mark.plot = {
     innerWidth: () => attributes.width,
@@ -48,9 +48,9 @@ const mass = values => Array.from(values).reduce((sum, value) => sum + Number(va
 
 describe('native grid consumers', () => {
   it.each(['none', 'linear'])('preserves compound weights with %s binning', async interpolate => {
-    const state = await setup(native => new Grid2DMark('dot', source, {
+    const state = await setup(() => new Grid2DMark('dot', source, {
       ...coordinates, interpolate, weight: sql.mul(sql.column('value', qualifier), 2)
-    }, native));
+    }));
     try {
       expect(mass(state.mark.grids0.columns.density[0])).toBeCloseTo(20, 12);
       const query = state.mark.query([sql.lt(sql.column('x', qualifier), 2)]);
@@ -60,9 +60,9 @@ describe('native grid consumers', () => {
   });
 
   it('preserves custom aggregate expressions and qualified grouping fields', async () => {
-    const state = await setup(native => new Grid2DMark('dot', source, {
+    const state = await setup(() => new Grid2DMark('dot', source, {
       ...coordinates, fill: sql.sum(sql.mul(sql.column('value', qualifier), 2)), stroke: 'series'
-    }, native));
+    }));
     try {
       const { columns } = state.mark.grids0;
       expect(Object.fromEntries(columns.series.map((value, i) => [value, mass(columns.fill[i])]))).toEqual({ a: 6, b: 14 });
@@ -74,9 +74,9 @@ describe('native grid consumers', () => {
   });
 
   it('hexbin aggregates qualified source expressions after screen-space projection', async () => {
-    const state = await setup(native => new HexbinMark(source, {
+    const state = await setup(() => new HexbinMark(source, {
       x: coordinates.x, y: coordinates.y, fill: sql.sum(sql.column('value', qualifier)), stroke: 'series'
-    }, native));
+    }));
     try {
       const data = state.mark.data;
       expect(mass(data.columns.fill)).toBe(10);
@@ -88,9 +88,9 @@ describe('native grid consumers', () => {
   });
 
   it('uses the owning coordinator for tiles, selection updates and empty results', async () => {
-    const state = await setup(native => new Tiles(source, {
+    const state = await setup(() => new Tiles(source, {
       ...coordinates, fill: 'density', origin: [0, 0], weight: sql.mul(sql.column('value', qualifier), 2), interpolate: 'linear'
-    }, native));
+    }));
     try {
       expect(state.mark.grids0.numRows).toBe(1);
       expect(mass(state.mark.grids0.columns.density[0])).toBeCloseTo(20, 12);

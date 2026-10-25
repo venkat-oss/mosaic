@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import type { CreateQuery, ExprNode, FilterExpr } from '@uwdata/mosaic-sql';
+import type { SqlRoot, FilterExpr } from '@uwdata/mosaic-sql';
 import { Query, add, argmax, argmin, avg, columns, corr, count, covarPop, covariance, cte, desc, eq, filterPushdown, geomean, gt, literal, loadObjects, max, min, mul, neq, product, regrAvgX, regrAvgY, regrCount, regrIntercept, regrR2, regrSXX, regrSXY, regrSYY, regrSlope, sql, stddev, stddevPop, sum, upper, varPop, variance } from '@uwdata/mosaic-sql';
 import { clausePoint, Coordinator, Param, Selection, SelectionClause } from '../src/index.js';
 import type { PreAggregateInfo } from '../src/preagg/PreAggregator.js';
-import { preaggColumns } from '../src/preagg/preagg-columns.js';
+import { preaggColumns as analyzeColumns } from '../src/preagg/preagg-columns.js';
+import { StructuralKeyScope } from '@uwdata/mosaic-sql';
+
+function preaggColumns(client: TestClient) {
+  const keys = new StructuralKeyScope();
+  return analyzeColumns(client, expression => keys.key(expression));
+}
 import { NodeConnector } from '../src/connectors/NodeConnector.js';
 import { TestClient } from './util/test-client.js';
 
-async function setup(loadQuery: CreateQuery) {
+async function setup(loadQuery: SqlRoot) {
   const mc = new Coordinator(await NodeConnector.make(), {
     logger: null,
     cache: false,
@@ -18,7 +24,7 @@ async function setup(loadQuery: CreateQuery) {
 }
 
 type Datum = { measure: number };
-type RunMeasure = ExprNode | ((predicate?: FilterExpr) => Query);
+type RunMeasure = SqlRoot | ((predicate?: FilterExpr) => Query);
 
 const loadQuery = loadObjects('testData', [
   { dim: 'a', cat: 'c', order: 1, x: 1, y: 9 },
@@ -189,7 +195,7 @@ describe('PreAggregator', () => {
     expect(await run(count('x').distinct())).toStrictEqual([2, false]);
   });
 
-  it('supports subqueries with aggregates', async () => {
+  it('preaggregates grouped subqueries and preserves global aggregate fallback on empty selections', async () => {
     const query = (predicate: FilterExpr = []) => {
       const counts = Query.from('testData')
         .select({ item: 'x', freq: count() })
@@ -209,7 +215,11 @@ describe('PreAggregator', () => {
         .from('counts')
         .select({ measure: add(1, sum('freq')) });
     };
-    expect(await run(queryNoGroup)).toStrictEqual([4, true]);
+    expect(await run(queryNoGroup)).toStrictEqual([4, false]);
+    const { value, info, mc } = await runQuery(queryNoGroup, clausePoint('dim', 'missing', { source: {} }));
+    expect(value).toBe(1);
+    expect(info).toBeFalsy();
+    mc.clear();
   });
 
   it('supports queries with column index references', async () => {

@@ -1,4 +1,4 @@
-import { asLiteral, compile, createExecutionContext, native } from '@uwdata/mosaic-sql/native';
+import { asLiteral, compile, createExecutionContext, native } from '@uwdata/mosaic-sql';
 
 const query = native.select([native.alias(asLiteral(42), 'value')]);
 const statements = compile([query], createExecutionContext());

@@ -1,10 +1,9 @@
 /**
  * @import { Selection } from '@uwdata/mosaic-core'
  */
-import { clausePoints, isArrowTable, isParam, isSelection, NativeSqlContext, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
+import { clausePoints, isArrowTable, isParam, isSelection, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
 import { Type } from '@uwdata/flechette';
-import { Query, desc } from '@uwdata/mosaic-sql';
-import * as nativeSQL from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { formatDate, formatLocaleAuto, formatLocaleNumber } from './util/format.js';
 import { Input, input } from './input.js';
 import { TABLE_DEFAULT_COLUMNS, TABLE_DEFAULT_HEIGHT, TABLE_DEFAULT_ROW_BATCH } from './generated/table.js';
@@ -16,9 +15,9 @@ let _id = -1;
  * @param {object} options Options object
  * @param {HTMLElement} [options.element] The parent DOM element in which to
  *  place the table element. If undefined, a new `div` element is created.
- * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
+ * @param {Selection} [options.filterBy] A selection to filter the database
  *  table indicated by the *from* option.
- * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.as] The output selection. A selection
+ * @param {Selection} [options.as] The output selection. A selection
  *  clause is added for the currently selected table row.
  * @param {{ [name: string]: 'left' | 'right' | 'center' }} [options.align]
  *  An object that maps column names to horizontal text alignment values. If
@@ -46,7 +45,7 @@ export const table = options => input(Table, options);
 
 /**
  * A HTML table based table component.
- * @extends {Input<import('@uwdata/mosaic-core').SelectionExpression>}
+ * @extends {Input}
  */
 export class Table extends Input {
   /**
@@ -54,9 +53,9 @@ export class Table extends Input {
    * @param {object} options Options object
    * @param {HTMLElement} [options.element] The parent DOM element in which to
    *  place the table element. If undefined, a new `div` element is created.
-   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
+   * @param {Selection} [options.filterBy] A selection to filter the database
    *  table indicated by the *from* option.
-   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.as] The output selection. A selection
+   * @param {Selection} [options.as] The output selection. A selection
    *  clause is added for the currently selected table row.
    * @param {{ [name: string]: 'left' | 'right' | 'center' }} [options.align]
    *  An object that maps column names to horizontal text alignment values. If
@@ -78,7 +77,6 @@ export class Table extends Input {
    * @param {number} [options.rowBatch] The number of rows to request per query
    *  batch. The batch size will be used to prefetch data beyond the currently
    *  visible range.
-   * @param {NativeSqlContext} [nativeContext] The native SQL context.
    */
   constructor({
     element,
@@ -92,16 +90,15 @@ export class Table extends Input {
     height = TABLE_DEFAULT_HEIGHT,
     rowBatch = TABLE_DEFAULT_ROW_BATCH,
     as
-  } = {}, nativeContext) {
-    const owner = nativeContext ?? (isSelection(as) ? as.owner : filterBy?.owner);
-    super(filterBy, element, null, owner ?? undefined);
+  } = {}) {
+    super(filterBy, element, null);
 
     this.id = `table-${++_id}`;
     this.element.setAttribute('id', this.id);
 
     this.from = from;
     this.columns = columns;
-    /** @type {import('@uwdata/mosaic-core').FieldInfo[]} */
+    /** @type {(import('@uwdata/mosaic-core').FieldInfo & {column: string})[]} */
     this.schema = [];
     this.format = format;
     this.align = align;
@@ -201,9 +198,7 @@ export class Table extends Input {
       const schema = this.dataSchemas[batch];
       return fields.map((field, index) => selectionValue(columns[field][row % limit], schema?.fields[index]?.type));
     });
-    return this.sqlOwner instanceof NativeSqlContext
-      ? this.sqlOwner.points(fields, values, { source: this })
-      : clausePoints(fields, values, { source: this });
+    return clausePoints(fields, values, { source: this });
   }
 
   /** @returns {Promise<unknown> | null} */
@@ -227,7 +222,10 @@ export class Table extends Input {
     const mc = this.coordinator;
     const table = this.sourceTable();
     const fields = this.columns.map(column => ({ column, table }));
-    const schema = await queryFieldInfo(mc, fields);
+    const schema = (await queryFieldInfo(mc, fields)).map(field => {
+      if (typeof field.column !== 'string') throw new TypeError('Table metadata requires named columns.');
+      return { ...field, column: field.column };
+    });
     if (this.pending !== pending || this.coordinator !== mc) return;
     this.schema = schema;
 
@@ -264,19 +262,11 @@ export class Table extends Input {
     this.offset = offset;
     this.isPending = offset > 0;
     const { limit, schema, sortColumn, sortDesc } = this;
-    if (this.sqlOwner instanceof NativeSqlContext) {
-      return nativeSQL.Query.from(nativeSQL.from(this.sourceTable()))
-        .select(schema.map(s => s.column))
-        .where(filter)
-        .orderby(sortColumn ? (sortDesc ? nativeSQL.desc(sortColumn) : sortColumn) : [])
-        .limit(limit).offset(offset);
-    }
-    return Query.from(this.sourceTable())
+    return sql.Query.from(sql.from(this.sourceTable()))
       .select(schema.map(s => s.column))
       .where(filter)
-      .orderby(sortColumn ? (sortDesc ? desc(sortColumn) : sortColumn) : [])
-      .limit(limit)
-      .offset(offset);
+      .orderby(sortColumn ? (sortDesc ? sql.desc(sortColumn) : sortColumn) : [])
+      .limit(limit).offset(offset);
   }
 
   queryResult(data) {

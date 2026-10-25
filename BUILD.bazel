@@ -190,6 +190,7 @@ test_suite(
         ":api_check",
         ":examples_check",
         "//bin/test:tests",
+        "//build:embedding_atlas_consumer",
         "//packages/vgplot/widget:javascript_types_typecheck_test",
         "//packages/vgplot/widget:javascript_lint",
         "//packages/server:protocol_node",

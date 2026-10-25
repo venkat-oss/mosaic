@@ -1,8 +1,9 @@
+import { Selection, Coordinator } from '@uwdata/mosaic-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import { column, isExpression, tableRef } from '@uwdata/mosaic-sql/native';
+import { column, isExpression, tableRef } from '@uwdata/mosaic-sql';
 import { Mark } from '../src/marks/Mark.js';
+import { Nearest } from '../src/interactors/Nearest.js';
 import { Toggle } from '../src/interactors/Toggle.js';
 
 class Database extends NodeConnector {
@@ -16,22 +17,22 @@ beforeAll(() => database.query({ type: 'exec', sql: `
 ` }));
 afterAll(() => database.close());
 
-/** @returns {clause is import('@uwdata/mosaic-core').NativeSelectionClause} */
+/** @returns {clause is import('@uwdata/mosaic-core').SelectionClause} */
 function isNativeClause(clause) {
-  return clause.context !== undefined && clause.fields.every(isExpression)
+  return clause.fields.every(isExpression)
     && (clause.predicate == null || isExpression(clause.predicate));
 }
 
 async function setup(listMatch) {
-  const native = new NativeSqlContext();
-  const coordinator = new Coordinator(database, { native, logger: null, cache: false, consolidate: false });
+
+  const coordinator = new Coordinator(database, { logger: null, cache: false, consolidate: false });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
-  const selection = native.selection();
+  const selection = Selection.intersect();
   const field = column('items', tableRef('main', 'native_unnest_rows'));
   const mark = new Mark('dot', {
     table: ['main', 'native_unnest_rows'], options: { unnest: ['items'], filterBy: selection }
-  }, { x: field, y: 'id' }, { x: ['count', 'nulls', 'distinct'] }, native);
+  }, { x: field, y: 'id' }, { x: ['count', 'nulls', 'distinct'] });
   Object.assign(mark, { plot: {
     markSet: new Set([mark]), pending() {}, update() { return Promise.resolve(); }
   } });
@@ -44,7 +45,7 @@ async function setup(listMatch) {
     return data.columns;
   };
   return {
-    native, coordinator, mark, selection, toggle, field, errors, columns,
+    coordinator, mark, selection, toggle, field, errors, columns,
     ids() { return Array.from(columns().id).map(Number).sort((a, b) => a - b); },
     select(value) {
       const clause = toggle.clause(value);
@@ -79,7 +80,6 @@ describe('native unnested marks', () => {
     try {
       const clause = state.toggle.clause([['Alpha'], ['Beta']]);
       if (!isNativeClause(clause)) throw new TypeError('Expected a native list clause.');
-      expect(clause.context).toBe(state.native);
       expect(clause.fields[0]).toBe(state.field);
       expect(clause.meta).toEqual({ type: 'list', match: listMatch });
       expect(clause.clients).toBe(state.mark.plot.markSet);
@@ -95,4 +95,23 @@ describe('native unnested marks', () => {
       expect(state.errors).toEqual([]);
     } finally { state.close(); }
   });
+
+  it.each(['any', 'all'])('filters source list rows through nearest %s clauses and clears', async listMatch => {
+    const state = await setup(listMatch);
+    try {
+      const nearest = new Nearest(state.mark, { selection: state.selection, channels: ['x'], listMatch });
+      const clause = nearest.clause(['Alpha']);
+      expect(clause.fields[0]).toBe(state.field);
+      expect(clause.meta).toEqual({ type: 'list', match: listMatch });
+      expect(clause.clients).toEqual(new Set([state.mark]));
+      state.selection.update(clause);
+      await state.selection.pending('value');
+      expect(state.ids()).toEqual([1, 1, 2, 2]);
+      state.selection.update(nearest.clause(undefined));
+      await state.selection.pending('value');
+      expect(state.ids()).toEqual([1, 1, 2, 2, 5, 6]);
+      expect(state.errors).toEqual([]);
+    } finally { state.close(); }
+  });
+
 });

@@ -30,6 +30,7 @@ js_library(
 js_library(
     name = "npm_install_sources",
     srcs = ["npm-install.mjs"],
+    visibility = ["//visibility:public"],
 )
 
 js_library(
@@ -124,6 +125,55 @@ js_test(
 
 cue_binary(
     name = "cue",
+    visibility = ["//visibility:public"],
+)
+
+js_test(
+    name = "embedding_atlas_consumer",
+    entry_point = "npm-embedding-atlas-consumer.mjs",
+    data = [
+        ":npm_install_sources",
+        "//:node_modules/embedding-atlas",
+        "//:node_modules/jsdom",
+        "//packages/mosaic/sql:tarball",
+        "//packages/mosaic/core:tarball",
+        "//packages/server/duckdb:tarball",
+        "//packages/vgplot/inputs:tarball",
+        "//packages/vgplot/plot:tarball",
+        "//packages/vgplot/spec:tarball",
+        "//packages/vgplot/vgplot:tarball",
+        "//packages/mosaic/sql:node_modules/@polyglot-sql/sdk",
+        "//packages/mosaic/core:node_modules/@duckdb/duckdb-wasm",
+        "//packages/mosaic/core:node_modules/@types/emscripten",
+        "//packages/mosaic/core:node_modules/@uwdata/flechette",
+        "//packages/server/duckdb:node_modules/@duckdb/node-api",
+        "//packages/vgplot/plot:node_modules/@observablehq/plot",
+        "//packages/vgplot/plot:node_modules/d3",
+        "@pnpm//:pnpm",
+    ],
+    env = {
+        "MOSAIC_PACKAGES": json.encode({
+            "@uwdata/mosaic-sql": "$(rlocationpath //packages/mosaic/sql:tarball)",
+            "@uwdata/mosaic-core": "$(rlocationpath //packages/mosaic/core:tarball)",
+            "@uwdata/mosaic-duckdb": "$(rlocationpath //packages/server/duckdb:tarball)",
+            "@uwdata/mosaic-inputs": "$(rlocationpath //packages/vgplot/inputs:tarball)",
+            "@uwdata/mosaic-plot": "$(rlocationpath //packages/vgplot/plot:tarball)",
+            "@uwdata/mosaic-spec": "$(rlocationpath //packages/vgplot/spec:tarball)",
+            "@uwdata/vgplot": "$(rlocationpath //packages/vgplot/vgplot:tarball)",
+        }),
+        "MOSAIC_LINKS": json.encode({
+            "@polyglot-sql/sdk": "packages/mosaic/sql/node_modules/@polyglot-sql/sdk",
+            "@duckdb/duckdb-wasm": "packages/mosaic/core/node_modules/@duckdb/duckdb-wasm",
+            "@types/emscripten": "packages/mosaic/core/node_modules/@types/emscripten",
+            "@uwdata/flechette": "packages/mosaic/core/node_modules/@uwdata/flechette",
+            "@duckdb/node-api": "packages/server/duckdb/node_modules/@duckdb/node-api",
+            "@observablehq/plot": "packages/vgplot/plot/node_modules/@observablehq/plot",
+            "d3": "packages/vgplot/plot/node_modules/d3",
+        }),
+        "PNPM_BIN": "$(rlocationpath @pnpm//:pnpm)",
+    },
+    patch_node_fs = False,
+    tags = ["requires-network"],
     visibility = ["//visibility:public"],
 )
 

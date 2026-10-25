@@ -1,13 +1,15 @@
-import { ColumnRefNode } from './ast/column-ref.js';
-import { ColumnsNode } from './ast/columns.js';
-import { ExprNode, SQLNode } from './ast/node.js';
-import { TableRefNode } from './ast/table-ref.js';
-import { Query } from './ast/query.js';
-import { WithClauseNode } from './ast/with.js';
+import type { ast } from '#polyglot';
 
-/**
- * Interface representing a dynamic parameter value.
- */
+export type SqlExpression = ast.Expression;
+export type SqlValue = string | number | bigint | boolean | Date | RegExp | null | undefined;
+export interface SqlExpressionHandle {
+  readonly expression: SqlExpression;
+}
+export type SqlRoot = SqlExpression | SqlExpressionHandle;
+export type ExprValue = SqlRoot | SqlValue | ParamLike;
+export type MaybeArray<T> = T | readonly T[];
+export type ParamReader = (param: ParamLike) => unknown;
+
 export interface ParamLike {
   /** The current parameter value. */
   value: unknown;
@@ -17,80 +19,8 @@ export interface ParamLike {
   removeEventListener(type: string, callback: EventCallback): void;
 }
 
-/**
- * Expression value input to SQL builder method.
- */
-export type ExprValue = ExprNode | ParamLike | string | number | boolean | Date | null;
-
-/**
- * Expression values that may be nested in arrays.
- */
-export type ExprVarArgs = MaybeArray<ExprValue>;
-
-/**
- * String-typed expression value.
- */
-export type StringValue = ExprNode | ParamLike | string;
-
-/**
- * Number-typed expression value.
- */
-export type NumberValue = ExprNode | ParamLike | number;
-
-/**
- * Event listener callback function.
- */
 export type EventCallback = <T>(value: unknown) => Promise<T> | undefined;
 
-/** Valid window function names. */
-export type WindowFunctionName =
-  | 'cume_dist'
-  | 'dense_rank'
-  | 'first_value'
-  | 'lag'
-  | 'last_value'
-  | 'lead'
-  | 'nth_value'
-  | 'ntile'
-  | 'percent_rank'
-  | 'rank_dense'
-  | 'rank'
-  | 'row_number';
-
-export type MaybeArray<T> = T | T[];
-
-export type SelectEntry =
-  | null
-  | string
-  | ColumnRefNode
-  | ColumnsNode
-  | [string, ExprNode]
-  | Record<string, ExprValue>;
-
-export type SelectExpr = MaybeArray<SelectEntry>;
-
-export type WithEntry =
-  | WithClauseNode
-  | Record<string, Query>;
-
-export type WithExpr = MaybeArray<WithEntry>;
-
-export type FromEntry =
-  | string
-  | TableRefNode
-  | SQLNode
-  | [string, SQLNode]
-  | Record<string, string | SQLNode>;
-
-export type FromExpr = MaybeArray<FromEntry>;
-
-export type FilterExpr = MaybeArray<string | boolean | ExprNode>;
-export type GroupByExpr = MaybeArray<string | ExprNode>;
-export type OrderByExpr = MaybeArray<string | ExprNode>;
-export type PivotOnExpr = MaybeArray<string | ExprNode>;
-export type PivotInExpr = ExprValue;
-export type PivotUsingEntry =
-  | null
-  | ExprValue
-  | Record<string, ExprValue>;
-export type PivotUsingExpr = MaybeArray<PivotUsingEntry>;
+export type ExprVarArgs = MaybeArray<ExprValue>;
+export type StringValue = SqlRoot | ParamLike | string;
+export type NumberValue = SqlRoot | ParamLike | number;

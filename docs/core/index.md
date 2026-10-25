@@ -12,7 +12,7 @@ The Mosaic `core` API includes a central _coordinator_ as well as _params_ and _
 <img v-else src="/architecture.png"/>
 
 The figure above illustrates a typical Mosaic setup.
-The coordinator collects queries from clients, issues them to DuckDB, and returns the results to clients.
+The coordinator collects queries from clients, compiles them for its database, and returns Arrow results. DuckDB is the default backend.
 User interactions with a client can populate selections with filter clauses.
 Upon selection updates, the coordinator determines filter queries and updates clients with the filtered data.
 
@@ -22,7 +22,7 @@ Mosaic _clients_ are responsible for publishing their data needs and performing 
 
 Upon registration with a [`coordinator.connect(client)`](/api/core/coordinator.html#connect) call, the client runs its asynchronous [`prepare()`](/api/core/client#prepare) method before requesting data. A client can call `queryFieldInfo` during preparation to load column types, nullability and summary statistics. Reinitialization cancels obsolete queued data reads, and superseded responses do not replace current client state.
 
-Next, the coordinator calls the client `query()` method. The return value may be a SQL query string or a structured object that produces a query upon string coercion. Mosaic includes a [query builder API](/sql/) that simplifies the construction of complex queries while enabling query analysis without need of a parser. The `query` method takes a single argument: an optional `filter` predicate (akin to a SQL `WHERE` clause) indicating a data subset. The client is responsible for incorporating the filter criteria into the returned query.
+Next, the coordinator calls the client `query()` method. The return value is a native query expression or authoring handle. Same-dialect raw SQL strings are also accepted, without structural analysis or rewriting. Mosaic includes a [query builder API](/sql/) that simplifies the construction of complex queries while enabling analysis of the native tree. User-authored SQL templates are parsed at their input boundary. The `query` method takes a single argument: an optional `filter` predicate (akin to a SQL `WHERE` clause) indicating a data subset. The client is responsible for incorporating the filter criteria into the returned query.
 
 Before the coordinator submits a query for execution, it calls `queryPending()` to inform the client. Once query execution completes, the coordinator returns data via the client `queryResult()` method or reports an error via `queryError()`.
 
@@ -43,10 +43,11 @@ The Coordinator additionally performs optimizations including caching and pre-ag
 
 [Coordinator API Reference](/api/core/coordinator)
 
-The [native Slider preview](/inputs/#native-slider-preview) uses a per-coordinator
-`NativeSqlContext`, native selection predicates and the SQL `/native` entry.
-Queries compile from native expression data at submission. This preview keeps
-DuckDB execution and Arrow results while the remaining client families migrate.
+Every coordinator has its own `SqlContext`. It resolves current scalar and
+identifier bindings, compiles Polyglot trees at submission, and isolates caches
+and optimization plans by source dialect, target dialect and connection
+generation. Inputs, plots and custom clients share the ordinary SQL API and
+public selection clause helpers. See the [linked Slider example](/inputs/#native-slider-preview).
 
 ## Data Source
 

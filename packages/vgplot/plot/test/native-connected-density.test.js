@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
+import { Selection, clauseInterval, clausePoint, Coordinator, Param } from '@uwdata/mosaic-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { Coordinator, NativeSqlContext, Param } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import * as sql from '@uwdata/mosaic-sql/native';
+import * as sql from '@uwdata/mosaic-sql';
 import { Plot } from '../src/plot.js';
 import { ConnectedMark } from '../src/marks/ConnectedMark.js';
 import { DenseLineMark } from '../src/marks/DenseLineMark.js';
@@ -52,18 +52,18 @@ afterAll(() => {
 });
 
 async function mount(create, attributes = {}) {
-  const native = new NativeSqlContext();
-  const coordinator = new Coordinator(connection, { native, logger: null, cache: false, consolidate: false });
+
+  const coordinator = new Coordinator(connection, { logger: null, cache: false, consolidate: false });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
-  const selection = native.selection();
-  const plot = new Plot(undefined, native);
+  const selection = Selection.intersect();
+  const plot = new Plot();
   for (const [key, value] of Object.entries({ width: 240, height: 180, ...attributes })) plot.setAttribute(key, value);
-  const mark = create(native, selection);
+  const mark = create(selection);
   plot.addMark(mark);
   coordinator.connect(mark);
   await mark.pending;
-  return { native, coordinator, selection, plot, mark, errors, close() { mark.destroy(); coordinator.clear(); } };
+  return { coordinator, selection, plot, mark, errors, close() { mark.destroy(); coordinator.clear(); } };
 }
 
 function columns(mark) {
@@ -75,9 +75,9 @@ function columns(mark) {
 describe('native connected marks', () => {
   it('keeps M4 point values, series ordering and live identifier updates', async () => {
     const field = Param.value('t');
-    const state = await mount((native, selection) => new ConnectedMark('lineY', {
+    const state = await mount(selection => new ConnectedMark('lineY', {
       table: 'native_connected', options: { filterBy: selection, optimize: true }
-    }, { x: sql.column(field), y: 'v', stroke: 'category', z: 'series' }, native), { width: 120 });
+    }, { x: sql.column(field), y: 'v', stroke: 'category', z: 'series' }), { width: 120 });
     try {
       const query = state.mark.query();
       expect('union' in query.expression).toBe(true);
@@ -100,9 +100,9 @@ describe('native connected marks', () => {
   });
 
   it('preserves the unoptimized native source ordering', async () => {
-    const state = await mount((native, selection) => new ConnectedMark('lineY', {
+    const state = await mount(selection => new ConnectedMark('lineY', {
       table: 'native_density', options: { filterBy: selection, optimize: false }
-    }, { x: 't', y: 'v', z: 'series' }, native));
+    }, { x: 't', y: 'v', z: 'series' }));
     try {
       expect('select' in state.mark.query().expression).toBe(true);
       expect([...columns(state.mark).t].map(Number)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
@@ -115,9 +115,9 @@ describe('native one-dimensional density marks', () => {
   it('preserves weighted mass and group aliases while bandwidth updates reuse SQL results', async () => {
     const bandwidth = Param.value(4);
     const table = Param.value('native_density');
-    const state = await mount((native, selection) => new Density1DMark('areaY', {
+    const state = await mount(selection => new Density1DMark('areaY', {
       table, options: { filterBy: selection }
-    }, { x: 't', weight: 'w', fill: 'category', bins: 16, bandwidth }, native));
+    }, { x: 't', weight: 'w', fill: 'category', bins: 16, bandwidth }));
     try {
       const rows = Array.from(await state.coordinator.query(state.mark.query()));
       const totals = rows.reduce((result, row) => {
@@ -144,9 +144,9 @@ describe('native one-dimensional density marks', () => {
   });
 
   it('bins temporal values with matching numeric clipping units', async () => {
-    const state = await mount((native, selection) => new Density1DMark('areaY', {
+    const state = await mount(selection => new Density1DMark('areaY', {
       table: 'native_density_dates', options: { filterBy: selection }
-    }, { x: 'd', fill: 'category', bins: 8, bandwidth: 4 }, native));
+    }, { x: 'd', fill: 'category', bins: 8, bandwidth: 4 }));
     try {
       const rows = Array.from(await state.coordinator.query(state.mark.query()));
       expect(rows.reduce((sum, row) => sum + Number(row.density), 0)).toBeCloseTo(10, 10);
@@ -160,9 +160,9 @@ describe('native one-dimensional density marks', () => {
 describe('native dense line marks', () => {
   it('rasterizes real series with normalization and stable native group aliases', async () => {
     const normalize = Param.value(false);
-    const state = await mount((native, selection) => new DenseLineMark({
+    const state = await mount(selection => new DenseLineMark({
       table: 'native_vertical', options: { filterBy: selection }
-    }, { x: 't', y: 'v', z: 'series', fill: 'category', width: 2, height: 5, normalize }, native));
+    }, { x: 't', y: 'v', z: 'series', fill: 'category', width: 2, height: 5, normalize }));
     try {
       const query = () => state.coordinator.query(state.mark.query());
       const pixels = Array.from(await query());
@@ -191,12 +191,12 @@ describe('native dense line marks', () => {
     const relation = sql.from('native_vertical', 'source lines');
     const x = sql.column('t', 'source lines');
     const y = sql.column('v', 'source lines');
-    const state = await mount((native, selection) => new DenseLineMark({
+    const state = await mount(selection => new DenseLineMark({
       table: relation, options: { filterBy: selection }
-    }, { x, y, z: sql.column('series', 'source lines'), fill: sql.column('category', 'source lines'), width: 2, height: 5, normalize: false }, native));
+    }, { x, y, z: sql.column('series', 'source lines'), fill: sql.column('category', 'source lines'), width: 2, height: 5, normalize: false }));
     try {
-      const interval = state.native.interval(x, [0.2, 0.8], { source: {} });
-      const point = state.native.point(sql.column('category', 'source lines'), 'a', { source: {} });
+      const interval = clauseInterval(x, [0.2, 0.8], { source: {} });
+      const point = clausePoint(sql.column('category', 'source lines'), 'a', { source: {} });
       const source = await state.coordinator.query(sql.Query.from(relation).select({ n: sql.count() }).where(interval.predicate));
       expect(Number(source.get(0).n)).toBe(0);
       const crossing = Array.from(await state.coordinator.query(state.mark.query(sql.and(interval.predicate, point.predicate))));
@@ -208,7 +208,7 @@ describe('native dense line marks', () => {
       expect(Array.from(state.plot.getAttribute('xDomain'))).toEqual([0, 1]);
       expect(disjunction.reduce((total, row) => total + Number(row.density), 0)).toBe(5);
       const empty = await state.coordinator.query(state.mark.query(sql.and(interval.predicate,
-        state.native.point(sql.column('category', 'source lines'), 'missing', { source: {} }).predicate)));
+        clausePoint(sql.column('category', 'source lines'), 'missing', { source: {} }).predicate)));
       expect(empty.numRows).toBe(0);
       expect(state.errors).toEqual([]);
     } finally { state.close(); }

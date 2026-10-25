@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { Query, TableRefNode, add, column, columns, count, join, mul, positionalRef, sql, star, sum } from '@uwdata/mosaic-sql';
-import { baseExpression, baseTable } from '../src/preagg/lineage.js';
+import { Query, asTableRef, add, column, columns, count, join, mul, positionalRef, sql, star, sum } from '@uwdata/mosaic-sql';
+import { baseExpression, baseTable, tablePath } from '../src/preagg/lineage.js';
 
 describe('baseTable', () => {
   it('finds a directly queried table', () => {
-    expect(`${baseTable(Query.select('x').from('data'))}`).toBe('"data"');
+    expect(tablePath(baseTable(Query.select('x').from('data'))!)).toEqual(['data']);
   });
 
   it('preserves schema qualifiers', () => {
-    const q = Query.select('x').from(new TableRefNode(['main', 'data']));
-    expect(`${baseTable(q)}`).toBe('"main"."data"');
+    const q = Query.select('x').from(asTableRef(['main', 'data']));
+    expect(tablePath(baseTable(q)!)).toEqual(['main', 'data']);
   });
 
   it('finds tables through CTEs, subqueries, and set operations', () => {
@@ -23,7 +23,7 @@ describe('baseTable', () => {
       })
       .select('x')
       .from(Query.select('x').from('b'));
-    expect(`${baseTable(q)}`).toBe('"data"');
+    expect(tablePath(baseTable(q)!)).toEqual(['data']);
   });
 
   it('respects CTE shadowing and scope', () => {
@@ -31,19 +31,19 @@ describe('baseTable', () => {
       .with({ data: Query.select('x').from('other') })
       .select('x')
       .from('data');
-    expect(`${baseTable(shadow)}`).toBe('"other"');
+    expect(tablePath(baseTable(shadow)!)).toEqual(['other']);
 
     const self = Query
       .with({ data: Query.select('x').from('data') })
       .select('x')
       .from('data');
-    expect(`${baseTable(self)}`).toBe('"data"');
+    expect(tablePath(baseTable(self)!)).toEqual(['data']);
 
     const upper = Query
       .with({ Data: Query.select('x').from('other') })
       .select('x')
       .from('DATA');
-    expect(`${baseTable(upper)}`).toBe('"other"');
+    expect(tablePath(baseTable(upper)!)).toEqual(['other']);
   });
 
   it('returns null for multiple or unsupported sources', () => {
@@ -67,7 +67,7 @@ describe('baseTable', () => {
 describe('baseExpression', () => {
   it('returns expressions over a base table unchanged', () => {
     const q = Query.select('x').from('data');
-    expect(`${baseExpression(q, column('x'))}`).toBe('"x"');
+    expect(baseExpression(q, column('x'))).toEqual(column('x'));
   });
 
   it('resolves column aliases through CTEs and subqueries', () => {
@@ -75,8 +75,8 @@ describe('baseExpression', () => {
       .with({ a: Query.select({ u: mul('x', 2) }).from('data') })
       .select('v')
       .from(Query.select({ v: add('u', 1), w: 'u' }).from('a'));
-    expect(`${baseExpression(q, column('v'))}`).toBe('(("x" * 2) + 1)');
-    expect(`${baseExpression(q, add('v', 'w'))}`).toBe('((("x" * 2) + 1) + ("x" * 2))');
+    expect(baseExpression(q, column('v'))).toEqual(add(mul('x', 2), 1));
+    expect(baseExpression(q, add('v', 'w'))).toEqual(add(add(mul('x', 2), 1), mul('x', 2)));
   });
 
   it('resolves column names case-insensitively', () => {
@@ -86,22 +86,22 @@ describe('baseExpression', () => {
       rename: { C: 'D' }
     }), { U: mul('x', 2) }).from('data');
     const q = (name: string) => baseExpression(Query.select(name).from(sub), column(name));
-    expect(`${q('u')}`).toBe('("x" * 2)');
+    expect(q('u')).toEqual(mul('x', 2));
     expect(q('a')).toBe(undefined);
-    expect(`${q('b')}`).toBe('("b" * 2)');
+    expect(q('b')).toEqual(mul('b', 2));
     expect(q('c')).toBe(undefined);
-    expect(`${q('d')}`).toBe('"C"');
+    expect(q('d')).toEqual(column('C'));
 
     const union = Query.unionAll(
       Query.select({ X: 'a' }).from('data'),
       Query.select({ y: 'a' }).from('data')
     );
-    expect(`${baseExpression(Query.select('x').from(union), column('x'))}`).toBe('"a"');
+    expect(baseExpression(Query.select('x').from(union), column('x'))).toEqual(column('a'));
   });
 
   it('passes columns through star selections', () => {
     const q = Query.select('x').from(Query.select('*').from('data'));
-    expect(`${baseExpression(q, column('x'))}`).toBe('"x"');
+    expect(baseExpression(q, column('x'))).toEqual(column('x'));
   });
 
   it('resolves columns through star modifiers', () => {
@@ -111,9 +111,9 @@ describe('baseExpression', () => {
       rename: { c: 'd' }
     })).from('data');
     const q = (name: string) => baseExpression(Query.select(name).from(sub), column(name));
-    expect(`${q('x')}`).toBe('"x"');
-    expect(`${q('b')}`).toBe('("b" * 2)');
-    expect(`${q('d')}`).toBe('"c"');
+    expect(q('x')).toEqual(column('x'));
+    expect(q('b')).toEqual(mul('b', 2));
+    expect(q('d')).toEqual(column('c'));
     expect(q('a')).toBe(undefined);
     expect(q('c')).toBe(undefined);
   });
@@ -124,7 +124,7 @@ describe('baseExpression', () => {
       rename: [[column('c', 'data'), 'd']]
     })).from('data');
     const q = (name: string) => baseExpression(Query.select(name).from(sub), column(name));
-    expect(`${q('d')}`).toBe('"c"');
+    expect(q('d')).toEqual(column('c', 'data'));
     expect(q('a')).toBe(undefined);
     expect(q('c')).toBe(undefined);
   });
@@ -139,7 +139,7 @@ describe('baseExpression', () => {
     expect(baseExpression(Query.select('x').from(sub), columns(['x']))).toBe(undefined);
 
     const base = Query.select('x').from('data');
-    expect(`${baseExpression(base, columns(['x']))}`).toBe('COLUMNS([\'x\'])');
+    expect(baseExpression(base, columns(['x']))).toEqual(columns(['x']));
 
     const expand = Query.select('x').from(Query.select(columns('^x$')).from('data'));
     expect(baseExpression(expand, column('x'))).toBe(undefined);
@@ -158,7 +158,7 @@ describe('baseExpression', () => {
       Query.select({ v: 'x' }).from('data'),
       Query.select({ v: 'x' }).from('data')
     ));
-    expect(`${baseExpression(q, column('v'))}`).toBe('"x"');
+    expect(baseExpression(q, column('v'))).toEqual(column('x'));
 
     const mismatch = Query.select('v').from(Query.unionAll(
       Query.select({ v: 'x' }).from('data'),
@@ -173,7 +173,7 @@ describe('baseExpression', () => {
       Query.select('x').from('data'),
       Query.select({ w: 'x' }).from('data')
     ));
-    expect(`${baseExpression(q, column('v'))}`).toBe('"x"');
+    expect(baseExpression(q, column('v'))).toEqual(column('x'));
 
     const swapped = Query.select('v').from(Query.unionAll(
       Query.select({ v: 'x', w: 'y' }).from('data'),
@@ -188,7 +188,7 @@ describe('baseExpression', () => {
       ),
       Query.select('z', 'x').from('data')
     ));
-    expect(`${baseExpression(nested, column('v'))}`).toBe('"x"');
+    expect(baseExpression(nested, column('v'))).toEqual(column('x'));
   });
 
   it('does not resolve aggregate, window, or missing columns', () => {

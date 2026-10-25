@@ -14,14 +14,12 @@ export function mark(type, data, channels = {}) {
 
 export function explicitType(MarkClass, type, data, channels) {
   return plot => {
-    plot.addMark(MarkClass === Mark
-      ? new MarkClass(type, data, channels, undefined, plot.sqlContext)
-      : new MarkClass(type, data, channels, plot.sqlContext));
+    plot.addMark(new MarkClass(type, data, channels));
   };
 }
 
 export function implicitType(MarkClass, data, channels) {
   return plot => {
-    plot.addMark(new MarkClass(data, channels, plot.sqlContext));
+    plot.addMark(new MarkClass(data, channels));
   };
 }

@@ -7,6 +7,7 @@ import { test } from 'vitest';
 import { Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
 import { parse as parseYAML } from 'yaml';
+import { QueryError } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { astToDOM, astToESM, astToPython, parseSpec } from '../src/index.js';
 import * as vg from '@uwdata/vgplot';
@@ -97,10 +98,15 @@ for (const [name, types] of /** @type {Array<[string,string[]]>} */ ([
     const element = api.plot(api[name](api.from('density_type_failure'), {
       [name === 'densityX' ? 'y' : 'x']:'value', fill:'series', type, bins:32, bandwidth:8
     }));
-    await element.value.marks[0].pending;
-    assert.equal(errors.length, 1);
-    assert.equal(errors[0].constructor.name, 'QueryError');
-    assert.ok(errors[0].message.includes('Referenced column "' + type + '" not found'));
+    await assert.rejects(element.value.marks[0].pending, error => {
+      assert.ok(error instanceof QueryError);
+      assert.ok(error.message.includes('Referenced column "' + type + '" not found'));
+      assert.match(error.sql, /^DESCRIBE SELECT /);
+      assert.ok(error.sql.includes('"' + type + '"'));
+      assert.ok(error.sql.includes('"density_type_failure"'));
+      return true;
+    });
+    assert.deepEqual(errors, []);
     assert.equal(element.value.marks[0].type, name === 'densityX' ? 'areaX' : 'areaY');
   } finally {
     coordinator.clear();

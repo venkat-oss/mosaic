@@ -65,7 +65,7 @@ export class Interval2D {
       scales: [xscale, yscale],
       pixelSize
     };
-    return mark.sqlContext ? mark.sqlContext.intervals([xfield, yfield], value, options) : clauseIntervals([xfield, yfield], value, options);
+    return clauseIntervals([xfield, yfield], value, options);
   }
 
   init(svg) {

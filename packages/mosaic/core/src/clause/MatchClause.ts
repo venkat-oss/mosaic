@@ -1,4 +1,4 @@
-import type { ExprNode } from '@uwdata/mosaic-sql';
+import type { ExprValue } from '@uwdata/mosaic-sql';
 import { asNode, contains, literal, lower, or, prefix, regexp_matches, suffix } from '@uwdata/mosaic-sql';
 import type { MosaicClient } from '../MosaicClient.js';
 import type { ClauseMetadata, ClauseSource, SelectionClause } from './SelectionClause.js';
@@ -11,8 +11,6 @@ export interface MatchMetadata extends ClauseMetadata {
   /** The text search matching method used. */
   method?: 'contains' | 'prefix' | 'suffix' | 'regexp' | (string & {});
 }
-
-const identity = (x: string | ExprNode) => x;
 
 const MATCH_METHODS = { contains, prefix, suffix, regexp: regexp_matches };
 
@@ -57,7 +55,7 @@ export interface MatchOptions {
  * @returns The generated selection clause.
  */
 export function clauseMatch(
-  field: string | ExprNode,
+  field: ExprValue,
   value: string | null | undefined,
   {
     source,
@@ -67,9 +65,7 @@ export function clauseMatch(
   }: MatchOptions
 ): SelectionClause {
   field = asNode(field);
-  const fn = MATCH_METHODS[method as keyof typeof MATCH_METHODS];
-  const transform = caseSensitive ? identity: lower;
-  const predicate = value ? fn(transform(field), transform(literal(value))) : null;
+  const predicate = matchPredicate(field, value, method, caseSensitive);
   const meta: MatchMetadata = { type: 'match', method };
   return { meta, source, clients, fields: [field], value, predicate };
 }
@@ -88,7 +84,7 @@ export function clauseMatch(
  * @returns The generated selection clause.
  */
 export function clauseMatchAny(
-  fields: (string | ExprNode)[],
+  fields: (ExprValue)[],
   value: string | null,
   {
     source,
@@ -97,21 +93,23 @@ export function clauseMatchAny(
     caseSensitive = false
   }: MatchOptions
 ): SelectionClause {
-  fields = fields.map(f => asNode(f));
+  const nodes = fields.map(asNode);
   value = value || null;
-  const fn = MATCH_METHODS[method];
-  const transform = caseSensitive ? identity : lower;
-  const query = transform(literal(value));
-  const predicate = value
-    ? or(fields.flatMap(field => value ? fn(transform(field), query) : []))
-    : null;
+  const predicate = value ? or(nodes.map(field => matchPredicate(field, value, method, caseSensitive)!)) : null;
   const meta: MatchMetadata = { type: 'match', method };
   return {
     meta,
     source,
     clients,
-    fields: fields as ExprNode[],
+    fields: nodes,
     value,
     predicate
   };
+}
+
+function matchPredicate(field: ExprValue, value: string | null | undefined, method: MatchMethod, caseSensitive: boolean) {
+  if (!value) return null;
+  const text = literal(value);
+  return method === 'regexp' ? regexp_matches(field, text, caseSensitive ? undefined : 'i')
+    : MATCH_METHODS[method](caseSensitive ? field : lower(field), caseSensitive ? text : lower(text));
 }

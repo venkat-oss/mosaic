@@ -1,3 +1,4 @@
+import { clientsReady } from './clients-ready.js';
 import { pythonExecutable } from './python.js';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
@@ -72,7 +73,10 @@ export async function renderTemplate(slug, name, mode, bindings = {}) {
         : await templateSource(slug, name, 'js');
       element = await executeSource(source, api, bindings);
     }
-    if (mode !== 'host') await element.value.synch.promise;
+    const settled = await clientsReady(element);
+    for (const result of settled) {
+      if (result.status === 'rejected') throw result.reason;
+    }
     expect(errors).toEqual([]);
     return element;
   } finally {

@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
+import { Selection, Coordinator, Param } from '@uwdata/mosaic-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext, Param } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
-import * as sql from '@uwdata/mosaic-sql/native';
-import { column as legacyColumn } from '@uwdata/mosaic-sql';
+import * as sql from '@uwdata/mosaic-sql';
 import { Mark } from '../src/marks/Mark.js';
 import { Plot } from '../src/plot.js';
 import { bin } from '../src/transforms/bin.js';
@@ -11,7 +10,7 @@ import { Interval1D } from '../src/interactors/Interval1D.js';
 import { Toggle } from '../src/interactors/Toggle.js';
 import { getField } from '../src/interactors/util/get-field.js';
 import { filteredExtent } from '../src/marks/util/extent.js';
-import { nativeBinExpr } from '../src/marks/util/bin-expr.js';
+import { binExpr } from '../src/marks/util/bin-expr.js';
 
 class RecordingConnector extends NodeConnector {
   constructor() {
@@ -61,20 +60,20 @@ beforeAll(async () => {
 });
 afterAll(() => database.close());
 
-/** @param {{field?: import('@uwdata/mosaic-sql/native').ExprValue, table?: import('@uwdata/mosaic-sql/native').TableArg | Param<string>, options?: import('@uwdata/mosaic-sql/native').BinHistogramOptions, reqs?: Record<string, import('@uwdata/mosaic-core').Stat[]>}} [settings] */
+/** @param {{field?: import('@uwdata/mosaic-sql').ExprValue, table?: import('@uwdata/mosaic-sql').TableArg | Param<string>, options?: import('@uwdata/mosaic-sql').BinHistogramOptions, reqs?: Record<string, import('@uwdata/mosaic-core').Stat[]>}} [settings] */
 async function setup({ field = 'x', table = 'native_histogram', options = { step: 1 }, reqs = {} } = {}) {
-  const native = new NativeSqlContext();
+
   const connector = database;
   connector.calls.length = 0;
   const errors = [];
-  const coordinator = new Coordinator(connector, { native, cache: false, consolidate: false, logger: null });
+  const coordinator = new Coordinator(connector, { cache: false, consolidate: false, logger: null });
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
-  const selection = native.selection();
-  const plot = new Plot(undefined, native);
+  const selection = Selection.intersect();
+  const plot = new Plot();
   plot.setAttribute('height', 180);
   const mark = new Mark('rectY', { table, options: { filterBy: selection } }, {
     x: bin(field, options), y: sql.float64(sql.count())
-  }, reqs, native);
+  }, reqs);
   plot.addMark(mark);
   const brush = new Interval1D(mark, { channel: 'x', selection, peers: false });
   plot.addInteractor(brush);
@@ -88,24 +87,23 @@ async function setup({ field = 'x', table = 'native_histogram', options = { step
       .sort((a, b) => a[0] - b[0]);
   };
   return {
-    native, coordinator, selection, plot, mark, brush, errors, calls: connector.calls, rows,
+    coordinator, selection, plot, mark, brush, errors, calls: connector.calls, rows,
     hold: () => connector.hold(),
     close() { mark.destroy(); coordinator.clear(); }
   };
 }
 
-/** @returns {clause is import('@uwdata/mosaic-core').NativeSelectionClause} */
+/** @returns {clause is import('@uwdata/mosaic-core').SelectionClause} */
 function isNativeClause(clause) {
-  return clause.context !== undefined && clause.fields.every(sql.isExpression)
+  return clause.fields.every(sql.isExpression)
     && (clause.predicate == null || sql.isExpression(clause.predicate));
 }
 
 describe('native Mark queries', () => {
-  it.each([false, true])('preserves tooltip and sort options with native context %s', native => {
-    const context = native ? new NativeSqlContext() : null;
+  it('preserves tooltip and sort options', () => {
     const tip = { format: { x: false, y: false } };
     const sort = { limit: 10 };
-    const mark = new Mark('dot', null, { tip, sort }, {}, context);
+    const mark = new Mark('dot', null, { tip, sort });
     expect(mark.channel('tip').value).toBe(tip);
     expect(mark.channel('sort').value).toBe(sort);
     const options = Reflect.get(mark.plotSpecs()[0], 'options');
@@ -113,22 +111,16 @@ describe('native Mark queries', () => {
     expect(options.sort).toBe(sort);
   });
 
-  it('rejects native fields and handles in legacy marks and legacy fields in native marks', () => {
-    expect(() => new Mark('dot', null, { x: sql.column('x') })).toThrow(/native plot context/);
-    expect(() => new Mark('dot', null, { tip: sql.sum('x') })).toThrow(/native plot context/);
-    expect(() => new Mark('dot', null, { x: legacyColumn('x') }, {}, new NativeSqlContext())).toThrow(/require native SQL expressions/);
-  });
-
   it('shares native pixel binning with padding, direction and original fields', async () => {
     const state = await setup();
     try {
       const field = sql.column('x');
-      const [index, value] = nativeBinExpr(state.mark, 'x', 11, [0, 2], 1, field);
+      const [index, value] = binExpr(state.mark, 'x', 11, [0, 2], 1, field);
       expect(value).toBe(field);
       const query = sql.Query.from('native_histogram').select({ index, value }).orderby('x');
       expect(Array.from(await state.coordinator.query(query), row => Number(row.index))).toEqual([1.25, 3.75, 6.25, 8.75]);
       state.plot.setAttribute('xReverse', true);
-      const [reverse] = nativeBinExpr(state.mark, 'x', 11, [0, 2], 1, field);
+      const [reverse] = binExpr(state.mark, 'x', 11, [0, 2], 1, field);
       expect(Array.from(await state.coordinator.query(query.clone().setSelect({ index: reverse })), row => Number(row.index)))
         .toEqual([8.75, 6.25, 3.75, 1.25]);
       expect(state.errors).toEqual([]);
@@ -138,7 +130,6 @@ describe('native Mark queries', () => {
   it('prepares bin metadata, materializes interactive aggregates and renders SVG', async () => {
     const state = await setup({ reqs: { y: ['max'] } });
     try {
-      expect(state.mark.sqlOwner).toBe(state.native);
       expect(state.mark.channelField('x').min).toBe(0.25);
       expect(state.mark.channelField('x').max).toBe(1.75);
       expect(Number(state.mark.channelField('y').max)).toBe(2);
@@ -147,7 +138,6 @@ describe('native Mark queries', () => {
       expect(state.plot.element.textContent).not.toContain('[object Object]');
       const clause = state.brush.clause([0, 1]);
       if (!isNativeClause(clause)) throw new TypeError('Expected a native interval clause.');
-      expect(clause.context).toBe(state.native);
       expect(clause.fields[0]).toBe(getField(state.mark, 'x'));
       expect(filteredExtent(clause.predicate, clause.fields[0])).toEqual([0, 1]);
       state.selection.update(clause);
@@ -164,7 +154,6 @@ describe('native Mark queries', () => {
       await state.selection.pending('value');
       expect(state.rows()).toEqual([[1, 2, 2]]);
       const toggle = new Toggle(state.mark, { channels: ['x'], selection: state.selection });
-      expect(toggle.clause([[1]]).context).toBe(state.native);
       expect(state.errors).toEqual([]);
     } finally { state.close(); }
   });
@@ -205,7 +194,7 @@ describe('native Mark queries', () => {
       state.mark.requestQuery();
       field.update('y');
       await field.pending('value');
-      expect(() => sql.compile([retained], state.native.execution)).toThrow(/prepared channel statistics/);
+      expect(() => sql.compile([retained], state.coordinator.sqlContext.execution)).toThrow(/prepared channel statistics/);
       release();
       await barrier;
       await state.mark.pending;

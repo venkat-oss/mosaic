@@ -36,21 +36,19 @@ Skip to the [examples](/examples/) to dive right in.
 
 </div>
 
-## Native histogram preview
+## Interactive histograms {#native-histogram-preview}
 
-A JavaScript API context can connect histogram marks and brushes to the native
-SQL path. Use its coordinator's selections and import SQL expressions from the
-temporary native entry:
+A JavaScript API context connects histogram marks and brushes to a coordinator.
+SQL helpers build Polyglot trees, and selections provide native predicates:
 
 ```js
 import { createAPIContext } from '@uwdata/vgplot';
-import { Coordinator, NativeSqlContext, RestConnector } from '@uwdata/mosaic-core';
-import { count, float64 } from '@uwdata/mosaic-sql/native';
+import { Coordinator, RestConnector, Selection } from '@uwdata/mosaic-core';
+import { count, float64 } from '@uwdata/mosaic-sql';
 
-const native = new NativeSqlContext();
-const coordinator = new Coordinator(new RestConnector(), { native });
+const coordinator = new Coordinator(new RestConnector());
 const api = createAPIContext({ coordinator });
-const selection = native.selection();
+const selection = Selection.intersect();
 
 document.body.append(api.plot(
   api.rectY(api.from('sales', { filterBy: selection }), {
@@ -64,13 +62,13 @@ document.body.append(api.plot(
 Binning uses prepared source statistics. Changing the source or identifier
 parameters prepares new metadata and cancels obsolete queued data reads. Bin
 expressions reject compilation while their metadata is stale. Compatible brush
-updates use native DuckDB preaggregation and return Arrow results to SVG marks.
-The same context supports connected-line M4, weighted densities, regression and
-error bars, hexbin, grids, raster tiles and geographic marks. Continue importing
-SQL channel expressions from `/native`. Raster tiles use their plot's coordinator,
-cancel obsolete viewport reads and combine linear weights across tile boundaries.
-Spatial marks require DuckDB's spatial extension. Expression, input and widget
-integration follows the [migration packets](/development/polyglot/work-packets).
+updates use DuckDB preaggregation and return Arrow results to SVG marks.
+The same API supports connected-line M4, weighted densities, regression and
+error bars, hexbin, grids, raster tiles and geographic marks. Raster tiles use
+their plot's coordinator, cancel obsolete viewport reads and combine linear
+weights across tile boundaries. Spatial marks require DuckDB's spatial extension.
+Specifications, Python-authored widgets and JavaScript calls share these SQL
+implementations.
 
 ## Plots
 

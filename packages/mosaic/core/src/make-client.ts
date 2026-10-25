@@ -1,5 +1,3 @@
-import type { ExprNode } from '@uwdata/mosaic-sql';
-import type { SelectionExpression } from './types.js';
 import type { ResolvedPredicate } from './Selection.js';
 import type { Coordinator } from './Coordinator.js';
 import { coordinator as defaultCoordinator } from './Coordinator.js';
@@ -7,21 +5,20 @@ import { type ClientQuery, MosaicClient } from './MosaicClient.js';
 import type { Selection } from './Selection.js';
 import type { QueryError } from './util/query-error.js';
 
-export interface MakeClientOptions<E extends SelectionExpression = ExprNode> {
+export interface MakeClientOptions {
   /** Mosaic coordinator. Defaults to the global coordinator. */
   coordinator?: Coordinator;
   /** A selection whose predicates are fed into the query function to produce the SQL query. */
-  selection?: Selection<E>;
+  selection?: Selection;
   /** A flag (default `true`) indicating if the client should initially be enabled or not. */
   enabled?: boolean;
-  sqlOwner?: object;
   /** A flag (default `true`) indicating if client queries can be sped up using pre-aggregated data.
    * Should be set to `false` if filtering changes the groupby domain of the query. */
   filterStable?: boolean;
   /** An async function to prepare the client before running queries. */
   prepare?: () => Promise<void>;
   /** A function that returns a query from a list of selection predicates. */
-  query?: (filter: ResolvedPredicate<E>) => ClientQuery;
+  query?: (filter: ResolvedPredicate) => ClientQuery;
   /** Called by the coordinator to return a query result. */
   queryResult?: (data: unknown) => void;
   /** Called by the coordinator to inform the client that a query is pending. */
@@ -36,15 +33,12 @@ export interface MakeClientOptions<E extends SelectionExpression = ExprNode> {
  * @param options The options for making the client.
  * @returns The resulting client.
  */
-export function makeClient<E extends SelectionExpression = ExprNode>(options: MakeClientOptions<E>): MosaicClient<E> {
+export function makeClient(options: MakeClientOptions): MosaicClient {
   const {
     coordinator = defaultCoordinator(),
     ...clientOptions
   } = options;
-  const client = new ProxyClient<E>({
-    ...clientOptions,
-    sqlOwner: clientOptions.sqlOwner ?? coordinator.nativeContext ?? clientOptions.selection?.owner ?? undefined
-  });
+  const client = new ProxyClient(clientOptions);
   coordinator.connect(client);
   return client;
 }
@@ -52,8 +46,8 @@ export function makeClient<E extends SelectionExpression = ExprNode>(options: Ma
 /**
  * An internal class used to implement the makeClient API.
  */
-class ProxyClient<E extends SelectionExpression> extends MosaicClient<E> {
-  private readonly _methods: Omit<MakeClientOptions<E>, 'coordinator' | 'selection' | 'enabled' | 'filterStable' | 'sqlOwner'>;
+class ProxyClient extends MosaicClient {
+  private readonly _methods: Omit<MakeClientOptions, 'coordinator' | 'selection' | 'enabled' | 'filterStable'>;
   private readonly _filterStable: boolean;
 
   /**
@@ -62,11 +56,10 @@ class ProxyClient<E extends SelectionExpression> extends MosaicClient<E> {
   constructor({
     selection = undefined,
     enabled = true,
-    sqlOwner,
     filterStable = true,
     ...methods
-  }: Omit<MakeClientOptions<E>, 'coordinator'>) {
-    super(selection, sqlOwner);
+  }: Omit<MakeClientOptions, 'coordinator'>) {
+    super(selection);
     this.enabled = enabled;
     this._methods = methods;
     this._filterStable = filterStable;
@@ -80,7 +73,7 @@ class ProxyClient<E extends SelectionExpression> extends MosaicClient<E> {
     await this._methods.prepare?.();
   }
 
-  query(filter: ResolvedPredicate<E>): ClientQuery {
+  query(filter: ResolvedPredicate): ClientQuery {
     return this._methods.query?.(filter) ?? null;
   }
 

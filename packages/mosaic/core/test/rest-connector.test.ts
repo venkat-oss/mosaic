@@ -138,11 +138,12 @@ describe('RestConnector', () => {
     }
   });
 
-  it('passes the abort signal to fetch', async () => {
+  it('passes the abort signal without adding local metadata hints to the HTTP request', async () => {
     const fetchMock = mockFetch();
     const { signal } = new AbortController();
-    await new RestConnector({ fetch: fetchMock }).query(request, { signal });
+    await new RestConnector({ fetch: fetchMock }).query(request, { signal, baseColumnNullability: true });
     expect(fetchMock.mock.calls[0][1]!.signal).toBe(signal);
+    expect(fetchMock.mock.calls[0][1]!.body).toBe(JSON.stringify(request));
   });
 
   it('stops waiting for headers when aborted', async () => {

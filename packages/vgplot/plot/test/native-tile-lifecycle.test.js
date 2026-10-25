@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Coordinator, NativeSqlContext } from '@uwdata/mosaic-core';
+import { Coordinator } from '@uwdata/mosaic-core';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { RasterTileMark } from '../src/marks/RasterTileMark.js';
 
@@ -49,8 +49,8 @@ class Tiles extends RasterTileMark {
 
 async function setup(dim = 'x') {
   const database = new DelayedDatabase;
-  const native = new NativeSqlContext();
-  const coordinator = new Coordinator(database, { native, logger: null, cache: false, consolidate: false });
+
+  const coordinator = new Coordinator(database, { logger: null, cache: false, consolidate: false });
   const errors = [];
   coordinator.logger({ ...coordinator.logger(), error: error => errors.push(error) });
   await coordinator.exec(`
@@ -67,7 +67,7 @@ async function setup(dim = 'x') {
   const mark = new Tiles(source, {
     x: 'x', y: 'y', fill: 'density', width: 5, height: 5,
     interpolate: 'linear', origin: [0, 0], dim
-  }, native);
+  });
   const attributes = { xDomain: [0, 4], yDomain: [0, 4], width: 100, height: 100 };
   let updates = 0;
   Object.assign(mark, { plot: {

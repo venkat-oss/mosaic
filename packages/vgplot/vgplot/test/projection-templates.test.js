@@ -17,7 +17,6 @@ it.each(['native','esm','ast'])('renders the projection starter through %s', asy
 
 it('executes the native projection initializer starter', async () => {
   const element = await renderTemplate('projection', 'native-initializer', 'host', {geoMercator});
-  await element.value.synch.promise;
   expect(element.querySelectorAll('circle')).toHaveLength(3);
   expect(typeof element.value.getAttribute('projectionType')).toBe('function');
 });

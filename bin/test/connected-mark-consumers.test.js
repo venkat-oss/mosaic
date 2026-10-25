@@ -9,6 +9,7 @@ import { Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
 import { parse as parseYAML } from 'yaml';
 import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
+import { QueryError } from '@uwdata/mosaic-core';
 import { astToDOM, astToESM, astToPython, parseSpec } from '@uwdata/mosaic-spec';
 import * as vg from '../../packages/vgplot/vgplot/src/index.js';
 import { clientsReady } from '../../packages/vgplot/vgplot/test/util/clients-ready.js';
@@ -103,9 +104,14 @@ test('directional sweep retains the existing SQL field interpretation', async ()
   try {
     await coordinator.exec('DROP TABLE IF EXISTS connected_data');
     const element = (await astToDOM(parseSpec(spec), { api })).element;
-    await clientsReady(element);
-    assert.equal(errors.length, 1);
-    assert.match(String(errors[0]), /Referenced column "\+y" not found/);
+    await assert.rejects(element.value.marks[0].pending, error => {
+      assert.ok(error instanceof QueryError);
+      assert.match(error.message, /Referenced column "\+y" not found/);
+      assert.match(error.sql, /^DESCRIBE SELECT "\+y" AS "__mosaic_field" FROM "connected_data"$/);
+      return true;
+    });
+    assert.deepEqual((await clientsReady(element)).map(result => result.status), ['rejected']);
+    assert.deepEqual(errors, []);
   } finally { coordinator.clear(); }
 });
 test.after(() => dom.window.close());

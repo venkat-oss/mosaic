@@ -58,12 +58,8 @@ export function clauseList(
 ): SelectionClause {
   field = asNode(field);
   const listFn = listMatch === 'all' ? listHasAll : listHasAny;
-  // arrays pass through directly so they are quoted as a list, not stringified
-  const predicate = value === undefined || (Array.isArray(value) && value.length === 0)
-    ? null
-    : Array.isArray(value)
-      ? listFn(field, value as ExprValue[])
-      : listFn(field, literal(value));
+  const predicate = value === undefined || Array.isArray(value) && !value.length ? null
+    : listFn(field, value === null ? null : (Array.isArray(value) ? value : [value]).map(literal));
   const meta: ListMetadata = { type: 'list', match: listMatch };
   return {
     meta,
