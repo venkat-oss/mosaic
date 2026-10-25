@@ -255,7 +255,7 @@ export class QueryManager {
     if (connector && connector !== this.db) {
       const previous = this.db;
       this.db = connector;
-      if (previous) this._sqlContext.replace(backendExecution(connector));
+      if (previous) this._sqlContext.replace({ ...backendExecution(connector), sourceSchema: undefined });
       else this.invalidateContext();
     }
     return this.db;

@@ -1,4 +1,5 @@
 import { DuckDB } from '@uwdata/mosaic-duckdb';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
   asLiteral,
@@ -21,6 +22,7 @@ import {
   native,
   SqlCompilationError
 } from '../src/index.js';
+import type { SqlSourceSchema } from '../src/index.js';
 
 describe('native compilation', () => {
   it('executes a manually constructed filtered aggregate without changing its tree', async () => {
@@ -178,5 +180,108 @@ describe('native compilation', () => {
     expect(() => createExecutionContext({ generation: -1 })).toThrow(RangeError);
     expect(() => createExecutionContext({ generation: 0.5 })).toThrow(RangeError);
     expect(() => createExecutionContext({ backend: '' })).toThrow(TypeError);
+  });
+
+  it('copies and deeply freezes an explicit source schema without freezing caller data', () => {
+    const sourceSchema: SqlSourceSchema = {
+      tables: [{
+        name: 'measurements',
+        columns: [{ name: 'a', type: 'INTEGER', references: { table: 'other', column: 'id' } }],
+        uniqueKeys: [['a']]
+      }]
+    };
+    const context = createExecutionContext({ sourceSchema });
+    expect(context.sourceSchema).toEqual(sourceSchema);
+    expect(context.sourceSchema).not.toBe(sourceSchema);
+    expect(Object.isFrozen(context.sourceSchema!.tables)).toBe(true);
+    expect(Object.isFrozen(context.sourceSchema!.tables[0].columns[0].references)).toBe(true);
+    expect(Object.isFrozen(context.sourceSchema!.tables[0].uniqueKeys![0])).toBe(true);
+    sourceSchema.tables[0].columns[0].type = 'DOUBLE';
+    sourceSchema.tables[0].uniqueKeys![0].push('b');
+    expect(context.sourceSchema!.tables[0].columns[0].type).toBe('INTEGER');
+    expect(context.sourceSchema!.tables[0].uniqueKeys).toEqual([['a']]);
+    expect(Object.isFrozen(sourceSchema.tables[0].columns[0])).toBe(false);
+    expect(() => { context.sourceSchema!.tables[0].columns[0].type = 'DOUBLE'; }).toThrow(TypeError);
+  });
+
+  it('uses source column types for native division without mutating trees or rereading live bindings', async () => {
+    for (const type of ['INTEGER', 'DOUBLE']) {
+      let minimum = 0;
+      let reads = 0;
+      const parameter = { get value() { ++reads; return minimum; }, addEventListener() {}, removeEventListener() {} };
+      const query = native.select([
+        native.alias(native.scalarBinary('int_div', column('a'), column('b')), 'value')
+      ], {
+        from: native.from([native.table('measurements')]).from,
+        where_clause: native.where(native.binary('gt', column('id'), asLiteral(parameter))).where,
+        order_by: native.orderBy([native.ordered(column('id')).ordered]).order_by
+      });
+      const payload = JSON.stringify(query);
+      const sourceSchema: SqlSourceSchema = {
+        tables: [{ name: 'measurements', columns: [
+          { name: 'id', type: 'INTEGER' }, { name: 'a', type }, { name: 'b', type }
+        ] }]
+      };
+      const target = createExecutionContext({ targetDialect: Dialect.SQLite, sourceSchema });
+      const source = createExecutionContext({ sourceSchema });
+      const db = new DuckDB(':memory:', {}, '');
+      const sqlite = new DatabaseSync(':memory:');
+      try {
+        const setup = `CREATE TABLE measurements(id INTEGER,a ${type},b ${type}); INSERT INTO measurements VALUES (1,7,2),(2,-7,2)`;
+        await db.exec(setup);
+        sqlite.exec(setup);
+        const statements = compile([query, query], target);
+        expect(reads).toBe(1);
+        expect(statements[0]).toBe(statements[1]);
+        const rows = sqlite.prepare(statements[0]).all().map(row => ({ ...row }));
+        expect(rows).toEqual(await db.query(compile([query], source)[0]));
+        expect(rows.map(row => row.value)).toEqual(type === 'INTEGER' ? [3, -3] : [3.5, -3.5]);
+        expect(reads).toBe(2);
+        minimum = 1;
+        expect(sqlite.prepare(compile([query], target)[0]).all().map(row => row.value))
+          .toEqual(type === 'INTEGER' ? [-3] : [-3.5]);
+        expect(reads).toBe(3);
+        expect(JSON.stringify(query)).toBe(payload);
+      } finally {
+        sqlite.close();
+        db.close();
+      }
+    }
+  });
+
+  it.each(['INTEGER', 'DOUBLE'])('preserves %s math result types before native integer division', async type => {
+    const value = column('a');
+    const operands = {
+      abs: native.scalar('abs', value), floor: native.floor(value), ceil: native.ceil(value),
+      round: native.round(value), sign: native.scalar('sign', value)
+    };
+    const query = native.select(Object.entries(operands).map(([name, operand]) =>
+      native.alias(native.scalarBinary('int_div', operand, literal(2)), name)
+    ), {
+      from: native.from([native.table('measurements')]).from,
+      order_by: native.orderBy([native.ordered(column('id')).ordered]).order_by
+    });
+    const payload = JSON.stringify(query);
+    const sourceSchema: SqlSourceSchema = {
+      tables: [{ name: 'measurements', columns: [{ name: 'id', type: 'INTEGER' }, { name: 'a', type }] }]
+    };
+    const target = createExecutionContext({ targetDialect: Dialect.SQLite, sourceSchema });
+    const source = createExecutionContext({ sourceSchema });
+    const db = new DuckDB(':memory:', {}, '');
+    const sqlite = new DatabaseSync(':memory:');
+    try {
+      const input = type === 'INTEGER' ? '7' : '7.5';
+      const setup = `CREATE TABLE measurements(id INTEGER,a ${type}); INSERT INTO measurements VALUES (1,${input}),(2,-${input})`;
+      await db.exec(setup);
+      sqlite.exec(setup);
+      const expected = await db.query(compile([query], source)[0]);
+      const actual = sqlite.prepare(compile([query], target)[0]).all().map(row => ({ ...row }));
+      expect(actual).toEqual(expected);
+      expect(actual.map(row => row.sign)).toEqual([0, 0]);
+      expect(JSON.stringify(query)).toBe(payload);
+    } finally {
+      sqlite.close();
+      db.close();
+    }
   });
 });

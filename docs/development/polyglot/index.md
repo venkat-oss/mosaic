@@ -135,8 +135,8 @@ engine or intermediate DuckDB SQL. Construct Polyglot's semantic variants rather
 than representing every function as an unrecognized generic call.
 
 Mosaic pins the complete SDK archive from private fork revision
-`7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0`, package version 0.13.3, through a
-[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0)
+`4e771fb4a2985d26cdc5984b461bbd508a2b4601`, package version 0.13.3, through a
+[public Mosaic release](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4e771fb4a2985d26cdc5984b461bbd508a2b4601)
 and lockfile integrity. The isolated branch `mosaic-native-ast` starts from
 `0b6e35b`; it preserves the fork's Bazel/CUE ownership while incorporating the
 native compiler and relevant upstream generator fixes. The separate CUE migration
@@ -187,9 +187,17 @@ and its real-database tests implement the separately bounded P10 execution path.
   Rust can return copies, and even a no-op SDK `ast.transform` reconstructs nodes.
   Do not use those copies as keys into existing identity-based rewrite maps.
 - Keep the execution context per coordinator: dialect, backend and connection
-  generation. Switching it cancels outstanding reads and clears result,
+  generation, with an optional caller-supplied `sourceSchema`. The schema uses
+  the SDK's schema contract and source-dialect type names. Context creation
+  snapshots and deeply freezes it without freezing caller objects. The compiler
+  receives it directly through the native AST boundary for type-aware lowering;
+  Mosaic adds no schema discovery or second semantic representation. Refresh it
+  through `executionContext`, including after source column types change.
+  Switching the context cancels outstanding reads and clears result,
   consolidation and preaggregation state. Independent coordinators can target
-  different dialects; there is no process-global visitor.
+  different dialects; there is no process-global visitor. Replacing a database
+  connector clears the source schema so the caller can supply the replacement
+  database's types.
 
 These choices preserve public authoring behavior while explicitly retiring the
 compiler extension API. They do not promise source compatibility for consumers

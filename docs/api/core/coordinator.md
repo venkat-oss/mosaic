@@ -65,23 +65,35 @@ Get or set the [_connector_](./connectors) used by the coordinator to issue quer
 
 Replacing the connector clears cached results, cancels pending reads and advances
 the connection generation. A running `exec` retains its ordering barrier until
-the connector finishes it.
+the connector finishes it. It also clears an explicitly supplied source schema;
+provide a fresh schema for the replacement database through `executionContext`.
 
 ## executionContext
 
 `coordinator.executionContext(options)`
 
-Get or replace the source/target dialect and backend identity. Replacement advances the connection generation and clears cached,
-in-flight and optimization state. Independent coordinators retain their own
-contexts. DuckDB is the supported execution backend; configuring another target
-does not itself provide a connector for that database.
+Get or replace the source/target dialect, backend identity and optional
+`sourceSchema`. Replacement advances the connection generation and clears cached,
+in-flight and optimization state, including when only the schema changes.
+Independent coordinators retain their own contexts. DuckDB is the default backend;
+the PostgreSQL Node connector supports its documented operations. Configuring
+another target does not itself provide a connector for that database.
+
+`sourceSchema` uses the SQL package's `SqlSourceSchema` contract, with table and
+column types expressed in the source dialect. The context copies and deeply
+freezes its snapshot; the caller's schema remains editable. Refresh compilation
+types with `coordinator.executionContext({ sourceSchema: updatedSchema })`, or
+clear them with `{ sourceSchema: undefined }`. Schema discovery is explicit caller
+work. A schema supplied to the initial constructor context is retained until
+replaced; changing the database connector clears it to avoid reusing another
+database's column types.
 
 ## sqlContext
 
 `coordinator.sqlContext`
 
 The coordinator's `SqlContext` instance. Its `execution` property exposes current
-source/target dialects, backend identity and generation. Use
+source/target dialects, backend identity, generation and optional source schema. Use
 `coordinator.executionContext(options)` to replace execution settings and
 invalidate outstanding results and optimization plans.
 

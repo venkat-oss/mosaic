@@ -1,14 +1,17 @@
 import { tableFromArrays, tableToIPC } from '@uwdata/flechette';
-import { column, Dialect, from, join, literal, Query, sql } from '@uwdata/mosaic-sql';
+import { column, Dialect, from, gt, idiv, join, literal, Query, sql } from '@uwdata/mosaic-sql';
+import type { SqlSourceSchema } from '@uwdata/mosaic-sql';
 import { describe, expect, it } from 'vitest';
 import { Coordinator } from '../src/Coordinator.js';
 import type { ArrowQueryRequest, Connector, ConnectorQueryOptions, ExecQueryRequest } from '../src/connectors/Connector.js';
 import type { ArrowIPCBytes, QueryType } from '../src/types.js';
+import { SqlContext } from '../src/sql-context.js';
 
 const bytes = tableToIPC(tableFromArrays({ value: [1] }), {})!;
 
 class TestConnector implements Connector {
   readonly calls: { request: ArrowQueryRequest | ExecQueryRequest; options?: ConnectorQueryOptions }[] = [];
+  beforeArrow?: () => Promise<void>;
 
   constructor(readonly dialect: 'duckdb' | 'postgres') {}
 
@@ -16,7 +19,10 @@ class TestConnector implements Connector {
   query(request: ExecQueryRequest, options?: ConnectorQueryOptions): Promise<void>;
   async query(request: ArrowQueryRequest | ExecQueryRequest, options?: ConnectorQueryOptions): Promise<ArrowIPCBytes | void> {
     this.calls.push({ request, options });
-    if (request.type === 'arrow') return bytes;
+    if (request.type === 'arrow') {
+      await this.beforeArrow?.();
+      return bytes;
+    }
   }
 }
 
@@ -71,6 +77,67 @@ describe('connector backend profiles', () => {
       expect(coordinator.preaggregator.enabled).toBe(false);
       coordinator.preaggregator.enabled = true;
       expect(coordinator.preaggregator.enabled).toBe(true);
+    } finally { coordinator.clear(); }
+  });
+
+  it('invalidates cached and pending reads when only the source schema changes', async () => {
+    const schema = (type: string): SqlSourceSchema => ({
+      tables: [{ name: 'measurements', columns: [{ name: 'a', type }, { name: 'b', type }] }]
+    });
+    const connector = new TestConnector('duckdb');
+    const coordinator = new Coordinator(connector, {
+      logger: null, consolidate: false,
+      sql: new SqlContext({ targetDialect: Dialect.SQLite, sourceSchema: schema('INTEGER') })
+    });
+    let release = () => {};
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const query = Query.from('measurements').select({ value: idiv('a', 'b') });
+    try {
+      const previous = coordinator.executionContext();
+      const cached = await coordinator.query(query);
+      const oldKey = coordinator.sqlContext.cacheKey(connector.calls[0].request.sql, previous);
+      expect(coordinator.manager.cache().get(oldKey)).toBe(cached);
+      connector.beforeArrow = () => held;
+      const obsolete = coordinator.query(query.clone().where(gt('a', 0)));
+      const rejected = expect(obsolete).rejects.toBe('Cleared');
+      expect(connector.calls).toHaveLength(2);
+      const signal = connector.calls[1].options!.signal!;
+      coordinator.executionContext({ sourceSchema: schema('DOUBLE') });
+      await rejected;
+      expect(signal.aborted).toBe(true);
+      expect(coordinator.manager.cache().get(oldKey)).toBeUndefined();
+      expect(coordinator.executionContext().generation).toBe(previous.generation + 1);
+      expect(coordinator.executionContext().targetDialect).toBe(previous.targetDialect);
+      connector.beforeArrow = undefined;
+      release();
+      const current = await coordinator.query(query);
+      expect(current).not.toBe(cached);
+      expect(connector.calls).toHaveLength(3);
+      expect(connector.calls[0].request.sql).toMatch(/AS INTEGER/i);
+      expect(connector.calls[2].request.sql).not.toMatch(/AS INTEGER/i);
+      expect(await coordinator.query(query)).toBe(current);
+      expect(connector.calls).toHaveLength(3);
+    } finally {
+      release();
+      coordinator.clear();
+    }
+  });
+
+  it('keeps an initial source schema and clears it when the database connector is replaced', () => {
+    const sourceSchema: SqlSourceSchema = {
+      tables: [{ name: 'measurements', columns: [{ name: 'a', type: 'INTEGER' }] }]
+    };
+    const first = new TestConnector('duckdb');
+    const coordinator = new Coordinator(first, { logger: null, sql: new SqlContext({ sourceSchema }) });
+    try {
+      const previous = coordinator.executionContext();
+      expect(previous.sourceSchema).toEqual(sourceSchema);
+      coordinator.databaseConnector(first);
+      expect(coordinator.executionContext()).toBe(previous);
+      coordinator.databaseConnector(new TestConnector('postgres'));
+      expect(coordinator.executionContext().sourceSchema).toBeUndefined();
+      expect(coordinator.executionContext().generation).toBe(previous.generation + 1);
+      expect(coordinator.executionContext().targetDialect).toBe(Dialect.PostgreSQL);
     } finally { coordinator.clear(); }
   });
 });

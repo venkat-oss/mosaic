@@ -15,8 +15,8 @@ The packet instructions below retain the implementation order, including
 transitional paths removed in P09. They are not additional runtime paths to create.
 
 Mosaic pins the compiled SDK from isolated private Polyglot revision
-`7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0`, distributed as a
-[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0).
+`4e771fb4a2985d26cdc5984b461bbd508a2b4601`, distributed as a
+[public Mosaic release asset](https://github.com/venkat-oss/mosaic/releases/tag/polyglot-sdk-4e771fb4a2985d26cdc5984b461bbd508a2b4601).
 Polyglot source remains private. Startup measurements in the architecture record
 the earlier P01 baseline rather than the current artifact.
 

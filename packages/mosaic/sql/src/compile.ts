@@ -5,7 +5,7 @@ import { assertResolved, assertSourceDialect, snapshotAll } from './bindings.js'
 
 export type SqlCompileOptions = Omit<
   CompileAstOptions,
-  'sourceDialect' | 'targetDialect' | 'unsupportedLevel'
+  'sourceDialect' | 'targetDialect' | 'sourceSchema' | 'unsupportedLevel'
 >;
 
 export class SqlCompilationError extends Error {
@@ -31,6 +31,7 @@ export function compileResolved(
     ...options,
     sourceDialect: context.sourceDialect,
     targetDialect: context.targetDialect,
+    sourceSchema: context.sourceSchema,
     unsupportedLevel: 'raise'
   });
   if (!result.success || !result.sql) throw new SqlCompilationError(context, result);

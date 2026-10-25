@@ -38,7 +38,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
-    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0/polyglot-sql-sdk-0.13.3-7cfdd78107ee2bcfccaa0ce0dbe1b7269ac396e0.tgz",
+    "@polyglot-sql/sdk": "https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4e771fb4a2985d26cdc5984b461bbd508a2b4601/polyglot-sql-sdk-0.13.3-4e771fb4a2985d26cdc5984b461bbd508a2b4601.tgz",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@uwdata/mosaic-core": "workspace:*",
     "@uwdata/mosaic-plot": "workspace:*",

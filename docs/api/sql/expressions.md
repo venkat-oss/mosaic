@@ -273,6 +273,38 @@ order. Scalar roots are supported directly, including selection predicates.
 `targetDialect`, `backend` and `generation` for a different execution context.
 Unsupported target semantics raise `SqlCompilationError` before query execution.
 
+Set the optional `sourceSchema` when lowering needs source table and column types.
+Its `SqlSourceSchema` type is the Polyglot SDK schema contract. Names and type
+strings describe the source dialect, independently of the target database:
+
+```js
+import { compile, createExecutionContext, Dialect, idiv, Query } from '@uwdata/mosaic-sql';
+
+const context = createExecutionContext({
+  targetDialect: Dialect.SQLite,
+  sourceSchema: {
+    tables: [{ name: 'measurements', columns: [
+      { name: 'a', type: 'INTEGER' },
+      { name: 'b', type: 'INTEGER' }
+    ] }]
+  }
+});
+const query = Query.from('measurements').select({ quotient: idiv('a', 'b') });
+const statements = compile([query], context);
+```
+
+For DuckDB `//`, integer and floating operands have different semantics; the
+source schema lets the compiler choose the corresponding SQLite lowering for
+column expressions. Missing or ambiguous types still follow strict unsupported
+checks. Supplying a schema does not promise a lowering for every operation.
+
+Context creation copies and deeply freezes the schema snapshot without freezing
+the caller's object. Later edits to that object do not change compilation. The
+caller supplies and refreshes this optional schema; Mosaic does not discover it
+automatically. It is compilation input, separate from Arrow result metadata.
+For a coordinator, refresh it through `coordinator.executionContext({ sourceSchema })`
+so cached results, pending reads and optimization plans are invalidated together.
+
 ```js
 import { compile, createExecutionContext, native, column, literal } from '@uwdata/mosaic-sql';
 

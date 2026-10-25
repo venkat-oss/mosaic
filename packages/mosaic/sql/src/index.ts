@@ -1,5 +1,5 @@
 export { Dialect, native, createExecutionContext } from './runtime.js';
-export type { SqlExecutionContext } from './runtime.js';
+export type { SqlExecutionContext, SqlSourceSchema } from './runtime.js';
 export { asLiteral, asNode, column, deferred, isExpression, isExpressionHandle, literal, tableRef, toExpression } from './expression.js';
 export { parseExpression, parseColumnRef, parseTableRef } from './ingress.js';
 export type { SqlIngressOptions } from './ingress.js';
