@@ -179,8 +179,8 @@ importers:
         specifier: ^1.64.1
         version: 1.64.1
       '@polyglot-sql/sdk':
-        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
-        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
+        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
+        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
       '@typescript/native':
         specifier: npm:typescript@^7.0.2
         version: typescript@7.0.2
@@ -339,8 +339,8 @@ importers:
   packages/mosaic/sql:
     dependencies:
       '@polyglot-sql/sdk':
-        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
-        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
+        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
+        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
     devDependencies:
       '@types/node':
         specifier: ^26.6.5
@@ -423,8 +423,8 @@ importers:
   packages/vgplot/widget:
     dependencies:
       '@polyglot-sql/sdk':
-        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
-        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz
+        specifier: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
+        version: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz
       '@uwdata/mosaic-core':
         specifier: workspace:^
         version: link:../../mosaic/core
@@ -1461,8 +1461,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@polyglot-sql/sdk@https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz':
-    resolution: {integrity: sha512-9KwPGfsZMWoB8EkCOTCpNo+eJVicsB3zCmjWh0K4E5+B87lv9v1a3aVmSia5W3lHCfIge3K4QNc4jYG/KaUM3g==, tarball: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz}
+  '@polyglot-sql/sdk@https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz':
+    resolution: {integrity: sha512-H0GCtR5GcTkpBiC/zDTpQRWoYkPlbHuJka6BJTmQf4xg06m7M45npir3SBATMnrXa2im12D3KaMp73xHcjbIQQ==, tarball: https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz}
     version: 0.13.3
     engines: {node: '>=22', pnpm: '>=12'}
 
@@ -5931,7 +5931,7 @@ snapshots:
     dependencies:
       playwright: 1.64.1
 
-  '@polyglot-sql/sdk@https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-d75e21fccecd6d7362b263055d957ee711d318c9/polyglot-sql-sdk-0.13.3-d75e21fccecd6d7362b263055d957ee711d318c9.tgz': {}
+  '@polyglot-sql/sdk@https://github.com/venkat-oss/mosaic/releases/download/polyglot-sdk-4756eded300633541f8bdd7914cb3d4a89f193d7/polyglot-sql-sdk-0.13.3-4756eded300633541f8bdd7914cb3d4a89f193d7.tgz': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.11':
     optional: true
