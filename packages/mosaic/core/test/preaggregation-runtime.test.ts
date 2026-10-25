@@ -66,6 +66,7 @@ beforeAll(async () => {
   await db.exec("CREATE TABLE native_preagg_mutable AS SELECT 'b' AS dim, 1 AS x");
   await db.exec("CREATE TABLE native_preagg_duplicates AS SELECT * FROM (VALUES ('a', 1), ('b', 1)) t(dim, x)");
   await db.exec("CREATE TABLE native_preagg_split_nulls AS SELECT * FROM (VALUES ('a', 'k', 1, NULL), ('b', 'k', NULL, 2)) t(dim, g, x, y)");
+  await db.exec('CREATE SCHEMA preagg_calls; CREATE MACRO preagg_calls."sum"(a,b,c) AS a+b+c');
 });
 afterAll(() => db.close());
 
@@ -277,6 +278,33 @@ describe('native preaggregation', () => {
       expect(Array.from(state.rows())).toEqual([{ measure: 'b' }]);
       expectRows(state.rows(), await state.coordinator.query(query(state.selection.predicate(state.client))));
       expectMaterialized(state);
+    } finally {
+      state.client.destroy();
+      state.coordinator.clear();
+    }
+  });
+
+  it.each(['quoted aggregate', 'qualified scalar', 'unnest'] as const)('runs %s through the original query without materialization', async kind => {
+    const query: QueryFactory = (filter = []) => sql.Query.from('native_preagg').select({
+      group: kind === 'unnest' ? sql.unnest(sql.list([sql.column('cat'), sql.column('cat')])) : sql.column('cat'),
+      measure: kind === 'quoted aggregate' ? sql.add(sql.sum('x'), sql.sql`"max"(x)`)
+        : kind === 'qualified scalar' ? sql.add(sql.sum('x'), sql.sql`preagg_calls."sum"(1, 2, 3)`)
+        : sql.sum('x')
+    }).groupby('cat').where(filter);
+    const state = await clientFor(query);
+    try {
+      state.selection.update(clausePoint('dim', 'b', { source: {} }));
+      await state.selection.pending('value');
+      expectRows(state.rows(), await state.coordinator.query(query(state.selection.predicate(state.client))));
+      const rows = Array.from(state.rows()).sort((a, b) => a.group.localeCompare(b.group));
+      expect(rows).toEqual(kind === 'unnest'
+        ? [{ group: 'u', measure: 3 }, { group: 'u', measure: 3 }, { group: 'v', measure: 4 }, { group: 'v', measure: 4 }]
+        : kind === 'quoted aggregate'
+          ? [{ group: 'u', measure: 6 }, { group: 'v', measure: 8 }]
+          : [{ group: 'u', measure: 9 }, { group: 'v', measure: 10 }]);
+      expect(state.coordinator.preaggregator.entries.get(state.client)).toBeNull();
+      expect(state.connector.calls.some(call => call.type === 'exec' && /CREATE TABLE/i.test(call.sql))).toBe(false);
+      expect(state.errors).toEqual([]);
     } finally {
       state.client.destroy();
       state.coordinator.clear();

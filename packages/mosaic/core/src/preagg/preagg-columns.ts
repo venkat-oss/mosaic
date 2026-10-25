@@ -103,6 +103,7 @@ export function indexable(input: SqlRoot): boolean {
   sql.walk(input, node => {
     const binding = sql.bindingOf(node);
     if (binding && binding.kind !== 'scalar'
+      || 'function' in node || 'method_call' in node || 'unnest' in node
       || 'group' in node && (node.group.grouping_sets != null || node.group.cube != null || node.group.rollup != null || node.group.all != null || node.group.totals != null)
       || 'cube' in node || 'rollup' in node || 'grouping_sets' in node
       || 'select' in node && (node.select.group_by?.all != null || node.select.group_by?.totals || node.select.with?.recursive)) {

@@ -187,9 +187,9 @@ function queryShape(query: QueryType | readonly QueryType[], context: SqlContext
   if (select.where_clause || select.qualify || select.having || select.order_by
     || select.distinct || select.distinct_on?.length || select.windows?.length
     || select.group_by?.all != null || select.group_by?.totals) return;
-  if (select.group_by?.expressions.some(expression => params(expression).length || hasDynamicShape(expression) || hasGroupingOperation(expression))) return;
+  if (select.group_by?.expressions.some(expression => params(expression).length || hasUnsupportedShape(expression) || hasGroupingOperation(expression))) return;
   const projections = selectEntries(query);
-  if (projections.some(({ alias, expr }) => alias === undefined || hasColumnExpansion(expr) || hasDynamicShape(expr))) return;
+  if (projections.some(({ alias, expr }) => alias === undefined || hasColumnExpansion(expr) || hasUnsupportedShape(expr))) return;
   const aliases = new Map(projections.map(({ alias, expr }) => [alias, expr]));
   const groupby = (select.group_by?.expressions ?? []).map(expression => {
     const alias = 'column' in expression && !expression.column.table
@@ -293,16 +293,16 @@ function consolidate(
   }, Math.min(...group.map(item => item.priority)));
 }
 
-function hasDynamicShape(expression: SqlExpression): boolean {
-  let dynamic = false;
+function hasUnsupportedShape(expression: SqlExpression): boolean {
+  let unsupported = false;
   walk(expression, node => {
     const binding = bindingOf(node);
-    if (binding && binding.kind !== 'scalar') {
-      dynamic = true;
+    if (binding && binding.kind !== 'scalar' || 'function' in node || 'method_call' in node || 'unnest' in node) {
+      unsupported = true;
       return -1;
     }
   });
-  return dynamic;
+  return unsupported;
 }
 
 function hasGroupingOperation(expression: SqlExpression): boolean {

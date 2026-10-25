@@ -21,7 +21,7 @@ Create a new Mosaic Coordinator to manage all database communication for clients
 * _cache_: Boolean flag to enable/disable query caching (default `true`), or a cache object such as `lruCache({ maxBytes })` to use a custom budget. See [Query cache](#query-cache).
 * _ipc_: Arrow IPC extraction options used when decoding `"arrow"` query results. If unspecified, date and timestamp values are extracted as JavaScript `Date` objects. Setting new options with `coordinator.manager.ipc(options)` clears the query cache and makes subsequent requests use the new extraction options. In-flight requests retain the options with which they were submitted, and their results do not repopulate the cleared cache.
 * _timeout_: The query timeout in milliseconds (default none). A query that does not complete in time is rejected with a `TimeoutError`, and its connector request is aborted. The clock starts when the query is sent to the connector, not while it waits in the queue. The timeout applies to every query, including `exec` queries that load data or build pre-aggregated tables, so choose a value above the slowest of these. A timed-out `exec` query can still take effect in the database, and later queries wait until the connector stops or completes it.
-* _consolidate_ Boolean flag to enable/disable query consolidation (default `true`). Queries that expand `*` or `COLUMNS(...)` into multiple output columns execute separately, preserving their complete column sets. If extracting a consolidated result fails, every request in that group rejects.
+* _consolidate_ Boolean flag to enable/disable query consolidation (default `true`). Queries that expand `*` or `COLUMNS(...)` into multiple output columns execute separately, preserving their complete column sets. Generic or qualified function calls and row-expanding `unnest` expressions also execute separately because consolidation cannot establish a compatible result shape. If extracting a consolidated result fails, every request in that group rejects.
 * _preagg_: Pre-aggregation options object. The _enabled_ flag (default `true`) determines if pre-aggregation optimizations should be used when possible. The _schema_ option (default `'mosaic'`) indicates the database schema in which materialized view tables should be created for pre-aggregated data.
 * _sql_: A `SqlContext` for compilation and binding-aware analysis. Defaults to a new DuckDB context. Each coordinator owns its context; configure another source or target dialect through `executionContext`.
 
@@ -36,7 +36,9 @@ resolve when materialization is submitted. If a parameter changes before the
 materialized result is read, the request runs its original query and the
 next update can rebuild the materialization. Unsupported plans and failed
 materializations also use the original query. Changing selection fields,
-scale/bin settings or the execution context clears incompatible plans.
+scale/bin settings or the execution context clears incompatible plans. Queries or
+selection fields containing generic or qualified function calls or `unnest` keep
+the original native query path rather than materializing a preaggregate.
 
 A connector with a declared database dialect selects its default `SqlContext`.
 The PostgreSQL Node connector uses DuckDB source semantics and PostgreSQL target

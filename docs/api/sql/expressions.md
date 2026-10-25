@@ -300,7 +300,10 @@ coordinator snapshot, use `compile([expression], context)[0]`. Custom
 
 Use semantic factories and high-level helpers for known operations so dialect
 lowering can preserve their meaning. A custom function call only promises the
-semantics of its source database; it does not establish portability.
+semantics of its source database; it does not establish portability. Generic and
+qualified function calls bypass consolidation and preaggregation because their
+row cardinality and aggregation behavior are not declared. Known semantic
+helpers remain eligible for those optimizations.
 
 `deferred(resolve, parameters)` creates a delayed expression binding. Its callback
 receives a shared parameter reader and returns a native root at submission.

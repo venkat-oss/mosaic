@@ -1,6 +1,6 @@
 import { DuckDB } from '@uwdata/mosaic-duckdb';
 import { tableFromArrays } from '@uwdata/flechette';
-import { add, asLiteral, column, count, deferred, inspectSelect, literal, native, Query, sum } from '@uwdata/mosaic-sql';
+import { add, asLiteral, column, count, deferred, inspectSelect, list, literal, native, Query, sql, sum, unnest } from '@uwdata/mosaic-sql';
 import type { ParamLike, SqlExpression } from '@uwdata/mosaic-sql';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Coordinator } from '../src/Coordinator.js';
@@ -44,6 +44,7 @@ beforeAll(async () => {
   await db.exec(`CREATE TABLE ${source} AS SELECT * FROM (VALUES
     ('a', 1, 10), ('a', 2, NULL), ('b', 3, 30), ('b', 4, 40)
   ) t(g, x, y)`);
+  await db.exec('CREATE MACRO consolidation_aggregate(a) AS max(a); CREATE MACRO "quantile"(a,b,c) AS a+b+c; CREATE SCHEMA consolidation_calls; CREATE MACRO consolidation_calls."sum"(a,b,c) AS a+b+c');
 });
 afterAll(() => db.close());
 
@@ -136,6 +137,53 @@ describe('native query consolidation', () => {
     } finally {
       coordinator.clear();
     }
+  });
+
+  it.each([
+    ['"max"(x) FILTER (WHERE x < 4)', 3],
+    ['consolidation_aggregate(x)', 4]
+  ] as const)('keeps unresolved aggregate %s separate from row projections', async (expression, expected) => {
+    const { connector, coordinator } = await setup();
+    try {
+      const [aggregate, rows] = await Promise.all([
+        coordinator.query(Query.from(source).select({ value: sql`${expression}` })),
+        coordinator.query(Query.from(source).select({ row: 'x' }))
+      ]);
+      expect(Array.from(aggregate)).toEqual([{ value: expected }]);
+      expect(Array.from(rows)).toEqual([{ row: 1 }, { row: 2 }, { row: 3 }, { row: 4 }]);
+      expect(connector.calls).toHaveLength(2);
+    } finally { coordinator.clear(); }
+  });
+
+  it.each(['"quantile"', 'consolidation_calls."sum"'])('keeps unresolved scalar %s on the direct path alongside known aggregates', async name => {
+    const { connector, coordinator } = await setup();
+    try {
+      const [scalar, aggregate, rows] = await Promise.all([
+        coordinator.query(Query.from(source).select({ value: sql`${name}(x, 1, 2)` })),
+        coordinator.query(Query.from(source).select({ total: sum('x') })),
+        coordinator.query(Query.from(source).select({ row: 'x' }))
+      ]);
+      expect(Array.from(scalar)).toEqual([{ value: 4 }, { value: 5 }, { value: 6 }, { value: 7 }]);
+      expect(Array.from(aggregate)).toEqual([{ total: 10 }]);
+      expect(Array.from(rows)).toEqual([{ row: 1 }, { row: 2 }, { row: 3 }, { row: 4 }]);
+      expect(connector.calls).toHaveLength(3);
+    } finally { coordinator.clear(); }
+  });
+
+  it('keeps row-expanding UNNEST projections separate from ordinary row queries', async () => {
+    const { connector, coordinator } = await setup();
+    try {
+      const [expanded, rows] = await Promise.all([
+        coordinator.query(Query.from(source).select({ value: unnest(list([column('x'), column('x')])) })),
+        coordinator.query(Query.from(source).select({ row: 'x' }))
+      ]);
+      expect(Array.from(expanded)).toEqual([
+        { value: 1 }, { value: 1 }, { value: 2 }, { value: 2 },
+        { value: 3 }, { value: 3 }, { value: 4 }, { value: 4 }
+      ]);
+      expect(Array.from(rows)).toEqual([{ row: 1 }, { row: 2 }, { row: 3 }, { row: 4 }]);
+      expect(connector.calls).toHaveLength(2);
+    } finally { coordinator.clear(); }
   });
 
   it('keeps deferred aggregates and dynamic wildcard projections on the direct path', async () => {
