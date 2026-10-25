@@ -1,4 +1,4 @@
-import { coordinator, MosaicClient } from '@uwdata/mosaic-core';
+import { coordinator, isParam, MosaicClient } from '@uwdata/mosaic-core';
 
 /**
  * Instantiate an input, register it with the coordinator, and
@@ -9,8 +9,9 @@ import { coordinator, MosaicClient } from '@uwdata/mosaic-core';
  * @returns {HTMLElement} The container element of the input.
  */
 export function input(InputClass, ...params) {
-  const input = new InputClass(...params);
-  coordinator().connect(input);
+  const owner = coordinator();
+  const input = new InputClass(...params, owner.nativeContext ?? undefined);
+  owner.connect(input);
   return input.element;
 }
 
@@ -39,5 +40,18 @@ export class Input extends MosaicClient {
 
   activate() {
     // subclasses should override
+  }
+
+  _bindSource(source) {
+    if (isParam(source)) {
+      this._sourceParam = source;
+      this._sourceListener = () => this.initialize();
+      source.addEventListener('value', this._sourceListener);
+    }
+  }
+
+  destroy() {
+    this._sourceParam?.removeEventListener('value', this._sourceListener);
+    super.destroy();
   }
 }

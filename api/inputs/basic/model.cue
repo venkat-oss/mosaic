@@ -22,7 +22,7 @@ _inputs: [
 	},
 	{
 		name:             "Search"
-		description:      "A search input component."
+		description:      "A case-insensitive text search input component."
 		input:            "search"
 		inputDescription: "A text search input widget."
 		properties: [

@@ -68,13 +68,13 @@ Native JavaScript tables accept an existing container element; declarative defin
 
 Native JavaScript tables accept per-column formatting functions returning text or DOM nodes. Hovering nested formatter elements selects their containing table row. Declarative definitions do not serialize callbacks.
 
-## Known scoped prefetch limitation
+## Coordinator and paging lifecycle
 
-When a table uses a coordinator different from the global singleton, initial metadata/data and requested pages or sorts use its scoped coordinator, but look-ahead prefetch from scrolling, sorting or requestData uses the global coordinator. That coordinator can query an unrelated database or reject the source table. Successful paging with a shared global/context coordinator does not demonstrate isolated prefetch.
+Metadata, visible pages and look-ahead prefetch use the table's owning coordinator, including an explicitly scoped vgplot API context. Source and filter changes cancel obsolete requests and restart from the first page. Disconnection cancels pending table and prefetch requests.
 
 ## Executable starters
 
-Shared starters cover default columns, ordered projection/alignment/width, scrolling batches, row selection, linked filtering and a source Param switching between two named datasets. The paging interaction is supported when context and global coordinator are the same. Native formatting and explicit scoped coordinators have JavaScript-only starters; JSON/YAML do not invent callback or coordinator fields.
+Shared starters cover default columns, ordered projection/alignment/width, scrolling batches, row selection, linked filtering and a source Param switching between two named datasets. Native formatting and explicit scoped coordinators have JavaScript-only starters; JSON/YAML do not invent callback or coordinator fields.
 
 | Variant | Downloads |
 | --- | --- |

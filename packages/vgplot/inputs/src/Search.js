@@ -1,6 +1,7 @@
 /** @import { Param, Selection } from '@uwdata/mosaic-core' */
-import { isParam, isSelection, clauseMatch } from '@uwdata/mosaic-core';
+import { isParam, isSelection, clauseMatch, NativeSqlContext } from '@uwdata/mosaic-core';
 import { Query } from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { Input, input } from './input.js';
 
 let _id = 0;
@@ -10,7 +11,7 @@ let _id = 0;
  * @param {object} [options] Options object
  * @param {HTMLElement} [options.element] The parent DOM element in which to
  *  place the search elements. If undefined, a new `div` element is created.
- * @param {Selection} [options.filterBy] A selection to filter the database
+ * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
  *  table indicated by the *from* option.
  * @param {Param} [options.as] The output param or selection. A selection
  *  clause is added based on the current text search query.
@@ -35,7 +36,7 @@ export const search = options => input(Search, options);
 
 /**
  * A HTML text search input.
- * @extends {Input}
+ * @extends {Input<import('@uwdata/mosaic-core').SelectionExpression>}
  */
 export class Search extends Input {
   /**
@@ -43,7 +44,7 @@ export class Search extends Input {
    * @param {object} [options] Options object
    * @param {HTMLElement} [options.element] The parent DOM element in which to
    *  place the search elements. If undefined, a new `div` element is created.
-   * @param {Selection} [options.filterBy] A selection to filter the database
+   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
    *  table indicated by the *from* option.
    * @param {Param} [options.as] The output param or selection. A selection
    *  clause is added based on the current text search query.
@@ -62,6 +63,7 @@ export class Search extends Input {
    *  to pull valid search results. The unique column values are used as search
    *  autocomplete values. Used in conjunction with the *from* option.
    * @param {string} [options.label] A text label for this input.
+   * @param {NativeSqlContext} [nativeContext] The native SQL context.
    */
   constructor({
     element,
@@ -72,14 +74,17 @@ export class Search extends Input {
     type = 'contains',
     field = column,
     as
-  } = {}) {
-    super(filterBy, element);
+  } = {}, nativeContext) {
+    const owner = nativeContext ?? (isSelection(as) ? as.owner : filterBy?.owner);
+    super(filterBy, element, 'input', owner ?? undefined);
     this.id = 'search_' + (++_id);
     this.type = type;
     this.from = from;
     this.column = column;
     this.selection = as;
     this.field = field;
+    this.data = [];
+    this._bindSource(from);
 
     if (label) {
       const lab = document.createElement('label');
@@ -120,7 +125,9 @@ export class Search extends Input {
 
   clause(value) {
     const { field, type } = this;
-    return clauseMatch(field, value, { source: this, method: type });
+    return this.sqlOwner instanceof NativeSqlContext
+      ? this.sqlOwner.match(field, value, { source: this, method: type })
+      : clauseMatch(field, value, { source: this, method: type });
   }
 
   activate() {
@@ -140,9 +147,13 @@ export class Search extends Input {
 
   query(filter = []) {
     const { from, column } = this;
-    if (!from) return null;
+    const table = isParam(from) ? from.value : from;
+    if (!table) return null;
+    if (this.sqlOwner instanceof NativeSqlContext) {
+      return nativeSQL.Query.from(nativeSQL.from(table)).select({ list: column }).distinct().where(filter);
+    }
     return Query
-      .from(from)
+      .from(table)
       .select({ list: column })
       .distinct()
       .where(filter);

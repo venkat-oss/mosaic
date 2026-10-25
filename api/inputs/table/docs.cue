@@ -10,7 +10,7 @@ tableDocumentation: {
 	source:   "The declarative input discriminator and from source are required. The source can be a table name or a parameter reference. Native JavaScript permits an omitted options object; Python requires its source argument but accepts Any values beyond the declarative schema. A source Param reinitializes metadata and table data when its value changes."
 	paging:   "Click a column header to sort ascending, click again to sort descending, and meta-click the current header to cancel sorting. Scrolling near the bottom requests the next batch. These are runtime interactions rather than declarative sort properties. Row selection uses pointer hover and clears on pointer leave."
 	targets:  "The output binding is a Selection. Python's table_input widget is distinct from the table data-definition helper. The input parser and JavaScript helper use the wire name table; Python code generation uses table_input."
-	starters: "Shared starters cover default columns, ordered projection/alignment/width, scrolling batches, row selection, linked filtering and a source Param switching between two named datasets. The paging interaction is supported when context and global coordinator are the same. Native formatting and explicit scoped coordinators have JavaScript-only starters; JSON/YAML do not invent callback or coordinator fields."
+	starters: "Shared starters cover default columns, ordered projection/alignment/width, scrolling batches, row selection, linked filtering and a source Param switching between two named datasets. Native formatting and explicit scoped coordinators have JavaScript-only starters; JSON/YAML do not invent callback or coordinator fields."
 }
 docFiles: {
 	"docs/api/inputs/table.md": """
@@ -73,9 +73,9 @@ docFiles: {
 
   \(strings.Join([for adapter in hostAdapters {adapter.description}], "\n\n"))
 
-  ## Known scoped prefetch limitation
+  ## Coordinator and paging lifecycle
 
-  \(prefetchLimitation)
+  \(coordinatorBehavior)
 
   ## Executable starters
 

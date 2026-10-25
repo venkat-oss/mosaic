@@ -70,7 +70,7 @@ hostAdapters: [
 	{description: "Native JavaScript tables accept an existing container element; declarative definitions do not serialize DOM nodes."},
 	{description: "Native JavaScript tables accept per-column formatting functions returning text or DOM nodes. Hovering nested formatter elements selects their containing table row. Declarative definitions do not serialize callbacks."},
 ]
-prefetchLimitation: "When a table uses a coordinator different from the global singleton, initial metadata/data and requested pages or sorts use its scoped coordinator, but look-ahead prefetch from scrolling, sorting or requestData uses the global coordinator. That coordinator can query an unrelated database or reject the source table. Successful paging with a shared global/context coordinator does not demonstrate isolated prefetch."
+coordinatorBehavior: "Metadata, visible pages and look-ahead prefetch use the table's owning coordinator, including an explicitly scoped vgplot API context. Source and filter changes cancel obsolete requests and restart from the first page. Disconnection cancels pending table and prefetch requests."
 
 #RuntimeDefaults: {
 	columns!: [string, ...string]

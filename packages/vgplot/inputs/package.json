@@ -29,6 +29,7 @@
     "test": "bazelisk test //packages/vgplot/inputs:check"
   },
   "dependencies": {
+    "@uwdata/flechette": "catalog:",
     "@uwdata/mosaic-core": "workspace:^",
     "@uwdata/mosaic-sql": "workspace:^"
   }

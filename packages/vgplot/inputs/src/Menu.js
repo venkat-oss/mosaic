@@ -1,6 +1,7 @@
 /** @import { Param, Selection } from '@uwdata/mosaic-core' */
-import { isParam, isSelection, clausePoint, clauseList } from '@uwdata/mosaic-core';
+import { isParam, isSelection, clausePoint, clauseList, NativeSqlContext } from '@uwdata/mosaic-core';
 import { Query, unnest } from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { Input, input } from './input.js';
 
 const isObject = v => {
@@ -12,7 +13,7 @@ const isObject = v => {
  * @param {object} [options] Options object
  * @param {HTMLElement} [options.element] The parent DOM element in which to
  *  place the menu elements. If undefined, a new `div` element is created.
- * @param {Selection} [options.filterBy] A selection to filter the database
+ * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
  *  table indicated by the *from* option.
  * @param {Param} [options.as] The output param or selection. A selection
  *  clause is added for the currently selected menu option.
@@ -40,7 +41,7 @@ export const menu = options => input(Menu, options);
 
 /**
  * A HTML <select>-based dropdown menu input.
- * @extends {Input}
+ * @extends {Input<import('@uwdata/mosaic-core').SelectionExpression>}
  */
 export class Menu extends Input {
   /**
@@ -48,7 +49,7 @@ export class Menu extends Input {
    * @param {object} [options] Options object
    * @param {HTMLElement} [options.element] The parent DOM element in which to
    *  place the menu elements. If undefined, a new `div` element is created.
-   * @param {Selection} [options.filterBy] A selection to filter the database
+   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
    *  table indicated by the *from* option.
    * @param {Param} [options.as] The output param or selection. A selection
    *  clause is added for the currently selected menu option.
@@ -70,6 +71,7 @@ export class Menu extends Input {
    *  Used in conjunction with the *from* option.
    * @param {string} [options.label] A text label for this input.
    * @param {'any' | 'all'} [options.listMatch] The list match mode.
+   * @param {NativeSqlContext} [nativeContext] The native SQL context.
    */
   constructor({
     element,
@@ -83,15 +85,18 @@ export class Menu extends Input {
     value,
     field = column,
     listMatch,
-  } = {}) {
-    super(filterBy, element);
+  } = {}, nativeContext) {
+    const owner = nativeContext ?? (isSelection(as) ? as.owner : filterBy?.owner);
+    super(filterBy, element, 'input', owner ?? undefined);
     this.from = from;
     this.column = column;
     this.format = format;
     this.field = field;
     this.listMatch = listMatch;
     this.initialValue = value;
+    this.data = [];
     const selection = this.selection = as;
+    this._bindSource(from);
 
     const lab = document.createElement('label');
     lab.innerText = label || column;
@@ -159,7 +164,9 @@ export class Menu extends Input {
 
   activate() {
     if (isSelection(this.selection)) {
-      this.selection.activate(clausePoint(this.field, 0, { source: this }));
+      this.selection.activate(this.sqlOwner instanceof NativeSqlContext
+        ? this.sqlOwner.point(this.field, 0, { source: this })
+        : clausePoint(this.field, 0, { source: this }));
     }
   }
 
@@ -167,9 +174,9 @@ export class Menu extends Input {
     const { selection, field, listMatch } = this;
     if (isSelection(selection)) {
       if (value === '') value = undefined; // 'All' option
-      const clause = listMatch
-        ? clauseList(field, value, { source: this, listMatch })
-        : clausePoint(field, value, { source: this });
+      const clause = this.sqlOwner instanceof NativeSqlContext
+        ? listMatch ? this.sqlOwner.list(field, value, { source: this, listMatch }) : this.sqlOwner.point(field, value, { source: this })
+        : listMatch ? clauseList(field, value, { source: this, listMatch }) : clausePoint(field, value, { source: this });
       selection.update(clause);
     } else if (isParam(selection)) {
       selection.update(value);
@@ -178,9 +185,15 @@ export class Menu extends Input {
 
   query(filter = []) {
     const { from, column, listMatch } = this;
-    if (!from) return null;
+    const table = isParam(from) ? from.value : from;
+    if (!table) return null;
+    if (this.sqlOwner instanceof NativeSqlContext) {
+      return nativeSQL.Query.from(nativeSQL.from(table))
+        .select({ value: listMatch ? nativeSQL.unnest(column) : column })
+        .distinct().where(filter).orderby('value');
+    }
     return Query
-      .from(from)
+      .from(table)
       .select({ value: listMatch ? unnest(column) : column })
       .distinct()
       .where(filter)

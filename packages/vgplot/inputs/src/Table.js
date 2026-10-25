@@ -1,9 +1,10 @@
 /**
  * @import { Selection } from '@uwdata/mosaic-core'
- * @import { FilterExpr } from '@uwdata/mosaic-sql'
  */
-import { clausePoints, coordinator, isParam, isSelection, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
+import { clausePoints, isArrowTable, isParam, isSelection, NativeSqlContext, queryFieldInfo, toDataColumns } from '@uwdata/mosaic-core';
+import { Type } from '@uwdata/flechette';
 import { Query, desc } from '@uwdata/mosaic-sql';
+import * as nativeSQL from '@uwdata/mosaic-sql/native';
 import { formatDate, formatLocaleAuto, formatLocaleNumber } from './util/format.js';
 import { Input, input } from './input.js';
 import { TABLE_DEFAULT_COLUMNS, TABLE_DEFAULT_HEIGHT, TABLE_DEFAULT_ROW_BATCH } from './generated/table.js';
@@ -15,9 +16,9 @@ let _id = -1;
  * @param {object} options Options object
  * @param {HTMLElement} [options.element] The parent DOM element in which to
  *  place the table element. If undefined, a new `div` element is created.
- * @param {Selection} [options.filterBy] A selection to filter the database
+ * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
  *  table indicated by the *from* option.
- * @param {Selection} [options.as] The output selection. A selection
+ * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.as] The output selection. A selection
  *  clause is added for the currently selected table row.
  * @param {{ [name: string]: 'left' | 'right' | 'center' }} [options.align]
  *  An object that maps column names to horizontal text alignment values. If
@@ -45,7 +46,7 @@ export const table = options => input(Table, options);
 
 /**
  * A HTML table based table component.
- * @extends {Input}
+ * @extends {Input<import('@uwdata/mosaic-core').SelectionExpression>}
  */
 export class Table extends Input {
   /**
@@ -53,9 +54,9 @@ export class Table extends Input {
    * @param {object} options Options object
    * @param {HTMLElement} [options.element] The parent DOM element in which to
    *  place the table element. If undefined, a new `div` element is created.
-   * @param {Selection} [options.filterBy] A selection to filter the database
+   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.filterBy] A selection to filter the database
    *  table indicated by the *from* option.
-   * @param {Selection} [options.as] The output selection. A selection
+   * @param {Selection<import('@uwdata/mosaic-core').SelectionExpression>} [options.as] The output selection. A selection
    *  clause is added for the currently selected table row.
    * @param {{ [name: string]: 'left' | 'right' | 'center' }} [options.align]
    *  An object that maps column names to horizontal text alignment values. If
@@ -77,6 +78,7 @@ export class Table extends Input {
    * @param {number} [options.rowBatch] The number of rows to request per query
    *  batch. The batch size will be used to prefetch data beyond the currently
    *  visible range.
+   * @param {NativeSqlContext} [nativeContext] The native SQL context.
    */
   constructor({
     element,
@@ -90,26 +92,30 @@ export class Table extends Input {
     height = TABLE_DEFAULT_HEIGHT,
     rowBatch = TABLE_DEFAULT_ROW_BATCH,
     as
-  } = {}) {
-    super(filterBy, element, null);
+  } = {}, nativeContext) {
+    const owner = nativeContext ?? (isSelection(as) ? as.owner : filterBy?.owner);
+    super(filterBy, element, null, owner ?? undefined);
 
     this.id = `table-${++_id}`;
     this.element.setAttribute('id', this.id);
 
     this.from = from;
     this.columns = columns;
+    /** @type {import('@uwdata/mosaic-core').FieldInfo[]} */
+    this.schema = [];
     this.format = format;
     this.align = align;
     this.widths = typeof width === 'object' ? width : {};
 
-    if (isParam(from)) {
-      // if data table is a param, re-initialize upon change
-      from.addEventListener('value', () => this.initialize());
-    }
+    this._bindSource(from);
 
     this.offset = 0;
     this.limit = +rowBatch;
     this.isPending = false;
+    /** @type {Promise<unknown> | null} */
+    this.prefetch = null;
+    /** @type {(import('@uwdata/flechette').Schema | undefined)[]} */
+    this.dataSchemas = [];
 
     this.selection = as;
     this.currentRow = -1;
@@ -170,32 +176,59 @@ export class Table extends Input {
     return isParam(this.from) ? this.from.value : this.from;
   }
 
-  clause(rows = []) {
-    const { data, limit, schema } = this;
-    const fields = schema.map(s => s.column);
-    const values = rows.map(row => {
-      const { columns } = data[~~(row / limit)];
-      return fields.map(f => columns[f][row % limit]);
-    });
-    return clausePoints(fields, values, { source: this });
+  get filterStable() {
+    return false;
   }
 
+  _cancelQuery() {
+    super._cancelQuery();
+    if (this.prefetch) this.coordinator?.cancel([this.prefetch]);
+    this.prefetch = null;
+  }
+
+  initialize() {
+    this.offset = 0;
+    this.isPending = false;
+    return super.initialize();
+  }
+
+  clause(rows = null) {
+    const { data, limit, schema } = this;
+    const fields = schema.map(s => s.column);
+    const values = rows == null ? null : rows.map(row => {
+      const batch = ~~(row / limit);
+      const { columns } = data[batch];
+      const schema = this.dataSchemas[batch];
+      return fields.map((field, index) => selectionValue(columns[field][row % limit], schema?.fields[index]?.type));
+    });
+    return this.sqlOwner instanceof NativeSqlContext
+      ? this.sqlOwner.points(fields, values, { source: this })
+      : clausePoints(fields, values, { source: this });
+  }
+
+  /** @returns {Promise<unknown> | null} */
   requestData(offset = 0) {
-    this.offset = offset;
+    const mc = this.coordinator;
+    if (!mc || !this.enabled) return this.requestQuery();
 
     // request next data batch
-    const query = this.query(this.filterBy?.predicate(this));
-    this.requestQuery(query);
+    const query = this.query(this.filterBy?.predicate(this), offset);
+    const pending = this.requestQuery(query);
 
     // prefetch subsequent data batch
-    coordinator().prefetch(query.clone().offset(offset + this.limit));
+    this.prefetch = mc.prefetch(query.clone().offset(offset + this.limit));
+    this.prefetch.catch(() => {});
+    return pending;
   }
 
   async prepare() {
     // query for column schema information
+    const pending = this.pending;
+    const mc = this.coordinator;
     const table = this.sourceTable();
     const fields = this.columns.map(column => ({ column, table }));
-    const schema = await queryFieldInfo(this.coordinator, fields);
+    const schema = await queryFieldInfo(mc, fields);
+    if (this.pending !== pending || this.coordinator !== mc) return;
     this.schema = schema;
 
     // create table header row
@@ -223,10 +256,21 @@ export class Table extends Input {
   }
 
   /**
-   * @param {FilterExpr} filter
+   * @param {*} [filter]
+   * @param {number} [offset]
    */
-  query(filter = []) {
-    const { limit, offset, schema, sortColumn, sortDesc } = this;
+  query(filter = [], offset = 0) {
+    this._cancelQuery();
+    this.offset = offset;
+    this.isPending = offset > 0;
+    const { limit, schema, sortColumn, sortDesc } = this;
+    if (this.sqlOwner instanceof NativeSqlContext) {
+      return nativeSQL.Query.from(nativeSQL.from(this.sourceTable()))
+        .select(schema.map(s => s.column))
+        .where(filter)
+        .orderby(sortColumn ? (sortDesc ? nativeSQL.desc(sortColumn) : sortColumn) : [])
+        .limit(limit).offset(offset);
+    }
     return Query.from(this.sourceTable())
       .select(schema.map(s => s.column))
       .where(filter)
@@ -240,10 +284,12 @@ export class Table extends Input {
       // data is not from an internal request, so reset table
       this.loaded = false;
       this.data = [];
+      this.dataSchemas = [];
       this.body.replaceChildren();
       this.offset = 0;
     }
     this.data.push(toDataColumns(data));
+    this.dataSchemas.push(isArrowTable(data) ? data.schema : undefined);
     return this;
   }
 
@@ -314,6 +360,30 @@ export class Table extends Input {
 }
 
 /**
+ * @param {unknown} value
+ * @param {import('@uwdata/flechette').DataType} [type]
+ * @returns {unknown}
+ */
+function selectionValue(value, type) {
+  if (value == null || !type) return value;
+  if (type.typeId === Type.Dictionary) return selectionValue(value, type.dictionary);
+  switch (type.typeId) {
+    case Type.List:
+    case Type.LargeList:
+    case Type.FixedSizeList:
+    case Type.ListView:
+    case Type.LargeListView:
+      return Array.from(/** @type {ArrayLike<unknown>} */ (value), item => selectionValue(item, type.children[0].type));
+    case Type.Struct: {
+      const record = /** @type {Record<string, unknown>} */ (value);
+      return Object.fromEntries(type.children.map(field => [field.name, selectionValue(record[field.name], field.type)]));
+    }
+    default:
+      return value;
+  }
+}
+
+/**
  * Resolve a table row number from an event target within its body.
  * @param {any} element An HTML element.
  * @param {HTMLTableSectionElement} body The table body.
@@ -328,7 +398,7 @@ function resolveRow(element, body) {
 
 function formatof(base = {}, schema, locale) {
   return schema.map(({ column, type }) => {
-    if (column in base) {
+    if (Object.hasOwn(base, column)) {
       return base[column];
     } else {
       switch (type) {
@@ -342,7 +412,7 @@ function formatof(base = {}, schema, locale) {
 
 function alignof(base = {}, schema) {
   return schema.map(({ column, type }) => {
-    if (column in base) {
+    if (Object.hasOwn(base, column)) {
       return base[column];
     } else if (type === 'number') {
       return 'right';
@@ -353,7 +423,7 @@ function alignof(base = {}, schema) {
 }
 
 function widthof(base = {}, schema) {
-  return schema.map(({ column }) => base[column]);
+  return schema.map(({ column }) => Object.hasOwn(base, column) ? base[column] : undefined);
 }
 
 function tableCSS(id, aligns, widths) {

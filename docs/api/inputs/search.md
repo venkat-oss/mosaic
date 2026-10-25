@@ -9,7 +9,7 @@
 
 # Search
 
-A search input component.
+A case-insensitive text search input component.
 
 <template v-if="language === 'js'">
 

@@ -18,6 +18,7 @@ mosaic_package_test(
 mosaic_javascript(
     consumer_tests = [":package_test"],
     deps = [
+        ":node_modules/@uwdata/flechette",
         ":node_modules/@uwdata/mosaic-core",
         ":node_modules/@uwdata/mosaic-sql",
     ],

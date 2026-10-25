@@ -366,6 +366,9 @@ importers:
 
   packages/vgplot/inputs:
     dependencies:
+      '@uwdata/flechette':
+        specifier: 'catalog:'
+        version: 2.7.1
       '@uwdata/mosaic-core':
         specifier: workspace:^
         version: link:../../mosaic/core

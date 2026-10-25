@@ -5,7 +5,7 @@ import { NodeConnector } from '@uwdata/mosaic-core/node-connector';
 import { astToDOM, parseSpec } from '@uwdata/mosaic-spec';
 import { Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parse as parseYAML } from 'yaml';
 import * as vg from '../src/index.js';
 import { clientsReady } from './util/clients-ready.js';
@@ -101,10 +101,9 @@ it('executes the JavaScript-only native container and text/element formatters', 
   }
 }, 30000);
 
-it('pages and sorts actual rows while preserving the labelled global prefetch boundary', async () => {
-  const previous = vg.coordinator();
+it('pages and sorts actual rows using its scoped coordinator for prefetch', async () => {
   const { coordinator, errors, api } = await context();
-  vg.coordinator(coordinator);
+  const prefetch = vi.spyOn(vg.coordinator(), 'prefetch').mockImplementation(() => { throw new Error('Unexpected global prefetch.'); });
   try {
     await coordinator.exec(vg.createTable('table_data', "SELECT * FROM (VALUES (1,'A'),(2,'B'),(3,'A'),(4,'B'),(5,'C')) AS t(x,category)"));
     const element = api.table({from:'table_data',columns:['x','category'],rowBatch:2});
@@ -129,7 +128,7 @@ it('pages and sorts actual rows while preserving the labelled global prefetch bo
     expect(table.sortColumn).toBeNull();
     expect([...table.body.rows].map(row => row.cells[0].innerText)).toEqual(['1', '2']);
     expect(errors).toEqual([]);
-  } finally { await cleanup(coordinator); vg.coordinator(previous); }
+  } finally { await cleanup(coordinator); prefetch.mockRestore(); }
 }, 30000);
 
 it('reinitializes a Param-backed source and filters rows through a linked menu', async () => {
@@ -186,7 +185,8 @@ it('publishes hover rows across query chunks and clears on leave through the act
     table.body.dispatchEvent(new Event('pointerleave'));
     await selection.pending('value');
     expect(table.currentRow).toBe(-1);
-    expect(selection.value).toEqual([]);
+    expect(selection.value).toBeNull();
+    expect(selection.predicate()).toEqual([]);
     expect(errors).toEqual([]);
   } finally { await cleanup(coordinator); vg.coordinator(previous); }
 }, 30000);
@@ -230,7 +230,8 @@ it('preserves native alignment and selects rows through nested HTML and SVG form
       table.body.dispatchEvent(new Event('pointerleave'));
       await selection.pending('value');
       expect(table.currentRow).toBe(-1);
-      expect(selection.value).toEqual([]);
+      expect(selection.value).toBeNull();
+      expect(selection.predicate()).toEqual([]);
     }
     table.body.dispatchEvent(new Event('pointerover', { bubbles: true }));
     expect(table.currentRow).toBe(-1);

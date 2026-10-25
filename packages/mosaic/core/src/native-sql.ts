@@ -1,7 +1,8 @@
-import type { ExprValue, SqlExpression, SqlExecutionContext, SqlValue, SqlRoot, Query } from '@uwdata/mosaic-sql/native';
+import type { ExprValue, SqlExpression, SqlExecutionContext, SqlRoot, Query } from '@uwdata/mosaic-sql/native';
 import {
-  and, asLiteral, asNode, between, compileBatch, createExecutionContext,
-  isNotDistinct, LegacyInputAdapter, listHasAll, listHasAny, or, StructuralKeyScope
+  and, asLiteral, asNode, between, compileBatch, contains, createExecutionContext,
+  isNotDistinct, LegacyInputAdapter, listHasAll, listHasAny, literal, lower, or, prefix,
+  regexp_matches, StructuralKeyScope, suffix
 } from '@uwdata/mosaic-sql/native';
 import { isMosaicClient } from './MosaicClient.js';
 import { Selection, SelectionResolver } from './Selection.js';
@@ -11,12 +12,16 @@ import type { DescribeQuery, ScaleDomain, ScaleOptions, SelectQuery } from '@uwd
 import type { IntervalOptions, IntervalMetadata } from './clause/IntervalClause.js';
 import type { PointOptions } from './clause/PointClause.js';
 import type { ListMetadata, ListOptions } from './clause/ListClause.js';
+import type { MatchMetadata, MatchOptions } from './clause/MatchClause.js';
 
 export type NativeSelection = Selection<SqlExpression>;
 export type NativeSelectionClause = SelectionClause<SqlExpression>;
 type NativePointOptions = Omit<PointOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
 type NativeIntervalOptions = Omit<IntervalOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
 type NativeListOptions = Omit<ListOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
+type NativeMatchOptions = Omit<MatchOptions, 'clients'> & Pick<NativeSelectionClause, 'clients'>;
+
+const matchMethods = { contains, prefix, suffix };
 
 export class NativeSqlContext {
   private _execution: SqlExecutionContext;
@@ -106,7 +111,7 @@ export class NativeSqlContext {
       clients,
       fields: [node],
       value,
-      predicate: value === undefined ? null : isNotDistinct(node, asLiteral(pointValue(value)))
+      predicate: value === undefined ? null : isNotDistinct(node, literal(value))
     };
   }
 
@@ -118,7 +123,7 @@ export class NativeSqlContext {
     const nodes = fields.map(asNode);
     const predicate = value == null ? null : or(value.map(row => {
       if (row.length !== nodes.length) throw new RangeError('Native points require one value per field.');
-      return and(row.map((item, index) => isNotDistinct(nodes[index], asLiteral(pointValue(item)))));
+      return and(row.map((item, index) => isNotDistinct(nodes[index], literal(item))));
     }));
     return { context: this, meta: { type: 'point' }, source, clients, fields: nodes, value, predicate };
   }
@@ -131,8 +136,22 @@ export class NativeSqlContext {
     const node = asNode(field);
     const match = listMatch === 'all' ? listHasAll : listHasAny;
     const predicate = value === undefined || Array.isArray(value) && !value.length ? null
-      : match(node, value === null ? null : (Array.isArray(value) ? value : [value]).map(pointValue));
+      : match(node, value === null ? null : (Array.isArray(value) ? value : [value]).map(literal));
     const meta: ListMetadata = { type: 'list', match: listMatch };
+    return { context: this, meta, source, clients, fields: [node], value, predicate };
+  }
+
+  match(
+    field: ExprValue,
+    value: string | null | undefined,
+    { source, clients, method = 'contains', caseSensitive = false }: NativeMatchOptions
+  ): NativeSelectionClause {
+    const node = asNode(field);
+    const text = asLiteral(value);
+    const predicate = !value ? null : method === 'regexp'
+      ? regexp_matches(node, text, caseSensitive ? undefined : 'i')
+      : matchMethods[method](caseSensitive ? node : lower(node), caseSensitive ? text : lower(text));
+    const meta: MatchMetadata = { type: 'match', method };
     return { context: this, meta, source, clients, fields: [node], value, predicate };
   }
 
@@ -173,13 +192,4 @@ export class NativeSqlContext {
   clear(source: ClauseSource): NativeSelectionClause {
     return { context: this, source, fields: [], value: null, predicate: null };
   }
-}
-
-function pointValue(value: unknown): SqlValue {
-  if (value == null || typeof value === 'string' || typeof value === 'number' ||
-      typeof value === 'bigint' || typeof value === 'boolean' ||
-      value instanceof Date || value instanceof RegExp) {
-    return value;
-  }
-  throw new TypeError('Native point selections require a scalar SQL value.');
 }

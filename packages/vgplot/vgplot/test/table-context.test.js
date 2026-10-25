@@ -16,7 +16,7 @@ function controlledCoordinator() {
   return {coordinator,queries,connector};
 }
 
-it('keeps initial and requested table data scoped while page and sort prefetch use the global coordinator',async()=>{
+it('keeps table pages, sorts and look-ahead prefetch on their owning coordinator',async()=>{
   const previous=vg.coordinator();
   const global=controlledCoordinator();
   const left=controlledCoordinator();
@@ -46,13 +46,21 @@ it('keeps initial and requested table data scoped while page and sort prefetch u
     });
     leftElement.dispatchEvent(new Event('scroll'));
     await leftTable.pending;
-    expect(left.queries.at(-1)).toBe('SELECT "x" FROM "left_rows" LIMIT 1 OFFSET 1');
-    expect(global.queries).toEqual(['SELECT "x" FROM "left_rows" LIMIT 1 OFFSET 2']);
+    expect(left.queries.slice(-2)).toEqual([
+      'SELECT "x" FROM "left_rows" LIMIT 1 OFFSET 1',
+      'SELECT "x" FROM "left_rows" LIMIT 1 OFFSET 2'
+    ]);
+    expect(leftTable.body.rows).toHaveLength(2);
+    expect(global.queries).toEqual([]);
     expect(right.queries).toHaveLength(2);
     rightElement.querySelector('th').dispatchEvent(new MouseEvent('click'));
     await rightTable.pending;
-    expect(right.queries.at(-1)).toBe('SELECT "x" FROM "right_rows" ORDER BY "x" LIMIT 1 OFFSET 0');
-    expect(global.queries.at(-1)).toBe('SELECT "x" FROM "right_rows" ORDER BY "x" LIMIT 1 OFFSET 1');
+    expect(right.queries.slice(-2)).toEqual([
+      'SELECT "x" FROM "right_rows" ORDER BY "x" LIMIT 1 OFFSET 0',
+      'SELECT "x" FROM "right_rows" ORDER BY "x" LIMIT 1 OFFSET 1'
+    ]);
+    expect(rightTable.body.rows).toHaveLength(1);
+    expect(global.queries).toEqual([]);
     expect(left.connector.query).not.toHaveBeenCalled();
     expect(right.connector.query).not.toHaveBeenCalled();
     expect(global.connector.query).not.toHaveBeenCalled();

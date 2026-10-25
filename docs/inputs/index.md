@@ -43,7 +43,7 @@ Two-way linking is also supported for selections using _single_ resolution, wher
 - [Search API Reference](/api/inputs/search)
 - [Slider API Reference](/api/inputs/slider)
 
-## Native Slider preview
+## Native input preview {#native-slider-preview}
 
 The experimental native SQL path connects a Slider selection to native Polyglot
 queries. Create an isolated context and use its selections with the temporary
@@ -80,8 +80,15 @@ results. Live scalar and column parameters resolve from their current values
 when submitted.
 
 Use separate contexts and selection graphs for independent coordinators.
-The normal SQL API and other input families keep their current implementation
-during this slice. Native consolidation and DuckDB pre-aggregation are enabled
+Menu, Search and Table also use this native path. Construct them through
+`createAPIContext({ coordinator })` to supply the owning context even when the
+input has no selection binding. Menu supports scalar and list-valued columns;
+Search performs case-insensitive matching and preserves regular-expression
+escapes. Table loads metadata, visible pages and look-ahead pages through its
+own coordinator, and source or filter changes restart from the first page.
+
+The normal SQL entry keeps its previous implementation until the default switch.
+Native consolidation and DuckDB pre-aggregation are enabled
 for compatible queries; see the [coordinator options](/api/core/coordinator#constructor)
 and [work packets](/development/polyglot/work-packets).
 
