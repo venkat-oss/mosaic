@@ -127,6 +127,44 @@ describe('native SQL templates', () => {
     expect(reads).toBe(0);
   });
 
+  it('preserves quoted and qualified function identity with live template arguments', async () => {
+    const udf = new DuckDB(':memory:', {}, '');
+    let value = 4;
+    let reads = 0;
+    const parameter = { get value() { ++reads; return value; }, addEventListener() {}, removeEventListener() {} };
+    try {
+      await udf.exec('CREATE MACRO "abs"(a,b,c) AS a+b+c; CREATE MACRO "sum"(a,b,c) AS a+b+c; CREATE MACRO "quantile"(a,b,c) AS a+b+c; CREATE SCHEMA custom_functions; CREATE MACRO custom_functions.sum(a,b,c) AS a+b+c');
+      const queries = ['abs', 'sum', 'quantile'].map(name => sql.sql`SELECT "${name}"(${parameter}, ${parameter}, ${1}) AS value`);
+      queries.push(sql.sql`SELECT custom_functions.sum(${parameter}, ${parameter}, ${1}) AS value`);
+      expect(reads).toBe(0);
+      const statements = sql.compile(queries, execution);
+      expect(reads).toBe(1);
+      for (const statement of statements) expect(await udf.query(statement)).toEqual([{ value: 9 }]);
+      value = 6;
+      expect(await udf.query(queries[2].toString())).toEqual([{ value: 13 }]);
+      expect(reads).toBe(2);
+      expect(await udf.query(sql.sql`SELECT "max"(x) FILTER (WHERE x > ${1}) AS value FROM (VALUES (1),(2),(3)) AS t(x)`.toString()))
+        .toEqual([{ value: 3 }]);
+      expect(await udf.query(sql.sql`SELECT "mode"() WITHIN GROUP (ORDER BY x DESC) AS value FROM (VALUES (1),(1),(2),(2)) AS t(x)`.toString()))
+        .toEqual([{ value: 2 }]);
+    } finally { udf.close(); }
+  });
+
+  it('keeps discrete quantile semantics across native, parsed and manual authoring', async () => {
+    const spark = sql.createExecutionContext({ targetDialect: sql.Dialect.Spark });
+    const source = sql.from(sql.values([[1], [2], [3], [4]]), 'points', undefined, ['x']);
+    const expressions = [
+      sql.quantile('x', 0.5),
+      sql.sql`quantile(x, 0.5)`,
+      sql.native.call('quantile', [sql.column('x'), sql.literal(0.5)])
+    ];
+    for (const expression of expressions) {
+      const query = sql.Query.from(source).select({ value: expression });
+      expect(sql.compile([query], spark)[0]).toMatch(/PERCENTILE_DISC\(0\.5\) WITHIN GROUP/);
+      expect(await run(query)).toEqual([{ value: 2 }]);
+    }
+  });
+
   it('detects reserved identifiers and rejects structurally invalid interpolation positions', () => {
     expect(() => sql.verbatim('__mosaic_sql_collision').expression).toThrow(/reserved/);
     expect(() => sql.sql`SELECT ${sql.column('x')} AS ${sql.column('name')}`.expression).toThrow(/complete expression or relation/);
